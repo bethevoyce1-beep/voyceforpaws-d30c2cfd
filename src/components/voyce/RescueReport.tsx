@@ -103,18 +103,23 @@ function reportedNow(): { stamp: string; minsAgo: number } {
 export function RescueReport({
   image,
   data,
+  mission,
   onContinue,
 }: {
   image: string;
   data: Assessment;
+  mission: MissionId;
   onContinue: () => void;
 }) {
   const [tab, setTab] = useState<"story" | "vet">("story");
-  const ribbonKey = useMemo(() => pickRibbon(data), [data]);
+  const m = MISSIONS[mission];
+  const ribbonKey = useMemo(() => pickRibbon(data, mission), [data, mission]);
   const r = RIBBONS[ribbonKey];
   const isCalm = ribbonKey === "monitoring";
   const isUrgent = ribbonKey === "urgent_injured" || ribbonKey === "at_risk";
+  const isWildlife = mission === "wildlife";
   const { stamp, minsAgo } = useMemo(reportedNow, []);
+
 
   const reportType =
     ribbonKey === "urgent_injured"
