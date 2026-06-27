@@ -13,6 +13,9 @@ import { RescueReport } from "@/components/voyce/RescueReport";
 import { StatusTimeline } from "@/components/voyce/StatusTimeline";
 import { DemoGate } from "@/components/voyce/DemoGate";
 import { Outcome } from "@/components/voyce/Outcome";
+import { MissionPicker } from "@/components/voyce/MissionPicker";
+import { MISSIONS, type MissionId } from "@/lib/missions";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
