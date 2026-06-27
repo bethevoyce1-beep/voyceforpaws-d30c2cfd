@@ -258,6 +258,8 @@ export function RescueReport({
                 <Section title="Voyce's First Look">{data.first_look}</Section>
                 <Section title="Behavior">{data.behavior}</Section>
                 <Section title="Where we found them">{data.location_scene}</Section>
+                <ResponderBriefing data={data} calm={isCalm} />
+
                 <Section title="What we noticed">
                   {data.noticed.length === 0 ? (
                     <span className="text-muted-foreground">
