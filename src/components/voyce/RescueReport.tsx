@@ -381,3 +381,62 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     </div>
   );
 }
+
+function ResponderBriefing({ data, calm }: { data: Assessment; calm: boolean }) {
+  if (calm) {
+    return (
+      <div className="rounded-2xl border-2 border-[#FFD24A]/60 bg-[#FFFBEC] px-4 py-3.5">
+        <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A5A0E]">
+          For the responder
+        </div>
+        <div className="mt-2 space-y-1 text-[14px] text-foreground/85">
+          <div><span className="mr-1">🏠</span> Setting: <span className="font-medium">Home (Indoor)</span></div>
+          <div><span className="mr-1">📋</span> No responder action needed — this looks like a domestic pet.</div>
+        </div>
+      </div>
+    );
+  }
+  const flags =
+    data.safety_flags && data.safety_flags.length > 0
+      ? data.safety_flags
+      : ["None — straightforward approach"];
+  return (
+    <div className="rounded-2xl border-2 border-[#E89A7A] bg-[#FFF4EE] px-4 py-3.5">
+      <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#A8431F]">
+        ⚠️ For the responder — what you're walking into
+      </div>
+      <div className="mt-2.5 space-y-1.5 text-[14px] text-foreground/90">
+        <div className="flex gap-2">
+          <span>🏠</span>
+          <span><span className="text-muted-foreground">Setting:</span> <span className="font-medium">{data.setting_type}</span></span>
+        </div>
+        <div className="flex gap-2">
+          <span>🪑</span>
+          <span><span className="text-muted-foreground">Surface:</span> <span className="font-medium">{data.surface}</span></span>
+        </div>
+        <div className="flex gap-2">
+          <span>💡</span>
+          <span><span className="text-muted-foreground">Lighting:</span> <span className="font-medium">{data.lighting_conditions}</span></span>
+        </div>
+        <div className="flex gap-2">
+          <span>🚧</span>
+          <div>
+            <div className="text-muted-foreground">Safety flags:</div>
+            <ul className="mt-1 space-y-0.5">
+              {flags.map((f, i) => (
+                <li key={i} className="flex gap-1.5">
+                  <span className="text-[#A8431F]">•</span>
+                  <span className="font-medium">{f}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div className="mt-3 border-t border-[#E89A7A]/40 pt-2 text-[12px] italic text-muted-foreground">
+        Voyce gives you the picture before you go. The more you know, the safer the rescue.
+      </div>
+    </div>
+  );
+}
+
