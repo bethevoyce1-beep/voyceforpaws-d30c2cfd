@@ -60,37 +60,54 @@ async function toDataUrl(src: string): Promise<string> {
 }
 
 function Home() {
-  const [stage, setStage] = useState<Stage>("capture");
+  const [stage, setStage] = useState<Stage>("mission");
+  const [mission, setMission] = useState<MissionId>("injured");
   const [captured, setCaptured] = useState<string | null>(null);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [aiPending, setAiPending] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
-  const startAnalysis = useCallback(async (src: string) => {
-    setAiPending(true);
-    setAiError(null);
-    setAssessment(null);
-    setStage("processing");
-    try {
-      const dataUrl = await toDataUrl(src);
-      setCaptured(dataUrl);
-      const result = await analyzeImage({ data: { imageDataUrl: dataUrl } });
-      setAssessment(result);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "AI analysis failed.";
-      console.error("[voyce] analyze failed:", msg);
-      setAiError(msg);
-    } finally {
-      setAiPending(false);
-    }
-  }, []);
+  const startAnalysis = useCallback(
+    async (src: string) => {
+      setAiPending(true);
+      setAiError(null);
+      setAssessment(null);
+      setStage("processing");
+      try {
+        const dataUrl = await toDataUrl(src);
+        setCaptured(dataUrl);
+        const result = await analyzeImage({
+          data: { imageDataUrl: dataUrl, mission },
+        });
+        setAssessment(result);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "AI analysis failed.";
+        console.error("[voyce] analyze failed:", msg);
+        setAiError(msg);
+      } finally {
+        setAiPending(false);
+      }
+    },
+    [mission],
+  );
 
   const reset = () => {
-    setStage("capture");
+    setStage("mission");
     setCaptured(null);
     setAssessment(null);
     setAiError(null);
   };
+
+  if (stage === "mission") {
+    return (
+      <MissionPicker
+        onPick={(id) => {
+          setMission(id);
+          setStage("capture");
+        }}
+      />
+    );
+  }
 
   if (stage === "processing") {
     return (
@@ -108,6 +125,7 @@ function Home() {
       <RescueReport
         image={captured}
         data={assessment}
+        mission={mission}
         onContinue={() => setStage("timeline")}
       />
     );
@@ -122,8 +140,16 @@ function Home() {
     return <Outcome onRestart={reset} />;
   }
 
-  return <CaptureScreen onAnalyze={startAnalysis} />;
+  return (
+    <CaptureScreen
+      onAnalyze={startAnalysis}
+      missionLabel={MISSIONS[mission].capturePillLabel}
+      missionAccent={MISSIONS[mission].accent}
+      onBack={() => setStage("mission")}
+    />
+  );
 }
+
 
 function CaptureScreen({ onAnalyze }: { onAnalyze: (src: string) => void }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
