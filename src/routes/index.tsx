@@ -13,6 +13,9 @@ import { RescueReport } from "@/components/voyce/RescueReport";
 import { StatusTimeline } from "@/components/voyce/StatusTimeline";
 import { DemoGate } from "@/components/voyce/DemoGate";
 import { Outcome } from "@/components/voyce/Outcome";
+import { MissionPicker } from "@/components/voyce/MissionPicker";
+import { MISSIONS, type MissionId } from "@/lib/missions";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -37,7 +40,7 @@ const SAMPLES = [
   { src: sampleBird, label: "Bird beak" },
 ];
 
-type Stage = "capture" | "processing" | "report" | "timeline" | "gate" | "outcome";
+type Stage = "mission" | "capture" | "processing" | "report" | "timeline" | "gate" | "outcome";
 
 function isLikelyMobile() {
   if (typeof navigator === "undefined") return false;
@@ -57,37 +60,54 @@ async function toDataUrl(src: string): Promise<string> {
 }
 
 function Home() {
-  const [stage, setStage] = useState<Stage>("capture");
+  const [stage, setStage] = useState<Stage>("mission");
+  const [mission, setMission] = useState<MissionId>("injured");
   const [captured, setCaptured] = useState<string | null>(null);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [aiPending, setAiPending] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
-  const startAnalysis = useCallback(async (src: string) => {
-    setAiPending(true);
-    setAiError(null);
-    setAssessment(null);
-    setStage("processing");
-    try {
-      const dataUrl = await toDataUrl(src);
-      setCaptured(dataUrl);
-      const result = await analyzeImage({ data: { imageDataUrl: dataUrl } });
-      setAssessment(result);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "AI analysis failed.";
-      console.error("[voyce] analyze failed:", msg);
-      setAiError(msg);
-    } finally {
-      setAiPending(false);
-    }
-  }, []);
+  const startAnalysis = useCallback(
+    async (src: string) => {
+      setAiPending(true);
+      setAiError(null);
+      setAssessment(null);
+      setStage("processing");
+      try {
+        const dataUrl = await toDataUrl(src);
+        setCaptured(dataUrl);
+        const result = await analyzeImage({
+          data: { imageDataUrl: dataUrl, mission },
+        });
+        setAssessment(result);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "AI analysis failed.";
+        console.error("[voyce] analyze failed:", msg);
+        setAiError(msg);
+      } finally {
+        setAiPending(false);
+      }
+    },
+    [mission],
+  );
 
   const reset = () => {
-    setStage("capture");
+    setStage("mission");
     setCaptured(null);
     setAssessment(null);
     setAiError(null);
   };
+
+  if (stage === "mission") {
+    return (
+      <MissionPicker
+        onPick={(id) => {
+          setMission(id);
+          setStage("capture");
+        }}
+      />
+    );
+  }
 
   if (stage === "processing") {
     return (
@@ -105,6 +125,7 @@ function Home() {
       <RescueReport
         image={captured}
         data={assessment}
+        mission={mission}
         onContinue={() => setStage("timeline")}
       />
     );
@@ -119,10 +140,29 @@ function Home() {
     return <Outcome onRestart={reset} />;
   }
 
-  return <CaptureScreen onAnalyze={startAnalysis} />;
+  return (
+    <CaptureScreen
+      onAnalyze={startAnalysis}
+      missionLabel={MISSIONS[mission].capturePillLabel}
+      missionAccent={MISSIONS[mission].accent}
+      onBack={() => setStage("mission")}
+    />
+  );
 }
 
-function CaptureScreen({ onAnalyze }: { onAnalyze: (src: string) => void }) {
+
+function CaptureScreen({
+  onAnalyze,
+  missionLabel,
+  missionAccent,
+  onBack,
+}: {
+  onAnalyze: (src: string) => void;
+  missionLabel: string;
+  missionAccent: string;
+  onBack: () => void;
+}) {
+
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [mode, setMode] = useState<"loading" | "camera" | "samples" | "permission">("loading");
@@ -193,6 +233,20 @@ function CaptureScreen({ onAnalyze }: { onAnalyze: (src: string) => void }) {
           AI is advisory · not a diagnosis
         </div>
       </header>
+
+      <div className="absolute inset-x-0 top-[max(3.5rem,calc(env(safe-area-inset-top)+3rem))] z-20 flex justify-center px-4">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 rounded-full bg-background/90 px-3.5 py-1.5 text-[12px] font-semibold shadow-md backdrop-blur-md transition hover:bg-background"
+          style={{ color: missionAccent, borderLeft: `3px solid ${missionAccent}` }}
+        >
+          <span>📋</span>
+          <span>Reporting · {missionLabel}</span>
+          <span className="text-muted-foreground/70 text-[11px]">change</span>
+        </button>
+      </div>
+
+
 
       <main className="relative flex flex-1 flex-col">
         {mode === "loading" && (

@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
+import { MISSIONS, type MissionId } from "@/lib/missions";
+
 
 type RibbonKey = "urgent_injured" | "at_risk" | "care_needed" | "monitoring" | "wildlife";
 
@@ -55,28 +57,23 @@ const RIBBONS: Record<RibbonKey, RibbonStyle> = {
   },
 };
 
-function pickRibbon(data: Assessment): RibbonKey {
-  const species = (data.species || "").toLowerCase();
-  const isWildlife =
-    !data.is_likely_pet &&
-    /bird|raccoon|fox|deer|squirrel|wildlife|opossum|hedgehog|bat|owl|hawk/.test(species);
-
-  if (data.status === "Urgent") {
-    if (/shelter|at risk|euth/i.test(data.status_reason || "")) return "at_risk";
-    return "urgent_injured";
+function pickRibbon(data: Assessment, mission: MissionId): RibbonKey {
+  // Mission strongly biases the ribbon, but AI urgency can escalate.
+  if (mission === "wildlife") return "wildlife";
+  if (mission === "at-risk-shelter") return "at_risk";
+  if (mission === "lost-found") return "care_needed";
+  if (mission === "prevention") {
+    return data.status === "Healthy" || data.status === "Monitoring"
+      ? "monitoring"
+      : "care_needed";
   }
+  // injured
+  if (data.status === "Urgent") return "urgent_injured";
   if (data.status === "Monitoring" || data.status === "Healthy") return "monitoring";
-  if (data.status === "Stable") return isWildlife ? "wildlife" : "care_needed";
-  return "monitoring";
+  return "care_needed";
 }
 
-const ROLE_PILLS: { icon: string; label: string }[] = [
-  { icon: "🏠", label: "Foster" },
-  { icon: "🐾", label: "Rescue" },
-  { icon: "💛", label: "Adopt" },
-  { icon: "🤝", label: "Pledge" },
-  { icon: "🚚", label: "Transport" },
-];
+
 
 const ACTIONS: { icon: string; label: string }[] = [
   { icon: "📤", label: "Share" },
@@ -101,18 +98,23 @@ function reportedNow(): { stamp: string; minsAgo: number } {
 export function RescueReport({
   image,
   data,
+  mission,
   onContinue,
 }: {
   image: string;
   data: Assessment;
+  mission: MissionId;
   onContinue: () => void;
 }) {
   const [tab, setTab] = useState<"story" | "vet">("story");
-  const ribbonKey = useMemo(() => pickRibbon(data), [data]);
+  const m = MISSIONS[mission];
+  const ribbonKey = useMemo(() => pickRibbon(data, mission), [data, mission]);
   const r = RIBBONS[ribbonKey];
   const isCalm = ribbonKey === "monitoring";
   const isUrgent = ribbonKey === "urgent_injured" || ribbonKey === "at_risk";
+  const isWildlife = mission === "wildlife";
   const { stamp, minsAgo } = useMemo(reportedNow, []);
+
 
   const reportType =
     ribbonKey === "urgent_injured"
@@ -135,7 +137,7 @@ export function RescueReport({
             className="flex items-center justify-between gap-3 px-4 py-2.5"
             style={{ background: r.gradient, color: r.textOnRibbon }}
           >
-            <span className="text-[12px] font-bold uppercase tracking-[0.12em]">{r.label}</span>
+            <span className="text-[12px] font-bold uppercase tracking-[0.12em]">{isCalm ? r.label : m.ribbonLabel}</span>
             <span
               className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider"
               style={{
@@ -203,14 +205,35 @@ export function RescueReport({
             </div>
           )}
 
+          {/* Wildlife do-not-handle callout */}
+          {isWildlife && (
+            <div
+              className="mx-5 mt-4 rounded-2xl border-2 px-4 py-3.5"
+              style={{ borderColor: m.accent, background: m.accentSoft, color: m.titleColor }}
+            >
+              <div className="text-[13px] font-bold uppercase tracking-wide">
+                🚨 Do not handle
+              </div>
+              <div className="mt-1 text-[13.5px] leading-relaxed">
+                Wildlife should only be handled by licensed rehabbers. Keep distance and use the
+                rehabber contacts below.
+              </div>
+              {data.vet_notes?.clinical && (
+                <div className="mt-2 rounded-xl bg-background/70 px-3 py-2 text-[12.5px] text-foreground/80">
+                  📞 {data.vet_notes.clinical}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Primary alert button */}
-          {isUrgent && (
+          {isUrgent && !isWildlife && (
             <div className="mx-5 mt-4">
               <button
                 className="w-full rounded-2xl px-5 py-3.5 text-[15px] font-bold uppercase tracking-wide text-white shadow-md transition hover:brightness-105 active:scale-[0.99]"
-                style={{ background: r.gradient }}
+                style={{ background: m.ribbonGradient }}
               >
-                🔔 Send Urgent Alert
+                {m.alertButtonLabel}
               </button>
             </div>
           )}
@@ -222,10 +245,11 @@ export function RescueReport({
                 How can you help?
               </div>
               <div className="mt-2 flex flex-wrap gap-2">
-                {ROLE_PILLS.map((p) => (
+                {m.rolePills.map((p) => (
                   <button
                     key={p.label}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-[oklch(0.85_0.12_70)] bg-[oklch(0.97_0.04_85)] px-3.5 py-1.5 text-[13px] font-medium text-[oklch(0.35_0.10_60)] shadow-sm transition hover:-translate-y-0.5 hover:bg-[oklch(0.93_0.08_85)] hover:shadow-md"
+                    className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3.5 py-1.5 text-[13px] font-medium shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                    style={{ borderColor: m.accent, color: m.titleColor, background: m.accentSoft }}
                   >
                     <span>{p.icon}</span>
                     <span>{p.label}</span>
@@ -234,6 +258,8 @@ export function RescueReport({
               </div>
             </div>
           )}
+
+
 
           {/* Tabs */}
           <div className="mx-5 mt-5">

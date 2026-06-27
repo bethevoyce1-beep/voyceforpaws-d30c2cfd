@@ -111,17 +111,34 @@ export function validateAssessment(a: Assessment): Assessment {
 }
 
 
+const MISSION_GUIDANCE: Record<string, string> = {
+  injured:
+    "MISSION: INJURED / SICK. Look closely for visible injuries (limb angle, wounds, lameness, lethargy, blood, swelling). Calibrate urgency honestly. Orient next_steps toward RESCUE: stabilize, transport, vet contact.",
+  "at-risk-shelter":
+    "MISSION: AT-RISK SHELTER. Note kennel context (bars, concrete, ID tags), body condition for foster suitability, temperament cues. Orient next_steps toward FOSTER / PULL: foster commitment, rescue pull, transport coordination.",
+  "lost-found":
+    "MISSION: LOST / FOUND. Look for collar, tags, grooming, healthy body condition (signs of an owned pet). Orient next_steps toward REUNITE / SAFE HOLD: scan for chip, post to local lost-pet networks, safe temporary hold.",
+  prevention:
+    "MISSION: PREVENTION / CARE. Note body condition, nursing signs, reproductive status, ear-tip. Orient next_steps toward TNR / SPAY / VACCINE: trap-neuter-return, vaccination, community-cat care.",
+  wildlife:
+    "MISSION: WILDLIFE. Identify species precisely. next_steps must ONLY say 'Do not handle. Voyce will route to licensed rehabbers.' Put any rehabber phone numbers or animal-control numbers (if you can infer plausible local ones, otherwise generic placeholders like 'Local wildlife rehabber: search state rehabber directory') in vet_notes.clinical.",
+};
+
 export const analyzeImage = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => {
-    const o = input as { imageDataUrl?: string };
+    const o = input as { imageDataUrl?: string; mission?: string };
     if (!o?.imageDataUrl || !o.imageDataUrl.startsWith("data:image/")) {
       throw new Error("imageDataUrl required");
     }
-    return { imageDataUrl: o.imageDataUrl };
+    const mission = typeof o.mission === "string" ? o.mission : "injured";
+    return { imageDataUrl: o.imageDataUrl, mission };
   })
   .handler(async ({ data }): Promise<Assessment> => {
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("Missing LOVABLE_API_KEY");
+
+    const missionLine =
+      MISSION_GUIDANCE[data.mission] ?? MISSION_GUIDANCE.injured;
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -132,13 +149,16 @@ export const analyzeImage = createServerFn({ method: "POST" })
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: SYSTEM + "\n\nSchema:\n" + SCHEMA_HINT },
+          {
+            role: "system",
+            content: SYSTEM + "\n\n" + missionLine + "\n\nSchema:\n" + SCHEMA_HINT,
+          },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: "Analyze this animal photo. Return ONLY the JSON object, no markdown.",
+                text: `Analyze this animal photo for mission "${data.mission}". Return ONLY the JSON object, no markdown.`,
               },
               { type: "image_url", image_url: { url: data.imageDataUrl } },
             ],
@@ -159,7 +179,6 @@ export const analyzeImage = createServerFn({ method: "POST" })
     const content = json.choices?.[0]?.message?.content ?? "";
     let parsed: Assessment;
     try {
-      // Strip markdown fences if any slipped through.
       const cleaned = content.replace(/^```json\s*|\s*```$/g, "").trim();
       parsed = JSON.parse(cleaned) as Assessment;
     } catch {
@@ -167,3 +186,4 @@ export const analyzeImage = createServerFn({ method: "POST" })
     }
     return validateAssessment(parsed);
   });
+
