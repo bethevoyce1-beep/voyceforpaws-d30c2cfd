@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 
 const STEPS = [
-  { title: "Report Received", sub: "Your photo is in. Voyce is on it.", emoji: "📸" },
-  { title: "Locating the Animal", sub: "Confirming the location so the right people can respond.", emoji: "📍" },
-  { title: "Voyce AI Health Review", sub: "Analyzing the image — condition, behavior, and surroundings.", emoji: "🩺" },
-  { title: "Drafting Your Rescue Card", sub: "Two views — Story + Health Assessment.", emoji: "📖" },
-  { title: "Alerting the Network", sub: "Reaching rescuers, fosters, vets, shelters, and animal lovers nearby.", emoji: "🌐" },
-  { title: "Voyce Answers", sub: "Your rescue card is ready. Updates will come as the network responds.", emoji: "🐾" },
+  "Getting location",
+  "Processing image",
+  "AI analyzing photo",
+  "Creating rescue card",
+  "Alerting the network",
+  "Report ready",
 ];
 
 export function ProcessingPipeline({
@@ -46,12 +46,10 @@ export function ProcessingPipeline({
 
   const mm = Math.floor(elapsed / 60);
   const ss = Math.floor(elapsed % 60).toString().padStart(2, "0");
-  const progress = ((step + (aiPending && step === 2 ? 0 : step >= 2 ? 1 : 0)) / STEPS.length) * 100;
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background px-6 pt-[max(2rem,env(safe-area-inset-top))] pb-10">
       <div className="mx-auto w-full max-w-md flex-1 flex flex-col">
-        {/* Mission timer */}
         <div className="flex items-center justify-between">
           <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
             Mission timer
@@ -61,41 +59,31 @@ export function ProcessingPipeline({
           </div>
         </div>
 
-        {/* Progress bar */}
-        <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-[oklch(0.88_0.16_85)]/20">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-[#FFD24A] to-[#C9871A] transition-all duration-700 ease-out"
-            style={{ width: `${Math.min(progress, 100)}%` }}
-          />
-        </div>
-
-        {/* Header */}
         <h1 className="mt-8 font-serif text-3xl font-semibold tracking-tight">
-          Your Rescue Journey
+          Voyce is on it
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Voyce is working on this animal's behalf
+          Building the rescue card for this animal.
         </p>
 
-        {/* Steps */}
         <ol className="mt-8 space-y-3">
-          {STEPS.map((s, i) => {
+          {STEPS.map((label, i) => {
             const done = i < step || (i === STEPS.length - 1 && step === STEPS.length - 1 && !aiPending);
             const active = i === step && !done;
             const isAiStep = i === 2;
             const failed = isAiStep && aiError;
             return (
               <li
-                key={s.title}
-                className={`flex items-start gap-3.5 rounded-2xl border px-4 py-3.5 transition ${
+                key={label}
+                className={`flex items-center gap-3 rounded-2xl border px-4 py-3 transition ${
                   done
-                    ? "border-[oklch(0.75_0.14_140)]/40 bg-[oklch(0.95_0.06_140)]/30"
+                    ? "border-[oklch(0.85_0.15_140)]/40 bg-[oklch(0.95_0.06_140)]/40"
                     : active
-                      ? "border-[oklch(0.88_0.16_85)] bg-[oklch(0.96_0.08_85)]/30"
+                      ? "border-[oklch(0.88_0.16_85)] bg-[oklch(0.96_0.08_85)]/40"
                       : "border-border bg-card/60"
                 }`}
               >
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center mt-0.5">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center">
                   {failed ? (
                     <span className="text-lg">⚠️</span>
                   ) : done ? (
@@ -111,22 +99,17 @@ export function ProcessingPipeline({
                     <span className="h-2 w-2 rounded-full bg-muted-foreground/30" />
                   )}
                 </span>
-                <div>
-                  <span
-                    className={`text-sm font-medium ${
-                      done
-                        ? "text-foreground/80"
-                        : active
-                          ? "text-foreground"
-                          : "text-muted-foreground"
-                    }`}
-                  >
-                    {s.emoji} {s.title}
-                  </span>
-                  <p className={`text-xs mt-0.5 ${done ? "text-foreground/60" : active ? "text-muted-foreground" : "text-muted-foreground/60"}`}>
-                    {s.sub}
-                  </p>
-                </div>
+                <span
+                  className={`text-sm ${
+                    done
+                      ? "text-foreground/80"
+                      : active
+                        ? "font-medium text-foreground"
+                        : "text-muted-foreground"
+                  }`}
+                >
+                  {label}
+                </span>
               </li>
             );
           })}
