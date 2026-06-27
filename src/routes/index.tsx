@@ -94,10 +94,12 @@ function Home() {
       <ProcessingPipeline
         aiPending={aiPending}
         aiError={aiError}
+        assessment={assessment}
         onComplete={() => assessment && setStage("report")}
       />
     );
   }
+
   if (stage === "report" && assessment && captured) {
     return (
       <RescueReport
