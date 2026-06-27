@@ -40,7 +40,7 @@ const SAMPLES = [
   { src: sampleBird, label: "Bird beak" },
 ];
 
-type Stage = "capture" | "processing" | "report" | "timeline" | "gate" | "outcome";
+type Stage = "mission" | "capture" | "processing" | "report" | "timeline" | "gate" | "outcome";
 
 function isLikelyMobile() {
   if (typeof navigator === "undefined") return false;
