@@ -151,7 +151,18 @@ function Home() {
 }
 
 
-function CaptureScreen({ onAnalyze }: { onAnalyze: (src: string) => void }) {
+function CaptureScreen({
+  onAnalyze,
+  missionLabel,
+  missionAccent,
+  onBack,
+}: {
+  onAnalyze: (src: string) => void;
+  missionLabel: string;
+  missionAccent: string;
+  onBack: () => void;
+}) {
+
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [mode, setMode] = useState<"loading" | "camera" | "samples" | "permission">("loading");
