@@ -57,28 +57,23 @@ const RIBBONS: Record<RibbonKey, RibbonStyle> = {
   },
 };
 
-function pickRibbon(data: Assessment): RibbonKey {
-  const species = (data.species || "").toLowerCase();
-  const isWildlife =
-    !data.is_likely_pet &&
-    /bird|raccoon|fox|deer|squirrel|wildlife|opossum|hedgehog|bat|owl|hawk/.test(species);
-
-  if (data.status === "Urgent") {
-    if (/shelter|at risk|euth/i.test(data.status_reason || "")) return "at_risk";
-    return "urgent_injured";
+function pickRibbon(data: Assessment, mission: MissionId): RibbonKey {
+  // Mission strongly biases the ribbon, but AI urgency can escalate.
+  if (mission === "wildlife") return "wildlife";
+  if (mission === "at-risk-shelter") return "at_risk";
+  if (mission === "lost-found") return "care_needed";
+  if (mission === "prevention") {
+    return data.status === "Healthy" || data.status === "Monitoring"
+      ? "monitoring"
+      : "care_needed";
   }
+  // injured
+  if (data.status === "Urgent") return "urgent_injured";
   if (data.status === "Monitoring" || data.status === "Healthy") return "monitoring";
-  if (data.status === "Stable") return isWildlife ? "wildlife" : "care_needed";
-  return "monitoring";
+  return "care_needed";
 }
 
-const ROLE_PILLS: { icon: string; label: string }[] = [
-  { icon: "🏠", label: "Foster" },
-  { icon: "🐾", label: "Rescue" },
-  { icon: "💛", label: "Adopt" },
-  { icon: "🤝", label: "Pledge" },
-  { icon: "🚚", label: "Transport" },
-];
+
 
 const ACTIONS: { icon: string; label: string }[] = [
   { icon: "📤", label: "Share" },
