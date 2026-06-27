@@ -205,14 +205,35 @@ export function RescueReport({
             </div>
           )}
 
+          {/* Wildlife do-not-handle callout */}
+          {isWildlife && (
+            <div
+              className="mx-5 mt-4 rounded-2xl border-2 px-4 py-3.5"
+              style={{ borderColor: m.accent, background: m.accentSoft, color: m.titleColor }}
+            >
+              <div className="text-[13px] font-bold uppercase tracking-wide">
+                🚨 Do not handle
+              </div>
+              <div className="mt-1 text-[13.5px] leading-relaxed">
+                Wildlife should only be handled by licensed rehabbers. Keep distance and use the
+                rehabber contacts below.
+              </div>
+              {data.vet_notes?.clinical && (
+                <div className="mt-2 rounded-xl bg-background/70 px-3 py-2 text-[12.5px] text-foreground/80">
+                  📞 {data.vet_notes.clinical}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Primary alert button */}
-          {isUrgent && (
+          {isUrgent && !isWildlife && (
             <div className="mx-5 mt-4">
               <button
                 className="w-full rounded-2xl px-5 py-3.5 text-[15px] font-bold uppercase tracking-wide text-white shadow-md transition hover:brightness-105 active:scale-[0.99]"
-                style={{ background: r.gradient }}
+                style={{ background: m.ribbonGradient }}
               >
-                🔔 Send Urgent Alert
+                {m.alertButtonLabel}
               </button>
             </div>
           )}
@@ -224,10 +245,11 @@ export function RescueReport({
                 How can you help?
               </div>
               <div className="mt-2 flex flex-wrap gap-2">
-                {ROLE_PILLS.map((p) => (
+                {m.rolePills.map((p) => (
                   <button
                     key={p.label}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-[oklch(0.85_0.12_70)] bg-[oklch(0.97_0.04_85)] px-3.5 py-1.5 text-[13px] font-medium text-[oklch(0.35_0.10_60)] shadow-sm transition hover:-translate-y-0.5 hover:bg-[oklch(0.93_0.08_85)] hover:shadow-md"
+                    className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3.5 py-1.5 text-[13px] font-medium shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                    style={{ borderColor: m.accent, color: m.titleColor, background: m.accentSoft }}
                   >
                     <span>{p.icon}</span>
                     <span>{p.label}</span>
@@ -236,6 +258,8 @@ export function RescueReport({
               </div>
             </div>
           )}
+
+
 
           {/* Tabs */}
           <div className="mx-5 mt-5">
