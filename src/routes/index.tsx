@@ -234,6 +234,20 @@ function CaptureScreen({
         </div>
       </header>
 
+      <div className="absolute inset-x-0 top-[max(3.5rem,calc(env(safe-area-inset-top)+3rem))] z-20 flex justify-center px-4">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 rounded-full bg-background/90 px-3.5 py-1.5 text-[12px] font-semibold shadow-md backdrop-blur-md transition hover:bg-background"
+          style={{ color: missionAccent, borderLeft: `3px solid ${missionAccent}` }}
+        >
+          <span>📋</span>
+          <span>Reporting · {missionLabel}</span>
+          <span className="text-muted-foreground/70 text-[11px]">change</span>
+        </button>
+      </div>
+
+
+
       <main className="relative flex flex-1 flex-col">
         {mode === "loading" && (
           <div className="flex flex-1 items-center justify-center">
