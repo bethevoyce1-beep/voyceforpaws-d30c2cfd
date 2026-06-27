@@ -1,16 +1,16 @@
-import { Activity, Hourglass, Search, ShieldCheck, Leaf } from "lucide-react";
-import type { ComponentType, SVGProps } from "react";
+import { Activity, Hourglass, Search, ShieldCheck, Leaf, type LucideIcon } from "lucide-react";
 import pawLogo from "@/assets/voyce-paw.png";
 import { MISSION_LIST, type MissionId } from "@/lib/missions";
 
 type TileVisual = {
-  Icon: ComponentType<SVGProps<SVGSVGElement>>;
+  Icon: LucideIcon;
   iconGradient: string;
   tileGradient: string;
   borderColor: string;
   shadowColor: string;
   eyebrow: string;
 };
+
 
 const VISUALS: Record<MissionId, TileVisual> = {
   injured: {
