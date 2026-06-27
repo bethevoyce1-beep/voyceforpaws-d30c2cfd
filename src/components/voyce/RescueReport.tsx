@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
+import { MISSIONS, type MissionId } from "@/lib/missions";
+
 
 type RibbonKey = "urgent_injured" | "at_risk" | "care_needed" | "monitoring" | "wildlife";
 
