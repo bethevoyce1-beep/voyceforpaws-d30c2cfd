@@ -1,14 +1,102 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
 
-const STATUS_STYLES: Record<Assessment["status"], { bg: string; text: string; dot: string; label: string }> = {
-  Urgent: { bg: "bg-[oklch(0.94_0.08_30)]", text: "text-[oklch(0.42_0.18_30)]", dot: "bg-[oklch(0.62_0.22_30)]", label: "Urgent" },
-  Monitoring: { bg: "bg-[oklch(0.95_0.08_85)]", text: "text-[oklch(0.40_0.10_60)]", dot: "bg-[oklch(0.72_0.16_70)]", label: "Monitoring" },
-  Stable: { bg: "bg-[oklch(0.94_0.06_180)]", text: "text-[oklch(0.40_0.10_200)]", dot: "bg-[oklch(0.62_0.14_200)]", label: "Stable" },
-  Healthy: { bg: "bg-[oklch(0.94_0.07_140)]", text: "text-[oklch(0.36_0.12_140)]", dot: "bg-[oklch(0.58_0.18_140)]", label: "Healthy" },
+type RibbonKey = "urgent_injured" | "at_risk" | "care_needed" | "monitoring" | "wildlife";
+
+type RibbonStyle = {
+  label: string;
+  gradient: string;
+  textOnRibbon: string;
+  titleColor: string;
+  subtitle: string;
+  ringBg: string; // tint used for urgency strip & callout
 };
 
-const ROLE_PILLS = ["Foster", "Rescue", "Adopt", "Pledge", "Transport"];
+const RIBBONS: Record<RibbonKey, RibbonStyle> = {
+  urgent_injured: {
+    label: "🚨 URGENT: INJURED",
+    gradient: "linear-gradient(135deg, #D14848 0%, #A82F2F 100%)",
+    textOnRibbon: "#FFF6F4",
+    titleColor: "#A82F2F",
+    subtitle: "Needs help immediately",
+    ringBg: "#FCEAEA",
+  },
+  at_risk: {
+    label: "⚠️ URGENT: AT RISK",
+    gradient: "linear-gradient(135deg, #B83232 0%, #7E1F1F 100%)",
+    textOnRibbon: "#FFF1EE",
+    titleColor: "#7E1F1F",
+    subtitle: "At-risk in shelter — time is short",
+    ringBg: "#F8E2E2",
+  },
+  care_needed: {
+    label: "💛 CARE NEEDED",
+    gradient: "linear-gradient(135deg, #FFD24A 0%, #C9871A 100%)",
+    textOnRibbon: "#3A2A07",
+    titleColor: "#8A5A0E",
+    subtitle: "Could use a closer look soon",
+    ringBg: "#FCEFC9",
+  },
+  monitoring: {
+    label: "✓ MONITORING",
+    gradient: "linear-gradient(135deg, #B8E3C6 0%, #1F9D57 100%)",
+    textOnRibbon: "#0F3A22",
+    titleColor: "#1F6B3D",
+    subtitle: "No action needed unless something changes",
+    ringBg: "#E7F5EC",
+  },
+  wildlife: {
+    label: "🦝 WILDLIFE",
+    gradient: "linear-gradient(135deg, #BFDDF0 0%, #4A8FB8 100%)",
+    textOnRibbon: "#0F2A3A",
+    titleColor: "#2C5C7C",
+    subtitle: "Observe from a safe distance",
+    ringBg: "#E4F0F8",
+  },
+};
+
+function pickRibbon(data: Assessment): RibbonKey {
+  const species = (data.species || "").toLowerCase();
+  const isWildlife =
+    !data.is_likely_pet &&
+    /bird|raccoon|fox|deer|squirrel|wildlife|opossum|hedgehog|bat|owl|hawk/.test(species);
+
+  if (data.status === "Urgent") {
+    if (/shelter|at risk|euth/i.test(data.status_reason || "")) return "at_risk";
+    return "urgent_injured";
+  }
+  if (data.status === "Monitoring" || data.status === "Healthy") return "monitoring";
+  if (data.status === "Stable") return isWildlife ? "wildlife" : "care_needed";
+  return "monitoring";
+}
+
+const ROLE_PILLS: { icon: string; label: string }[] = [
+  { icon: "🏠", label: "Foster" },
+  { icon: "🐾", label: "Rescue" },
+  { icon: "💛", label: "Adopt" },
+  { icon: "🤝", label: "Pledge" },
+  { icon: "🚚", label: "Transport" },
+];
+
+const ACTIONS: { icon: string; label: string }[] = [
+  { icon: "📤", label: "Share" },
+  { icon: "🧭", label: "Navigate" },
+  { icon: "📞", label: "Call Rescues" },
+  { icon: "➕", label: "Add Update" },
+];
+
+function reportedNow(): { stamp: string; minsAgo: number } {
+  const d = new Date();
+  return {
+    stamp: d.toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }),
+    minsAgo: 0,
+  };
+}
 
 export function RescueReport({
   image,
@@ -20,111 +108,231 @@ export function RescueReport({
   onContinue: () => void;
 }) {
   const [tab, setTab] = useState<"story" | "vet">("story");
-  const s = STATUS_STYLES[data.status] ?? STATUS_STYLES.Monitoring;
-  const urgent = data.status === "Urgent";
-  const monitoring = data.status === "Monitoring" || data.is_likely_pet;
+  const ribbonKey = useMemo(() => pickRibbon(data), [data]);
+  const r = RIBBONS[ribbonKey];
+  const isCalm = ribbonKey === "monitoring";
+  const isUrgent = ribbonKey === "urgent_injured" || ribbonKey === "at_risk";
+  const { stamp, minsAgo } = useMemo(reportedNow, []);
+
+  const reportType =
+    ribbonKey === "urgent_injured"
+      ? "Injury"
+      : ribbonKey === "at_risk"
+        ? "At-risk shelter"
+        : ribbonKey === "wildlife"
+          ? "Wildlife"
+          : data.is_likely_pet
+            ? "Pet check-in"
+            : "Stray";
 
   return (
     <div className="min-h-[100dvh] bg-background pb-32">
       <div className="mx-auto w-full max-w-2xl px-5 pt-[max(1rem,env(safe-area-inset-top))]">
-        {/* Photo */}
-        <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
-          <img src={image} alt={data.title} className="aspect-[4/3] w-full object-cover" />
-        </div>
-
-        {/* Title + status */}
-        <div className="mt-5">
-          <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${s.bg} ${s.text}`}>
-            <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
-            {s.label} · {data.status_reason}
-          </div>
-          <h1 className="mt-3 font-serif text-3xl font-semibold tracking-tight leading-tight">
-            {data.title}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {data.species} · {data.breed} · {data.age} · {data.weight}
-          </p>
-        </div>
-
-        {/* Tabs */}
-        <div className="mt-5 inline-flex rounded-full border border-border bg-card p-1">
-          {(["story", "vet"] as const).map((k) => (
-            <button
-              key={k}
-              onClick={() => setTab(k)}
-              className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
-                tab === k
-                  ? "bg-[oklch(0.88_0.16_85)] text-[oklch(0.25_0.04_60)] shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+        {/* Card */}
+        <article className="overflow-hidden rounded-3xl border border-border bg-card shadow-[0_8px_30px_-12px_rgba(60,40,10,0.18)]">
+          {/* Ribbon */}
+          <div
+            className="flex items-center justify-between gap-3 px-4 py-2.5"
+            style={{ background: r.gradient, color: r.textOnRibbon }}
+          >
+            <span className="text-[12px] font-bold uppercase tracking-[0.12em]">{r.label}</span>
+            <span
+              className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider"
+              style={{
+                background: "rgba(255,255,255,0.18)",
+                color: r.textOnRibbon,
+                backdropFilter: "blur(4px)",
+              }}
             >
-              {k === "story" ? "📖 Story" : "🩺 Vet"}
-            </button>
-          ))}
-        </div>
-
-        {tab === "story" ? (
-          <div className="mt-5 space-y-5">
-            <Section title="Voyce's First Look">{data.first_look}</Section>
-            <Section title="Behavior">{data.behavior}</Section>
-            <Section title="Where we found them">{data.location_scene}</Section>
-            <Section title="What we noticed">
-              {data.noticed.length === 0 ? (
-                <span className="text-muted-foreground">Nothing concerning visible in this image.</span>
-              ) : (
-                <ul className="list-disc pl-5 space-y-1">
-                  {data.noticed.map((n, i) => <li key={i}>{n}</li>)}
-                </ul>
-              )}
-            </Section>
-            <Section title="Suggested next steps">
-              <ul className="space-y-1.5">
-                {data.next_steps.map((n, i) => (
-                  <li key={i} className="flex gap-2"><span className="text-[oklch(0.65_0.18_70)]">→</span><span>{n}</span></li>
-                ))}
-              </ul>
-            </Section>
+              Just Reported · {minsAgo} min ago
+            </span>
           </div>
-        ) : (
-          <div className="mt-5 space-y-5">
-            <Section title="Body condition">{data.vet_notes.bcs}</Section>
-            <Section title="Observed posture">{data.vet_notes.posture}</Section>
-            <Section title="Hydration">{data.vet_notes.hydration}</Section>
-            <Section title="Clinical summary">{data.vet_notes.clinical}</Section>
-            <Section title="Suggested next steps">
-              <ul className="space-y-1.5">
-                {data.next_steps.map((n, i) => (
-                  <li key={i} className="flex gap-2"><span className="text-[oklch(0.65_0.18_70)]">→</span><span>{n}</span></li>
-                ))}
-              </ul>
-            </Section>
-          </div>
-        )}
 
-        {/* Role pills or monitoring microcopy */}
-        {urgent ? (
-          <div className="mt-7">
-            <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              How can you help?
+          {/* Photo */}
+          <div className="bg-[oklch(0.96_0.02_85)]">
+            <img src={image} alt={data.title} className="aspect-[4/3] w-full object-cover" />
+          </div>
+
+          {/* Title block */}
+          <div className="px-5 pt-5">
+            <h1
+              className="font-serif text-[28px] font-bold leading-[1.05] uppercase tracking-tight"
+              style={{ color: r.titleColor }}
+            >
+              {bigTitle(data, ribbonKey)}
+            </h1>
+            <p className="mt-1 font-serif text-[15px] italic text-muted-foreground">
+              {r.subtitle}
+            </p>
+
+            {/* Location */}
+            <div className="mt-3 flex items-center gap-1.5 text-[15px] font-semibold text-foreground">
+              <span>📍</span>
+              <span>{locationLine(data)}</span>
             </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {ROLE_PILLS.map((r) => (
+
+            {/* Description */}
+            <p className="mt-2 text-[14px] italic leading-relaxed text-[oklch(0.45_0.03_70)]">
+              {data.first_look}
+            </p>
+          </div>
+
+          {/* Urgency strip */}
+          {!isCalm && (
+            <div
+              className="mx-5 mt-4 flex items-center gap-2 rounded-xl px-3 py-2 text-[13px] font-medium"
+              style={{ background: r.ringBg, color: r.titleColor }}
+            >
+              <span>⏰</span>
+              <span>Help needed within hours · network on standby</span>
+            </div>
+          )}
+
+          {/* Action row */}
+          {!isCalm && (
+            <div className="mx-5 mt-3 grid grid-cols-4 gap-2">
+              {ACTIONS.map((a) => (
                 <button
-                  key={r}
-                  className="rounded-full border border-[oklch(0.85_0.12_70)] bg-[oklch(0.97_0.04_85)] px-4 py-2 text-sm font-medium text-[oklch(0.35_0.10_60)] shadow-sm transition hover:bg-[oklch(0.93_0.08_85)]"
+                  key={a.label}
+                  className="flex flex-col items-center gap-1 rounded-xl border border-border bg-background/60 px-2 py-2.5 text-[11px] font-medium text-foreground/85 transition hover:bg-background hover:shadow-sm active:scale-[0.98]"
                 >
-                  {r}
+                  <span className="text-base leading-none">{a.icon}</span>
+                  <span>{a.label}</span>
                 </button>
               ))}
             </div>
-          </div>
-        ) : monitoring ? (
-          <div className="mt-7 rounded-2xl border border-[oklch(0.88_0.10_85)] bg-[oklch(0.97_0.05_85)] px-4 py-3 text-sm text-[oklch(0.38_0.08_60)]">
-            Heads up — likely a pet at home. No action needed unless something changes.
-          </div>
-        ) : null}
+          )}
 
-        <div className="mt-6 text-center text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+          {/* Primary alert button */}
+          {isUrgent && (
+            <div className="mx-5 mt-4">
+              <button
+                className="w-full rounded-2xl px-5 py-3.5 text-[15px] font-bold uppercase tracking-wide text-white shadow-md transition hover:brightness-105 active:scale-[0.99]"
+                style={{ background: r.gradient }}
+              >
+                🔔 Send Urgent Alert
+              </button>
+            </div>
+          )}
+
+          {/* Role pills */}
+          {!isCalm && (
+            <div className="mx-5 mt-4">
+              <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                How can you help?
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {ROLE_PILLS.map((p) => (
+                  <button
+                    key={p.label}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[oklch(0.85_0.12_70)] bg-[oklch(0.97_0.04_85)] px-3.5 py-1.5 text-[13px] font-medium text-[oklch(0.35_0.10_60)] shadow-sm transition hover:-translate-y-0.5 hover:bg-[oklch(0.93_0.08_85)] hover:shadow-md"
+                  >
+                    <span>{p.icon}</span>
+                    <span>{p.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Tabs */}
+          <div className="mx-5 mt-5">
+            <div className="inline-flex rounded-full border border-border bg-background/70 p-1">
+              {(["story", "vet"] as const).map((k) => (
+                <button
+                  key={k}
+                  onClick={() => setTab(k)}
+                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
+                    tab === k
+                      ? "bg-[oklch(0.88_0.16_85)] text-[oklch(0.25_0.04_60)] shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {k === "story" ? "📖 Story" : "🩺 Voyce's First Look"}
+                </button>
+              ))}
+            </div>
+
+            {tab === "story" ? (
+              <div className="mt-4 space-y-4">
+                <Section title="Voyce's First Look">{data.first_look}</Section>
+                <Section title="Behavior">{data.behavior}</Section>
+                <Section title="Where we found them">{data.location_scene}</Section>
+                <Section title="What we noticed">
+                  {data.noticed.length === 0 ? (
+                    <span className="text-muted-foreground">
+                      Nothing concerning visible in this image.
+                    </span>
+                  ) : (
+                    <ul className="list-disc space-y-1 pl-5">
+                      {data.noticed.map((n, i) => <li key={i}>{n}</li>)}
+                    </ul>
+                  )}
+                </Section>
+                <Section title="Suggested next steps">
+                  <ul className="space-y-1.5">
+                    {data.next_steps.map((n, i) => (
+                      <li key={i} className="flex gap-2">
+                        <span className="text-[oklch(0.65_0.18_70)]">→</span>
+                        <span>{n}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </Section>
+              </div>
+            ) : (
+              <div className="mt-4 space-y-4">
+                <Section title="Body condition">{data.vet_notes.bcs}</Section>
+                <Section title="Observed posture">{data.vet_notes.posture}</Section>
+                <Section title="Hydration">{data.vet_notes.hydration}</Section>
+                <Section title="Clinical summary">{data.vet_notes.clinical}</Section>
+                <Section title="Suggested next steps">
+                  <ul className="space-y-1.5">
+                    {data.next_steps.map((n, i) => (
+                      <li key={i} className="flex gap-2">
+                        <span className="text-[oklch(0.65_0.18_70)]">→</span>
+                        <span>{n}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </Section>
+              </div>
+            )}
+          </div>
+
+          {/* Calm pet callout */}
+          {isCalm && (
+            <div className="mx-5 mt-5 rounded-2xl border border-[oklch(0.88_0.10_85)] bg-[oklch(0.97_0.05_85)] px-4 py-3 text-sm text-[oklch(0.38_0.08_60)]">
+              Heads up — likely a pet at home. No action needed unless something changes.
+            </div>
+          )}
+
+          {/* Nearby helpers */}
+          {isUrgent && (
+            <div
+              className="mx-5 mt-5 rounded-2xl px-4 py-3"
+              style={{ background: r.ringBg, color: r.titleColor }}
+            >
+              <div className="flex items-center gap-2 text-[14px] font-semibold">
+                <span>👥</span>
+                <span>Nearby helpers will be notified</span>
+              </div>
+              <div className="mt-0.5 text-[12.5px] opacity-80">
+                Rescues, volunteers &amp; fosters in this area are being alerted.
+              </div>
+            </div>
+          )}
+
+          {/* Footer meta */}
+          <div className="mx-5 mt-5 mb-5 border-t border-border pt-3 text-[11.5px] leading-relaxed text-muted-foreground">
+            Reported by: <span className="font-medium text-foreground/80">Anonymous</span> · {stamp}
+            <br />
+            Type: <span className="font-medium text-foreground/80">{reportType}</span> · Visibility:{" "}
+            <span className="font-medium text-foreground/80">Public</span>
+          </div>
+        </article>
+
+        <div className="mt-5 text-center text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
           AI is advisory — not a diagnosis
         </div>
       </div>
@@ -134,7 +342,7 @@ export function RescueReport({
         <div className="mx-auto flex max-w-2xl justify-end">
           <button
             onClick={onContinue}
-            className="rounded-full bg-gradient-to-b from-[oklch(0.90_0.16_85)] to-[oklch(0.78_0.15_70)] px-6 py-2.5 text-sm font-semibold text-[oklch(0.25_0.04_60)] shadow-md hover:brightness-105 active:scale-[0.98] transition"
+            className="rounded-full bg-gradient-to-b from-[oklch(0.90_0.16_85)] to-[oklch(0.78_0.15_70)] px-6 py-2.5 text-sm font-semibold text-[oklch(0.25_0.04_60)] shadow-md transition hover:brightness-105 active:scale-[0.98]"
           >
             Continue →
           </button>
@@ -144,11 +352,30 @@ export function RescueReport({
   );
 }
 
+function bigTitle(data: Assessment, key: RibbonKey): string {
+  const species = (data.species || "animal").toUpperCase();
+  const breed = data.breed && !/unknown|mixed/i.test(data.breed) ? data.breed.toUpperCase() : "";
+  if (key === "urgent_injured") return `INJURED ${species}`;
+  if (key === "at_risk") return `AT-RISK ${species}`;
+  if (key === "wildlife") return `WILDLIFE · ${species}`;
+  if (key === "care_needed") return breed ? `${breed} · NEEDS CARE` : `${species} · NEEDS CARE`;
+  // monitoring / healthy
+  return breed ? `HEALTHY ${breed} · RESTING AT HOME` : `HEALTHY ${species} · RESTING AT HOME`;
+}
+
+function locationLine(data: Assessment): string {
+  // We don't have reverse-geocode here; surface the scene description if it reads like a place.
+  const scene = data.location_scene || "";
+  const short = scene.split(/[.,]/)[0].trim();
+  if (short && short.length < 60) return short;
+  return "Location pinned nearby";
+}
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h2 className="font-serif text-lg font-semibold tracking-tight">{title}</h2>
-      <div className="mt-1.5 text-[15px] leading-relaxed text-foreground/85">{children}</div>
+      <h2 className="font-serif text-base font-semibold tracking-tight">{title}</h2>
+      <div className="mt-1 text-[14.5px] leading-relaxed text-foreground/85">{children}</div>
     </div>
   );
 }
