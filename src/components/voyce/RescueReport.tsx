@@ -336,7 +336,9 @@ export function RescueReport({
               </div>
             ) : (
               <div className="mt-4 space-y-4">
+                <AIHealthDisclaimer />
                 <Section title="Body condition">{data.vet_notes.bcs}</Section>
+
                 <Section title="Observed posture">{data.vet_notes.posture}</Section>
                 <Section title="Hydration">{data.vet_notes.hydration}</Section>
                 <Section title="Clinical summary">{data.vet_notes.clinical}</Section>
