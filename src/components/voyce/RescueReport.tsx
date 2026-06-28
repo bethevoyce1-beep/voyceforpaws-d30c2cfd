@@ -1,12 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
-import { MISSIONS, type MissionId } from "@/lib/missions";
+import { MISSIONS, MONITORING_LAYOUT, type MissionId } from "@/lib/missions";
 import { getUrgency } from "@/lib/urgency";
 import { AIDisclosureBanner } from "@/components/voyce/AIDisclosureBanner";
 
-
-
 type RibbonKey = "critical" | "urgent_injured" | "at_risk" | "care_needed" | "monitoring" | "wildlife";
+
 
 type RibbonStyle = {
   label: string;
@@ -119,26 +118,49 @@ export function RescueReport({
   const [tab, setTab] = useState<"story" | "vet">("story");
   const [shareConfirm, setShareConfirm] = useState(false);
   const m = MISSIONS[mission];
-  const ribbonKey = useMemo(() => pickRibbon(data, mission), [data, mission]);
-  const r = RIBBONS[ribbonKey];
   const urgency = useMemo(() => getUrgency(data, mission), [data, mission]);
-  const isCalm = ribbonKey === "monitoring";
-  const isUrgent = ribbonKey === "urgent_injured" || ribbonKey === "at_risk" || ribbonKey === "critical";
-  const isWildlife = mission === "wildlife";
   const { stamp, minsAgo } = useMemo(reportedNow, []);
 
+  // Monitoring fallback only for non-critical missions where AI judged the
+  // animal healthy/low-priority. At-risk-shelter and wildlife always render
+  // their mission layout — those missions are inherently action-required.
+  const isMonitoringFallback =
+    urgency.level === "LOW" &&
+    mission !== "at-risk-shelter" &&
+    mission !== "wildlife";
 
+  const isWildlife = mission === "wildlife";
+
+  // Resolve ribbon / title-color / callout / mega-CTA / helpers.
+  const ribbonLabel = isMonitoringFallback ? MONITORING_LAYOUT.ribbonLabel : m.ribbonLabel;
+  const ribbonGradient = isMonitoringFallback ? MONITORING_LAYOUT.ribbonGradient : m.ribbonGradient;
+  const ribbonText = isMonitoringFallback ? MONITORING_LAYOUT.ribbonText : m.ribbonText;
+  const titleColor = isMonitoringFallback ? MONITORING_LAYOUT.titleColor : m.titleColor;
+  const titleSub = isMonitoringFallback ? MONITORING_LAYOUT.titleSub : m.titleSub;
+  const ringBg = isMonitoringFallback ? MONITORING_LAYOUT.ringBg : m.ringBg;
+
+  const ribbonKey: RibbonKey = isMonitoringFallback
+    ? "monitoring"
+    : mission === "wildlife"
+      ? "wildlife"
+      : mission === "at-risk-shelter"
+        ? "at_risk"
+        : mission === "injured"
+          ? "urgent_injured"
+          : "care_needed";
 
   const reportType =
-    ribbonKey === "urgent_injured"
+    mission === "injured"
       ? "Injury"
-      : ribbonKey === "at_risk"
+      : mission === "at-risk-shelter"
         ? "At-risk shelter"
-        : ribbonKey === "wildlife"
+        : mission === "wildlife"
           ? "Wildlife"
-          : data.is_likely_pet
-            ? "Pet check-in"
-            : "Stray";
+          : mission === "lost-found"
+            ? data.is_likely_pet ? "Found pet" : "Lost pet"
+            : mission === "prevention"
+              ? "Prevention / Care"
+              : "Stray";
 
   return (
     <div className="min-h-[100dvh] bg-background pb-32">
@@ -150,14 +172,18 @@ export function RescueReport({
           {/* Ribbon */}
           <div
             className="flex items-center justify-between gap-3 px-4 py-2.5"
-            style={{ background: r.gradient, color: r.textOnRibbon }}
+            style={{ background: ribbonGradient, color: ribbonText }}
           >
-            <span className="text-[12px] font-bold uppercase tracking-[0.12em]">{ribbonKey === "critical" || isCalm || isWildlife ? r.label : m.ribbonLabel}</span>
+            <span className="text-[12px] font-bold uppercase tracking-[0.12em]">
+              {mission === "at-risk-shelter" && !isMonitoringFallback
+                ? <CountdownRibbonLabel />
+                : ribbonLabel}
+            </span>
             <span
               className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider"
               style={{
                 background: "rgba(255,255,255,0.18)",
-                color: r.textOnRibbon,
+                color: ribbonText,
                 backdropFilter: "blur(4px)",
               }}
             >
@@ -170,13 +196,33 @@ export function RescueReport({
             <img src={image} alt={data.title} className="aspect-[4/3] w-full object-cover" />
           </div>
 
+          {/* Wildlife top warning (always above title) */}
+          {isWildlife && !isMonitoringFallback && m.showTopWarning && (
+            <div
+              className="mx-5 mt-4 rounded-2xl border-2 px-4 py-3"
+              style={{ borderColor: "#D14848", background: "#FCE4E4", color: "#7E1F1F" }}
+            >
+              <div className="text-[12px] font-bold uppercase tracking-[0.12em]">
+                {m.showTopWarning.title}
+              </div>
+              <div className="mt-1 text-[13px] leading-relaxed">{m.showTopWarning.body}</div>
+            </div>
+          )}
+
+          {/* At-risk countdown timer (prominent, above title) */}
+          {mission === "at-risk-shelter" && !isMonitoringFallback && (
+            <div className="mx-5 mt-4">
+              <CountdownBlock />
+            </div>
+          )}
+
           {/* Title block */}
           <div className="px-5 pt-5">
             <h1
               className="font-serif text-[28px] font-bold leading-[1.05] uppercase tracking-tight"
-              style={{ color: r.titleColor }}
+              style={{ color: titleColor }}
             >
-              {bigTitle(data, ribbonKey)}
+              {bigTitle(data, mission, isMonitoringFallback)}
             </h1>
             <div className="mt-2">
               <span
@@ -188,7 +234,7 @@ export function RescueReport({
               </span>
             </div>
             <p className="mt-2 font-serif text-[15px] italic text-muted-foreground">
-              {r.subtitle}
+              {titleSub}
             </p>
 
             {/* Location */}
@@ -203,19 +249,44 @@ export function RescueReport({
             </p>
           </div>
 
-          {/* Urgency strip */}
-          {!isCalm && (
+          {/* Mission-specific callout */}
+          {!isMonitoringFallback && (
             <div
-              className="mx-5 mt-4 flex items-center gap-2 rounded-xl px-3 py-2 text-[13px] font-medium"
-              style={{ background: r.ringBg, color: r.titleColor }}
+              className="mx-5 mt-4 rounded-2xl border-2 px-4 py-3.5"
+              style={{
+                borderColor: m.callout.border,
+                background: m.callout.bg,
+                color: m.callout.text,
+              }}
             >
-              <span>⏰</span>
-              <span>Help needed within hours · network on standby</span>
+              <div className="flex gap-2.5 text-[13.5px] leading-relaxed">
+                <span className="text-lg leading-none">{m.callout.emoji}</span>
+                <span className="font-medium">{m.callout.body}</span>
+              </div>
             </div>
           )}
 
-          {/* Action row */}
-          {!isCalm && (
+          {/* Calm callout for monitoring fallback */}
+          {isMonitoringFallback && (
+            <div className="mx-5 mt-4 rounded-2xl border border-[#E8DCC2] bg-[#FAF8F5] px-4 py-3 text-[13.5px] text-[oklch(0.38_0.08_60)]">
+              {MONITORING_LAYOUT.calmCallout}
+            </div>
+          )}
+
+          {/* Mega CTA — mission-specific, hidden in monitoring fallback */}
+          {!isMonitoringFallback && m.megaCta && (
+            <div className="mx-5 mt-4">
+              <button
+                className="w-full rounded-2xl px-5 py-4 text-[15px] font-bold uppercase tracking-wide shadow-md transition hover:brightness-105 active:scale-[0.99]"
+                style={{ background: m.megaCta.gradient, color: m.megaCta.textColor }}
+              >
+                {m.megaCta.label}
+              </button>
+            </div>
+          )}
+
+          {/* Action row (Share · Navigate · Call · Add Update) — hidden in monitoring fallback */}
+          {!isMonitoringFallback && (
             <div className="mx-5 mt-3 grid grid-cols-4 gap-2">
               {ACTIONS.map((a) => (
                 <button
@@ -230,42 +301,17 @@ export function RescueReport({
             </div>
           )}
 
-
-          {/* Wildlife do-not-handle callout */}
-          {isWildlife && (
-            <div
-              className="mx-5 mt-4 rounded-2xl border-2 px-4 py-3.5"
-              style={{ borderColor: m.accent, background: m.accentSoft, color: m.titleColor }}
-            >
-              <div className="text-[13px] font-bold uppercase tracking-wide">
-                🚨 Do not handle
-              </div>
-              <div className="mt-1 text-[13.5px] leading-relaxed">
-                Wildlife should only be handled by licensed rehabbers. Keep distance and use the
-                rehabber contacts below.
-              </div>
-              {data.vet_notes?.clinical && (
-                <div className="mt-2 rounded-xl bg-background/70 px-3 py-2 text-[12.5px] text-foreground/80">
-                  📞 {data.vet_notes.clinical}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Primary alert button */}
-          {isUrgent && !isWildlife && (
+          {/* Role pills — mission-specific. Monitoring fallback replaces with "wrong photo" link */}
+          {isMonitoringFallback ? (
             <div className="mx-5 mt-4">
               <button
-                className="w-full rounded-2xl px-5 py-3.5 text-[15px] font-bold uppercase tracking-wide text-white shadow-md transition hover:brightness-105 active:scale-[0.99]"
-                style={{ background: m.ribbonGradient }}
+                onClick={onContinue}
+                className="text-[13px] font-medium text-[#8A5A0E] underline-offset-2 hover:underline"
               >
-                {m.alertButtonLabel}
+                I picked the wrong photo →
               </button>
             </div>
-          )}
-
-          {/* Role pills */}
-          {!isCalm && (
+          ) : (
             <div className="mx-5 mt-4">
               <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
                 How can you help?
@@ -284,8 +330,6 @@ export function RescueReport({
               </div>
             </div>
           )}
-
-
 
           {/* Tabs */}
           <div className="mx-5 mt-5">
@@ -310,7 +354,7 @@ export function RescueReport({
                 <Section title="AI Health Assessment">{data.first_look}</Section>
                 <Section title="Behavior">{data.behavior}</Section>
                 <WhereFound data={data} />
-                <ResponderBriefing data={data} calm={isCalm} />
+                <ResponderBriefing data={data} calm={isMonitoringFallback} />
 
                 <Section title="What we noticed">
                   {data.noticed.length === 0 ? (
@@ -338,7 +382,6 @@ export function RescueReport({
               <div className="mt-4 space-y-4">
                 <AIHealthDisclaimer />
                 <Section title="Body condition">{data.vet_notes.bcs}</Section>
-
                 <Section title="Observed posture">{data.vet_notes.posture}</Section>
                 <Section title="Hydration">{data.vet_notes.hydration}</Section>
                 <Section title="Clinical summary">{data.vet_notes.clinical}</Section>
@@ -356,26 +399,36 @@ export function RescueReport({
             )}
           </div>
 
-          {/* Calm pet callout */}
-          {isCalm && (
-            <div className="mx-5 mt-5 rounded-2xl border border-[oklch(0.88_0.10_85)] bg-[oklch(0.97_0.05_85)] px-4 py-3 text-sm text-[oklch(0.38_0.08_60)]">
-              Heads up — likely a pet at home. No action needed unless something changes.
-            </div>
-          )}
-
-          {/* Nearby helpers */}
-          {isUrgent && (
+          {/* Nearby helpers — mission-specific copy */}
+          {!isMonitoringFallback && (
             <div
               className="mx-5 mt-5 rounded-2xl px-4 py-3"
-              style={{ background: r.ringBg, color: r.titleColor }}
+              style={{ background: ringBg, color: titleColor }}
             >
               <div className="flex items-center gap-2 text-[14px] font-semibold">
                 <span>👥</span>
                 <span>Nearby helpers will be notified</span>
               </div>
-              <div className="mt-0.5 text-[12.5px] opacity-80">
-                Rescues, volunteers &amp; fosters in this area are being alerted.
+              <div className="mt-0.5 text-[12.5px] opacity-85">
+                {m.nearbyHelpers}
               </div>
+            </div>
+          )}
+
+          {/* Report details — mission-specific extra fields */}
+          {!isMonitoringFallback && m.extraDetails && m.extraDetails.length > 0 && (
+            <div className="mx-5 mt-4 rounded-2xl border border-border bg-background/50 px-4 py-3">
+              <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                Report details
+              </div>
+              <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[13px]">
+                {m.extraDetails.map((d) => (
+                  <div key={d.label} className="flex justify-between gap-2">
+                    <dt className="text-muted-foreground">{d.label}</dt>
+                    <dd className="font-medium text-foreground/85 text-right">{d.value}</dd>
+                  </div>
+                ))}
+              </dl>
             </div>
           )}
 
@@ -385,6 +438,7 @@ export function RescueReport({
             <br />
             Type: <span className="font-medium text-foreground/80">{reportType}</span> · Visibility:{" "}
             <span className="font-medium text-foreground/80">Public</span>
+            {ribbonKey === "monitoring" ? null : null}
           </div>
         </article>
 
@@ -420,17 +474,69 @@ export function RescueReport({
   );
 }
 
+// ---- Mission-specific helpers ----
 
-function bigTitle(data: Assessment, key: RibbonKey): string {
+function useCountdown(totalSeconds: number) {
+  const [remaining, setRemaining] = useState(totalSeconds);
+  useEffect(() => {
+    const id = setInterval(() => setRemaining((s) => (s > 0 ? s - 1 : 0)), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const h = Math.floor(remaining / 3600);
+  const mn = Math.floor((remaining % 3600) / 60);
+  const s = remaining % 60;
+  return { h, m: mn, s };
+}
+
+function CountdownRibbonLabel() {
+  const { h, m } = useCountdown(23 * 3600 + 47 * 60);
+  return <>🚨 CRITICAL: {h}h {m}m LEFT</>;
+}
+
+function CountdownBlock() {
+  const { h, m, s } = useCountdown(23 * 3600 + 47 * 60);
+  return (
+    <div
+      className="rounded-2xl border-2 px-4 py-3.5 text-center"
+      style={{ borderColor: "#D14848", background: "#FCE4E4" }}
+    >
+      <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#7E1F1F]">
+        ⏰ Time until euthanasia
+      </div>
+      <div className="mt-1 font-serif text-[34px] font-bold leading-none tracking-tight text-[#D14848]">
+        {String(h).padStart(2, "0")}h {String(m).padStart(2, "0")}m{" "}
+        <span className="text-[22px] opacity-80">{String(s).padStart(2, "0")}s</span>
+      </div>
+      <div className="mt-1.5 text-[12px] text-[#7E1F1F]/80">
+        Every commitment in the network buys time.
+      </div>
+    </div>
+  );
+}
+
+
+
+
+function bigTitle(data: Assessment, mission: MissionId, monitoring: boolean): string {
   const species = (data.species || "animal").toUpperCase();
   const breed = data.breed && !/unknown|mixed/i.test(data.breed) ? data.breed.toUpperCase() : "";
-  if (key === "urgent_injured") return `INJURED ${species}`;
-  if (key === "at_risk") return `AT-RISK ${species}`;
-  if (key === "wildlife") return `WILDLIFE · ${species}`;
-  if (key === "care_needed") return breed ? `${breed} · NEEDS CARE` : `${species} · NEEDS CARE`;
-  // monitoring / healthy
-  return breed ? `HEALTHY ${breed} · RESTING AT HOME` : `HEALTHY ${species} · RESTING AT HOME`;
+  if (monitoring) {
+    return breed ? `HEALTHY ${breed} · RESTING AT HOME` : `HEALTHY ${species} · RESTING AT HOME`;
+  }
+  switch (mission) {
+    case "injured":
+      return `INJURED ${species}`;
+    case "at-risk-shelter":
+      return `AT-RISK SHELTER ${species}`;
+    case "lost-found":
+      return data.is_likely_pet ? `FOUND ${species}` : `LOST ${species}`;
+    case "prevention":
+      return breed ? `HEALTHY STRAY · ${breed}` : `HEALTHY STRAY · ${species}`;
+    case "wildlife":
+      return `WILDLIFE · ${species}`;
+  }
 }
+
 
 function locationLine(data: Assessment): string {
   // We don't have reverse-geocode here; surface the scene description if it reads like a place.
