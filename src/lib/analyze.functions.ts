@@ -117,8 +117,14 @@ const SCHEMA_HINT = `{
   "surrounding_objects": ["specific textured items actually visible — e.g. 'cream throw blanket','fern in clay pot','hardwood floor','water bowl'"],
   "lighting_conditions": "specific source + time, e.g. 'Soft late-afternoon light from south-facing window'",
   "safety_flags": ["honest hazards visible in photo; ['None — calm domestic environment'] if none"],
-  "environment_text": "60-80 words. Cinematic, sensory, specific. See system prompt for examples."
+  "environment_text": "60-80 words. Cinematic, sensory, specific. See system prompt for examples.",
+  "health_signs": { "sick": false, "injured": false, "lethargic": false, "dehydrated": false, "primary_sign": "short label or omit" },
+  "visible_condition": "Healthy | Concerning | Critical",
+  "symptoms": ["clinical-phrased visible signs; [] if none"],
+  "clinical_actions": ["clinician-oriented suggested actions; 3-5 items"],
+  "differentials": ["2-4 differential possibilities; [] if nothing concerning visible"]
 }`;
+
 
 const INDOOR_SETTINGS: SettingType[] = ["Home (Indoor)", "Shelter/Kennel"];
 
