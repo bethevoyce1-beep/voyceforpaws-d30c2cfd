@@ -47,8 +47,10 @@ export function DemoGate({ onDone }: { onDone: () => void }) {
             Continue →
           </button>
         </div>
+        </div>
       </div>
     );
+
   }
 
   return (
