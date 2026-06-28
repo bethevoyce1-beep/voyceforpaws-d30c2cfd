@@ -54,7 +54,10 @@ export function DemoGate({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-background px-6 pt-[max(2rem,env(safe-area-inset-top))] pb-12">
+    <div className="min-h-[100dvh] bg-background pb-12">
+      <BrandHeader />
+      <div className="px-6 pt-6">
+
       <form onSubmit={submit} className="mx-auto w-full max-w-md">
         <div className="inline-flex items-center gap-1.5 rounded-full bg-[oklch(0.96_0.05_85)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[oklch(0.40_0.10_60)]">
           ⚡ Live demo · what you just saw
