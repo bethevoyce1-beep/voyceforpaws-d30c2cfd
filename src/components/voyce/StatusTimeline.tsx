@@ -67,6 +67,9 @@ export function StatusTimeline({ onContinue }: { onContinue: () => void }) {
           AI is advisory — not a diagnosis
         </div>
       </div>
+      </div>
+
+
 
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
         <div className="mx-auto flex max-w-md justify-end">
