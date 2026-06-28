@@ -220,6 +220,7 @@ export function RescueReport({
               {ACTIONS.map((a) => (
                 <button
                   key={a.label}
+                  onClick={a.label === "Share" ? () => setShareConfirm(true) : undefined}
                   className="flex flex-col items-center gap-1 rounded-xl border border-border bg-background/60 px-2 py-2.5 text-[11px] font-medium text-foreground/85 transition hover:bg-background hover:shadow-sm active:scale-[0.98]"
                 >
                   <span className="text-base leading-none">{a.icon}</span>
@@ -228,6 +229,7 @@ export function RescueReport({
               ))}
             </div>
           )}
+
 
           {/* Wildlife do-not-handle callout */}
           {isWildlife && (
