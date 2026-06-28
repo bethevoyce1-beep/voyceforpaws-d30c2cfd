@@ -15,6 +15,8 @@ import { DemoGate } from "@/components/voyce/DemoGate";
 import { Outcome } from "@/components/voyce/Outcome";
 import { MissionPicker } from "@/components/voyce/MissionPicker";
 import { MISSIONS, type MissionId } from "@/lib/missions";
+import { ConsentGate, hasValidConsent } from "@/components/voyce/ConsentGate";
+
 
 
 export const Route = createFileRoute("/")({
@@ -66,6 +68,11 @@ function Home() {
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [aiPending, setAiPending] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [consented, setConsented] = useState(true); // assume true during SSR; corrected on mount
+  useEffect(() => {
+    setConsented(hasValidConsent());
+  }, []);
+
 
   const startAnalysis = useCallback(
     async (src: string) => {
@@ -100,14 +107,18 @@ function Home() {
 
   if (stage === "mission") {
     return (
-      <MissionPicker
-        onPick={(id) => {
-          setMission(id);
-          setStage("capture");
-        }}
-      />
+      <>
+        <MissionPicker
+          onPick={(id) => {
+            setMission(id);
+            setStage("capture");
+          }}
+        />
+        {!consented && <ConsentGate onAccept={() => setConsented(true)} />}
+      </>
     );
   }
+
 
   if (stage === "processing") {
     return (
