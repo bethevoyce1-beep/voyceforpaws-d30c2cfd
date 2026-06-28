@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
 import { MISSIONS, type MissionId } from "@/lib/missions";
+import { getUrgency } from "@/lib/urgency";
 
 
-type RibbonKey = "urgent_injured" | "at_risk" | "care_needed" | "monitoring" | "wildlife";
+type RibbonKey = "critical" | "urgent_injured" | "at_risk" | "care_needed" | "monitoring" | "wildlife";
 
 type RibbonStyle = {
   label: string;
@@ -15,13 +16,21 @@ type RibbonStyle = {
 };
 
 const RIBBONS: Record<RibbonKey, RibbonStyle> = {
-  urgent_injured: {
-    label: "🚨 URGENT: INJURED",
-    gradient: "linear-gradient(135deg, #D14848 0%, #A82F2F 100%)",
+  critical: {
+    label: "🚨 CRITICAL: LIFE-THREATENING",
+    gradient: "linear-gradient(135deg, #D14848 0%, #6A1414 100%)",
     textOnRibbon: "#FFF6F4",
-    titleColor: "#A82F2F",
-    subtitle: "Needs help immediately",
-    ringBg: "#FCEAEA",
+    titleColor: "#7E1F1F",
+    subtitle: "Life-threatening — action needed today",
+    ringBg: "#F8D7D7",
+  },
+  urgent_injured: {
+    label: "🟠 URGENT: NEEDS RESCUE",
+    gradient: "linear-gradient(135deg, #FF6B35 0%, #A8431F 100%)",
+    textOnRibbon: "#FFF6F0",
+    titleColor: "#A8431F",
+    subtitle: "Needs help today",
+    ringBg: "#FFE4D6",
   },
   at_risk: {
     label: "⚠️ URGENT: AT RISK",
@@ -40,7 +49,7 @@ const RIBBONS: Record<RibbonKey, RibbonStyle> = {
     ringBg: "#FCEFC9",
   },
   monitoring: {
-    label: "✓ MONITORING",
+    label: "✓ MONITORING · NO ACTION NEEDED",
     gradient: "linear-gradient(135deg, #B8E3C6 0%, #1F9D57 100%)",
     textOnRibbon: "#0F3A22",
     titleColor: "#1F6B3D",
@@ -58,18 +67,17 @@ const RIBBONS: Record<RibbonKey, RibbonStyle> = {
 };
 
 function pickRibbon(data: Assessment, mission: MissionId): RibbonKey {
-  // Mission strongly biases the ribbon, but AI urgency can escalate.
   if (mission === "wildlife") return "wildlife";
+  const u = getUrgency(data, mission);
+  if (u.level === "CRITICAL") return "critical";
   if (mission === "at-risk-shelter") return "at_risk";
   if (mission === "lost-found") return "care_needed";
   if (mission === "prevention") {
-    return data.status === "Healthy" || data.status === "Monitoring"
-      ? "monitoring"
-      : "care_needed";
+    return u.level === "LOW" ? "monitoring" : "care_needed";
   }
   // injured
-  if (data.status === "Urgent") return "urgent_injured";
-  if (data.status === "Monitoring" || data.status === "Healthy") return "monitoring";
+  if (u.level === "HIGH") return "urgent_injured";
+  if (u.level === "LOW") return "monitoring";
   return "care_needed";
 }
 
@@ -110,8 +118,9 @@ export function RescueReport({
   const m = MISSIONS[mission];
   const ribbonKey = useMemo(() => pickRibbon(data, mission), [data, mission]);
   const r = RIBBONS[ribbonKey];
+  const urgency = useMemo(() => getUrgency(data, mission), [data, mission]);
   const isCalm = ribbonKey === "monitoring";
-  const isUrgent = ribbonKey === "urgent_injured" || ribbonKey === "at_risk";
+  const isUrgent = ribbonKey === "urgent_injured" || ribbonKey === "at_risk" || ribbonKey === "critical";
   const isWildlife = mission === "wildlife";
   const { stamp, minsAgo } = useMemo(reportedNow, []);
 
@@ -137,7 +146,7 @@ export function RescueReport({
             className="flex items-center justify-between gap-3 px-4 py-2.5"
             style={{ background: r.gradient, color: r.textOnRibbon }}
           >
-            <span className="text-[12px] font-bold uppercase tracking-[0.12em]">{isCalm ? r.label : m.ribbonLabel}</span>
+            <span className="text-[12px] font-bold uppercase tracking-[0.12em]">{ribbonKey === "critical" || isCalm || isWildlife ? r.label : m.ribbonLabel}</span>
             <span
               className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider"
               style={{
@@ -163,7 +172,16 @@ export function RescueReport({
             >
               {bigTitle(data, ribbonKey)}
             </h1>
-            <p className="mt-1 font-serif text-[15px] italic text-muted-foreground">
+            <div className="mt-2">
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12.5px] font-bold uppercase tracking-[0.12em]"
+                style={{ background: urgency.soft, color: urgency.deep }}
+              >
+                <span className="text-muted-foreground/70">Urgency:</span>
+                <span>{urgency.emoji} {urgency.label}</span>
+              </span>
+            </div>
+            <p className="mt-2 font-serif text-[15px] italic text-muted-foreground">
               {r.subtitle}
             </p>
 

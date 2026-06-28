@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
+import { getUrgency } from "@/lib/urgency";
 
 type Geo = {
   lat: number;
@@ -391,11 +392,8 @@ function AIReveal({
 
   const priority = useMemo(() => {
     if (!assessment) return null;
-    const s = assessment.status;
-    if (s === "Urgent") return "Immediate Risk";
-    if (s === "Monitoring") return "Care Needed";
-    if (s === "Stable") return "Monitoring";
-    return "Healthy";
+    const u = getUrgency(assessment);
+    return `${u.emoji} ${u.label}`;
   }, [assessment]);
 
   const species = assessment
