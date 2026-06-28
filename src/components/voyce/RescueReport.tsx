@@ -408,6 +408,42 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+function WhereFound({ data }: { data: Assessment }) {
+  const text =
+    data.environment_text ||
+    data.location_scene ||
+    "Only the animal is visible in this frame — limited environmental context.";
+  const objects = (data.surrounding_objects || []).filter(Boolean);
+  return (
+    <div className="rounded-2xl border border-[#E8DCC2] bg-[#FAF8F5] px-4 py-4">
+      <div className="flex items-center gap-2">
+        <span className="text-base">📍</span>
+        <h2 className="font-serif text-base font-semibold tracking-tight">Where we found them</h2>
+      </div>
+      <p className="mt-2 whitespace-pre-line text-[14.5px] leading-relaxed text-foreground/85">
+        {text}
+      </p>
+      {objects.length > 0 && (
+        <div className="mt-3 border-t border-[#E8DCC2] pt-3">
+          <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A5A0E]">
+            In the frame
+          </div>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {objects.map((o, i) => (
+              <span
+                key={i}
+                className="rounded-full border border-[#E8DCC2] bg-white px-2.5 py-0.5 text-[12px] text-foreground/80"
+              >
+                {o}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ResponderBriefing({ data, calm }: { data: Assessment; calm: boolean }) {
   if (calm) {
     return (
