@@ -181,8 +181,11 @@ export function RescueReport({
             <span className="text-[12px] font-bold uppercase tracking-[0.12em]">
               {mission === "at-risk-shelter" && !isMonitoringFallback
                 ? <CountdownRibbonLabel />
-                : ribbonLabel}
+                : mission === "injured" && !isMonitoringFallback && condition.ribbonOverride
+                  ? condition.ribbonOverride
+                  : ribbonLabel}
             </span>
+
             <span
               className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider"
               style={{
