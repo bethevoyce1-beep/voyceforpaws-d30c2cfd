@@ -1,5 +1,7 @@
 import pawLogo from "@/assets/voyce-paw.png";
 import { MISSION_LIST, type MissionId } from "@/lib/missions";
+import { BrandHeader } from "@/components/voyce/BrandHeader";
+
 
 const GOLD = "#C9871A";
 
