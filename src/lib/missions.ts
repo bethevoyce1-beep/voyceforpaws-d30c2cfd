@@ -56,6 +56,7 @@ export const MISSIONS: Record<MissionId, Mission> = {
     icon: "🩹",
     label: "Injured / Sick",
     sub: "Hit by car, visible wound, sick stray",
+    photo: injuredPhoto,
     accent: "#FF6B35",
     accentSoft: "#FFE7DC",
     rolePills: [
@@ -92,6 +93,7 @@ export const MISSIONS: Record<MissionId, Mission> = {
     icon: "⏳",
     label: "At-Risk Shelter",
     sub: "Facing euthanasia, needs foster or rescue pull",
+    photo: shelterPhoto,
     accent: "#D14848",
     accentSoft: "#F8E2E2",
     rolePills: [
@@ -138,6 +140,7 @@ export const MISSIONS: Record<MissionId, Mission> = {
     icon: "🔍",
     label: "Lost / Found",
     sub: "Reunite a stray with their family",
+    photo: lostFoundPhoto,
     accent: "#C9871A",
     accentSoft: "#FCEFC9",
     rolePills: [
@@ -174,6 +177,7 @@ export const MISSIONS: Record<MissionId, Mission> = {
     icon: "🤱",
     label: "Prevention / Care",
     sub: "Healthy stray needs spay/neuter, vaccines, TNR",
+    photo: preventionPhoto,
     accent: "#1F9D57",
     accentSoft: "#E7F5EC",
     rolePills: [
@@ -210,7 +214,8 @@ export const MISSIONS: Record<MissionId, Mission> = {
     id: "wildlife",
     icon: "🦝",
     label: "Wildlife",
-    sub: "Routes to licensed rehabbers — never handle yourself",
+    sub: "Deer, bird, raccoon or any wildlife in need of rehab",
+    photo: wildlifePhoto,
     accent: "#4A8FB5",
     accentSoft: "#E4ECFF",
     rolePills: [
