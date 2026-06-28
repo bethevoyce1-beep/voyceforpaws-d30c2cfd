@@ -229,7 +229,7 @@ export function RescueReport({
               className="font-serif text-[28px] font-bold leading-[1.05] uppercase tracking-tight"
               style={{ color: titleColor }}
             >
-              {bigTitle(data, mission, isMonitoringFallback)}
+              {bigTitle(data, mission, isMonitoringFallback, condition)}
             </h1>
 
             {/* 4 — Subtitle */}
