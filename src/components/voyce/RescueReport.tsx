@@ -117,6 +117,7 @@ export function RescueReport({
   onContinue: () => void;
 }) {
   const [tab, setTab] = useState<"story" | "vet">("story");
+  const [shareConfirm, setShareConfirm] = useState(false);
   const m = MISSIONS[mission];
   const ribbonKey = useMemo(() => pickRibbon(data, mission), [data, mission]);
   const r = RIBBONS[ribbonKey];
@@ -125,6 +126,7 @@ export function RescueReport({
   const isUrgent = ribbonKey === "urgent_injured" || ribbonKey === "at_risk" || ribbonKey === "critical";
   const isWildlife = mission === "wildlife";
   const { stamp, minsAgo } = useMemo(reportedNow, []);
+
 
 
   const reportType =
