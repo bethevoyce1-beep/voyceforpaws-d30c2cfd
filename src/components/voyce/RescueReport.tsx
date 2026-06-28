@@ -618,15 +618,22 @@ export function RescueReport({
 
       {/* Sticky continue */}
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
-        <div className="mx-auto flex max-w-2xl justify-end">
+        <div className="mx-auto flex max-w-2xl flex-col items-end gap-1.5">
+          {submitError && (
+            <div className="text-[12px] font-medium text-[#A8431F]" role="alert">
+              {submitError}
+            </div>
+          )}
           <button
-            onClick={onContinue}
-            className="rounded-full bg-gradient-to-b from-[oklch(0.90_0.16_85)] to-[oklch(0.78_0.15_70)] px-6 py-2.5 text-sm font-semibold text-[oklch(0.25_0.04_60)] shadow-md transition hover:brightness-105 active:scale-[0.98]"
+            onClick={handleSubmitReport}
+            disabled={submitting}
+            className="rounded-full bg-gradient-to-b from-[oklch(0.90_0.16_85)] to-[oklch(0.78_0.15_70)] px-6 py-2.5 text-sm font-semibold text-[oklch(0.25_0.04_60)] shadow-md transition hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
           >
-            Continue →
+            {submitting ? "Verifying…" : "Continue →"}
           </button>
         </div>
       </div>
+
 
       {shareConfirm && (
         <ShareConfirmDialog
