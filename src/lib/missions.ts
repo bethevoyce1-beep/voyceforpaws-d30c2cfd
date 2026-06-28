@@ -82,7 +82,7 @@ export const MISSIONS: Record<MissionId, Mission> = {
   },
   "at-risk-shelter": {
     id: "at-risk-shelter",
-    icon: "🏠",
+    icon: "⏳",
     label: "At-Risk Shelter",
     sub: "Facing euthanasia, needs foster or rescue pull",
     accent: "#D14848",
