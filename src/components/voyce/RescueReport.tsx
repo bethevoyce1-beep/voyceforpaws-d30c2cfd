@@ -216,7 +216,7 @@ export function RescueReport({
             </div>
           )}
 
-          {/* Title block */}
+          {/* 3 — Big Title */}
           <div className="px-5 pt-5">
             <h1
               className="font-serif text-[28px] font-bold leading-[1.05] uppercase tracking-tight"
@@ -224,7 +224,17 @@ export function RescueReport({
             >
               {bigTitle(data, mission, isMonitoringFallback)}
             </h1>
-            <div className="mt-2">
+
+            {/* 4 — Subtitle */}
+            <p
+              className="mt-1.5 font-serif text-[15px] italic"
+              style={{ color: titleColor, opacity: 0.85 }}
+            >
+              {titleSub}
+            </p>
+
+            {/* Urgency pill (compact, deferred under subtitle for visibility) */}
+            <div className="mt-2.5">
               <span
                 className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12.5px] font-bold uppercase tracking-[0.12em]"
                 style={{ background: urgency.soft, color: urgency.deep }}
@@ -233,23 +243,23 @@ export function RescueReport({
                 <span>{urgency.emoji} {urgency.label}</span>
               </span>
             </div>
-            <p className="mt-2 font-serif text-[15px] italic text-muted-foreground">
-              {titleSub}
-            </p>
 
-            {/* Location */}
+            {/* 5 — Animal profile line */}
+            <AnimalProfileLine data={data} />
+
+            {/* 6 — Location */}
             <div className="mt-3 flex items-center gap-1.5 text-[15px] font-semibold text-foreground">
               <span>📍</span>
               <span>{locationLine(data)}</span>
             </div>
 
-            {/* Description */}
+            {/* 7 — Description */}
             <p className="mt-2 text-[14px] italic leading-relaxed text-[oklch(0.45_0.03_70)]">
               {data.first_look}
             </p>
           </div>
 
-          {/* Mission-specific callout */}
+          {/* 8 — Urgency callout (mission-specific) */}
           {!isMonitoringFallback && (
             <div
               className="mx-5 mt-4 rounded-2xl border-2 px-4 py-3.5"
@@ -273,7 +283,7 @@ export function RescueReport({
             </div>
           )}
 
-          {/* Mega CTA — mission-specific, hidden in monitoring fallback */}
+          {/* 9 — Mega CTA */}
           {!isMonitoringFallback && m.megaCta && (
             <div className="mx-5 mt-4">
               <button
@@ -285,7 +295,7 @@ export function RescueReport({
             </div>
           )}
 
-          {/* Action row (Share · Navigate · Call · Add Update) — hidden in monitoring fallback */}
+          {/* 10 — Action row */}
           {!isMonitoringFallback && (
             <div className="mx-5 mt-3 grid grid-cols-4 gap-2">
               {ACTIONS.map((a) => (
@@ -301,7 +311,7 @@ export function RescueReport({
             </div>
           )}
 
-          {/* Role pills — mission-specific. Monitoring fallback replaces with "wrong photo" link */}
+          {/* 11 — "I can help as" divider + role pills */}
           {isMonitoringFallback ? (
             <div className="mx-5 mt-4">
               <button
@@ -312,11 +322,9 @@ export function RescueReport({
               </button>
             </div>
           ) : (
-            <div className="mx-5 mt-4">
-              <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                How can you help?
-              </div>
-              <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mx-5 mt-5">
+              <SectionDivider>I can help as</SectionDivider>
+              <div className="mt-3 flex flex-wrap gap-2">
                 {m.rolePills.map((p) => (
                   <button
                     key={p.label}
@@ -327,6 +335,22 @@ export function RescueReport({
                     <span>{p.label}</span>
                   </button>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* 12 — Share buttons (5 platforms) */}
+          {!isMonitoringFallback && (
+            <div className="mx-5 mt-5">
+              <SectionDivider>
+                Or share to get more eyes on {shareName(data)}
+              </SectionDivider>
+              <div className="mt-3">
+                <ShareRow
+                  data={data}
+                  mission={mission}
+                  onIntercept={() => setShareConfirm(true)}
+                />
               </div>
             </div>
           )}
@@ -399,10 +423,27 @@ export function RescueReport({
             )}
           </div>
 
-          {/* Nearby helpers — mission-specific copy */}
+          {/* 13 — Report details (gray footer block) */}
+          <div className="mx-5 mt-5 rounded-2xl bg-muted/40 px-4 py-3.5">
+            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+              Report details
+            </div>
+            <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[13px]">
+              <ReportRow label="Reported by" value="Anonymous" />
+              <ReportRow label="Reported at" value={stamp} />
+              <ReportRow label="Type" value={reportType} />
+              <ReportRow label="Visibility" value="Public" />
+              {!isMonitoringFallback &&
+                m.extraDetails?.map((d) => (
+                  <ReportRow key={d.label} label={d.label} value={d.value} />
+                ))}
+            </dl>
+          </div>
+
+          {/* 14 — Nearby helpers callout */}
           {!isMonitoringFallback && (
             <div
-              className="mx-5 mt-5 rounded-2xl px-4 py-3"
+              className="mx-5 mt-4 mb-5 rounded-2xl px-4 py-3"
               style={{ background: ringBg, color: titleColor }}
             >
               <div className="flex items-center gap-2 text-[14px] font-semibold">
@@ -415,35 +456,12 @@ export function RescueReport({
             </div>
           )}
 
-          {/* Report details — mission-specific extra fields */}
-          {!isMonitoringFallback && m.extraDetails && m.extraDetails.length > 0 && (
-            <div className="mx-5 mt-4 rounded-2xl border border-border bg-background/50 px-4 py-3">
-              <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                Report details
-              </div>
-              <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[13px]">
-                {m.extraDetails.map((d) => (
-                  <div key={d.label} className="flex justify-between gap-2">
-                    <dt className="text-muted-foreground">{d.label}</dt>
-                    <dd className="font-medium text-foreground/85 text-right">{d.value}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          )}
-
-          {/* Footer meta */}
-          <div className="mx-5 mt-5 mb-5 border-t border-border pt-3 text-[11.5px] leading-relaxed text-muted-foreground">
-            Reported by: <span className="font-medium text-foreground/80">Anonymous</span> · {stamp}
-            <br />
-            Type: <span className="font-medium text-foreground/80">{reportType}</span> · Visibility:{" "}
-            <span className="font-medium text-foreground/80">Public</span>
-            {ribbonKey === "monitoring" ? null : null}
-          </div>
+          {isMonitoringFallback && <div className="mb-5" />}
         </article>
 
-        <div className="mt-5 text-center text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-          Pre-launch · shares grow Voyce
+        {/* 15 — Pre-launch disclosure */}
+        <div className="mt-5 text-center text-[12px] italic text-muted-foreground">
+          🐾 Pre-launch · shares grow Voyce. Real alerts launch with the app.
         </div>
         <p className="mx-auto mt-3 max-w-xl text-center text-[12px] italic leading-relaxed text-muted-foreground">
           ⚠️ AI may misidentify breed, age, or condition. AI cannot detect internal injuries,
@@ -451,6 +469,7 @@ export function RescueReport({
           before medical decisions.
         </p>
       </div>
+
 
       {/* Sticky continue */}
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
