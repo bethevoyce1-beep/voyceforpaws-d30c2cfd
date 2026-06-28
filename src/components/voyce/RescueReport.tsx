@@ -118,8 +118,9 @@ export function RescueReport({
   const m = MISSIONS[mission];
   const ribbonKey = useMemo(() => pickRibbon(data, mission), [data, mission]);
   const r = RIBBONS[ribbonKey];
+  const urgency = useMemo(() => getUrgency(data, mission), [data, mission]);
   const isCalm = ribbonKey === "monitoring";
-  const isUrgent = ribbonKey === "urgent_injured" || ribbonKey === "at_risk";
+  const isUrgent = ribbonKey === "urgent_injured" || ribbonKey === "at_risk" || ribbonKey === "critical";
   const isWildlife = mission === "wildlife";
   const { stamp, minsAgo } = useMemo(reportedNow, []);
 
