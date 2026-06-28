@@ -4,6 +4,7 @@ import { MISSIONS, MONITORING_LAYOUT, type MissionId } from "@/lib/missions";
 import { getUrgency } from "@/lib/urgency";
 import { getCondition, CONDITION_COLORS, type ConditionInfo } from "@/lib/condition";
 import { AIDisclosureBanner } from "@/components/voyce/AIDisclosureBanner";
+import { useLiveAgo, formatTimer } from "@/lib/useLiveAgo";
 
 
 type RibbonKey = "critical" | "urgent_injured" | "at_risk" | "care_needed" | "monitoring" | "wildlife";
@@ -93,17 +94,13 @@ const ACTIONS: { icon: string; label: string }[] = [
   { icon: "➕", label: "Add Update" },
 ];
 
-function reportedNow(): { stamp: string; minsAgo: number } {
-  const d = new Date();
-  return {
-    stamp: d.toLocaleString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    }),
-    minsAgo: 0,
-  };
+function formatStamp(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 export function RescueReport({
@@ -123,7 +120,10 @@ export function RescueReport({
   const m = MISSIONS[mission];
   const urgency = useMemo(() => getUrgency(data, mission), [data, mission]);
   const condition = useMemo(() => getCondition(data), [data]);
-  const { stamp, minsAgo } = useMemo(reportedNow, []);
+  const reportedAt = useMemo(() => new Date().toISOString(), []);
+  const stamp = useMemo(() => formatStamp(reportedAt), [reportedAt]);
+  const status = (data as { status?: string }).status;
+  const ago = useLiveAgo(reportedAt, status);
 
   const performShare = (platform: SharePlatform) => {
     const text = buildShareText(data, mission);
@@ -225,8 +225,31 @@ export function RescueReport({
                 backdropFilter: "blur(4px)",
               }}
             >
-              Just Reported · {minsAgo} min ago
+              {ago.totalSeconds < 60 ? "Just Reported" : "Reported"} · {ago.label.toLowerCase()}
             </span>
+          </div>
+
+          {/* Mission Timer */}
+          <div className="mx-4 mt-3 flex items-center justify-between gap-3 rounded-2xl border border-[#E8D58A] bg-gradient-to-b from-[#FBF1C8] to-[#F5E3A0] px-4 py-2.5">
+            <div className="flex items-center gap-2">
+              <span className="text-base">{ago.frozen ? "✅" : "🕐"}</span>
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#7A5A0E]">
+                  {ago.frozen ? "Resolved" : "Mission Timer"}
+                </div>
+                <div className="text-[10px] leading-tight text-[#8A6A1E]">
+                  {ago.frozen
+                    ? `Resolved after ${formatTimer(ago.totalSeconds)}`
+                    : "Time since this case was reported."}
+                </div>
+              </div>
+            </div>
+            <div
+              className="rounded-full bg-white/70 px-3 py-1 font-mono text-[15px] font-bold tabular-nums text-[#7A5A0E]"
+              aria-live={ago.frozen ? "off" : "polite"}
+            >
+              {formatTimer(ago.totalSeconds)}
+            </div>
           </div>
 
           {/* Photo */}
