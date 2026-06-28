@@ -441,6 +441,16 @@ function AIReveal({
             <span className="font-medium text-foreground">{l.value ?? "—"}</span>
           </div>
         ))}
+      {ready && revealed >= lines.length && (
+        <div
+          className={`pt-1 text-[11.5px] italic leading-snug text-muted-foreground transition-opacity duration-500 ${
+            revealed >= lines.length ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          ⚠️ AI may misidentify. Final assessments rest with rescuers and licensed vets.
+        </div>
+      )}
     </div>
   );
 }
+
