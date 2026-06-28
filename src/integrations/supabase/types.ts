@@ -14,7 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      ai_consent_log: {
+        Row: {
+          consent_at: string
+          consent_version: string
+          id: string
+          ip_hash: string | null
+          source: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          consent_at?: string
+          consent_version: string
+          id?: string
+          ip_hash?: string | null
+          source?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          consent_at?: string
+          consent_version?: string
+          id?: string
+          ip_hash?: string | null
+          source?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
