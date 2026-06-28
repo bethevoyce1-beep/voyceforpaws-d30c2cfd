@@ -589,15 +589,23 @@ function CountdownBlock() {
 
 
 
-function bigTitle(data: Assessment, mission: MissionId, monitoring: boolean): string {
+function bigTitle(
+  data: Assessment,
+  mission: MissionId,
+  monitoring: boolean,
+  condition: ConditionInfo,
+): string {
   const species = (data.species || "animal").toUpperCase();
   const breed = data.breed && !/unknown|mixed/i.test(data.breed) ? data.breed.toUpperCase() : "";
   if (monitoring) {
     return breed ? `HEALTHY ${breed} · RESTING AT HOME` : `HEALTHY ${species} · RESTING AT HOME`;
   }
+  const strayPrefix = data.is_likely_pet ? "" : "STRAY ";
   switch (mission) {
-    case "injured":
-      return `INJURED ${species}`;
+    case "injured": {
+      const word = condition.titleWord ?? "INJURED";
+      return `${word} ${strayPrefix}${species}`.trim();
+    }
     case "at-risk-shelter":
       return `AT-RISK SHELTER ${species}`;
     case "lost-found":
@@ -609,14 +617,23 @@ function bigTitle(data: Assessment, mission: MissionId, monitoring: boolean): st
   }
 }
 
-function AnimalProfileLine({ data }: { data: Assessment }) {
+function AnimalProfileLine({
+  data,
+  condition,
+}: {
+  data: Assessment;
+  condition: ConditionInfo;
+}) {
   const chips = [
     { label: "Species", value: data.species },
     { label: "Breed", value: data.breed },
     { label: "Age", value: data.age },
     { label: "Weight", value: data.weight },
   ].filter((c) => c.value && !/^unknown$/i.test(c.value));
-  if (chips.length === 0) return null;
+  const conditionChip = condition.primarySign
+    ? { label: "Condition", value: condition.primarySign }
+    : null;
+  if (chips.length === 0 && !conditionChip) return null;
   return (
     <div className="mt-3 flex flex-wrap gap-1.5">
       {chips.map((c) => (
@@ -628,9 +645,45 @@ function AnimalProfileLine({ data }: { data: Assessment }) {
           <span className="font-medium text-foreground/90">{c.value}</span>
         </span>
       ))}
+      {conditionChip && (
+        <span
+          className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11.5px] font-medium"
+          style={{
+            background: CONDITION_COLORS[condition.visibleCondition].bg,
+            color: CONDITION_COLORS[condition.visibleCondition].text,
+            borderColor: CONDITION_COLORS[condition.visibleCondition].dot,
+          }}
+        >
+          <span
+            className="h-1.5 w-1.5 rounded-full"
+            style={{ background: CONDITION_COLORS[condition.visibleCondition].dot }}
+          />
+          {conditionChip.value}
+        </span>
+      )}
     </div>
   );
 }
+
+function VisibleConditionPill({ condition }: { condition: ConditionInfo }) {
+  const c = CONDITION_COLORS[condition.visibleCondition];
+  return (
+    <div className="flex items-center justify-between rounded-2xl border px-4 py-2.5"
+      style={{ background: c.bg, borderColor: c.dot, color: c.text }}
+    >
+      <div className="flex items-center gap-2">
+        <span className="h-2.5 w-2.5 rounded-full" style={{ background: c.dot }} />
+        <span className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-80">
+          Visible condition
+        </span>
+      </div>
+      <span className="text-[14px] font-bold uppercase tracking-wide">
+        {condition.visibleCondition}
+      </span>
+    </div>
+  );
+}
+
 
 function SectionDivider({ children }: { children: React.ReactNode }) {
   return (
