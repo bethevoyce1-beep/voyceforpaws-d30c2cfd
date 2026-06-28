@@ -22,6 +22,25 @@ export type Mission = {
   ringBg: string;
   capturePillLabel: string;
   alertButtonLabel: string;
+
+  // Card layout (per-mission)
+  titleSub: string;
+  callout: {
+    emoji: string;
+    body: string;
+    bg: string;
+    border: string;
+    text: string;
+  };
+  megaCta: {
+    label: string;
+    gradient: string;
+    textColor: string;
+  } | null;
+  nearbyHelpers: string;
+  showCountdown?: boolean;
+  showTopWarning?: { title: string; body: string };
+  extraDetails?: { label: string; value: string }[];
 };
 
 export const MISSIONS: Record<MissionId, Mission> = {
@@ -40,12 +59,26 @@ export const MISSIONS: Record<MissionId, Mission> = {
       { icon: "🚚", label: "Transport" },
     ],
     ribbonLabel: "🚨 URGENT: INJURED",
-    ribbonGradient: "linear-gradient(135deg, #FF6B35 0%, #C9381A 100%)",
+    ribbonGradient: "linear-gradient(135deg, #FF6B35 0%, #D14848 100%)",
     ribbonText: "#FFF6F2",
     titleColor: "#A8431F",
     ringBg: "#FFE7DC",
     capturePillLabel: "Injured / Sick",
     alertButtonLabel: "🔔 Send Urgent Alert",
+    titleSub: "Needs medical attention",
+    callout: {
+      emoji: "❤",
+      body: "High Urgency: Medical Help Needed · Fast response can save this animal.",
+      bg: "#FFEEE4",
+      border: "#FF6B35",
+      text: "#A8431F",
+    },
+    megaCta: {
+      label: "🔔 SEND URGENT ALERT",
+      gradient: "linear-gradient(135deg, #FF6B35 0%, #D14848 100%)",
+      textColor: "#FFFFFF",
+    },
+    nearbyHelpers: "Rescues, volunteers & fosters in this area are being alerted.",
   },
   "at-risk-shelter": {
     id: "at-risk-shelter",
@@ -55,19 +88,43 @@ export const MISSIONS: Record<MissionId, Mission> = {
     accent: "#D14848",
     accentSoft: "#F8E2E2",
     rolePills: [
-      { icon: "🏠", label: "Foster Today" },
       { icon: "🐾", label: "Pull Today" },
+      { icon: "🏠", label: "Foster Tonight" },
+      { icon: "💛", label: "Adopt" },
       { icon: "🤝", label: "Pledge for Pull" },
       { icon: "🚚", label: "Transport" },
+      { icon: "🩺", label: "Vet (intake)" },
       { icon: "📤", label: "Share" },
     ],
-    ribbonLabel: "⚠️ URGENT: AT RISK",
-    ribbonGradient: "linear-gradient(135deg, #B83232 0%, #7E1F1F 100%)",
+    ribbonLabel: "🚨 CRITICAL: AT RISK",
+    ribbonGradient: "linear-gradient(135deg, #D14848 0%, #7E1F1F 100%)",
     ribbonText: "#FFF1EE",
     titleColor: "#7E1F1F",
     ringBg: "#F8E2E2",
     capturePillLabel: "At-Risk Shelter",
-    alertButtonLabel: "🔔 Rally Foster Network",
+    alertButtonLabel: "🆘 Save This Dog",
+    titleSub: "Needs foster or rescue pull TODAY",
+    callout: {
+      emoji: "🚨",
+      body: "Without a foster or rescue commitment by the deadline, this animal will be euthanized. Every role in the network matters.",
+      bg: "#FCE4E4",
+      border: "#D14848",
+      text: "#7E1F1F",
+    },
+    megaCta: {
+      label: "🆘 SAVE THIS DOG",
+      gradient: "linear-gradient(135deg, #D14848 0%, #7E1F1F 100%)",
+      textColor: "#FFFFFF",
+    },
+    nearbyHelpers:
+      "The whole network is being alerted — rescuers, fosters, adopters, pledgers, transporters, vets, and animal lovers in the area.",
+    showCountdown: true,
+    extraDetails: [
+      { label: "Shelter", value: "Riverside County AC" },
+      { label: "Kennel", value: "B-14" },
+      { label: "Intake", value: "Jun 22, 2026" },
+      { label: "Days at shelter", value: "6" },
+    ],
   },
   "lost-found": {
     id: "lost-found",
@@ -77,19 +134,33 @@ export const MISSIONS: Record<MissionId, Mission> = {
     accent: "#C9871A",
     accentSoft: "#FCEFC9",
     rolePills: [
-      { icon: "👀", label: "I've Seen Them" },
-      { icon: "📞", label: "Contact Owner" },
-      { icon: "🛟", label: "Safe Hold" },
-      { icon: "💛", label: "Adopt if Unclaimed" },
-      { icon: "🤝", label: "Pledge for Care" },
+      { icon: "👁", label: "I've seen them" },
+      { icon: "📞", label: "Contact owner" },
+      { icon: "🏠", label: "Safe hold" },
+      { icon: "💛", label: "Adopt if unclaimed" },
+      { icon: "🤝", label: "Pledge for care" },
     ],
-    ribbonLabel: "🔍 FOUND",
+    ribbonLabel: "🔍 LOST · FOUND ALIVE",
     ribbonGradient: "linear-gradient(135deg, #FFD24A 0%, #C9871A 100%)",
     ribbonText: "#3A2A07",
     titleColor: "#8A5A0E",
     ringBg: "#FCEFC9",
     capturePillLabel: "Lost / Found",
-    alertButtonLabel: "🔔 Alert Nearby Network",
+    alertButtonLabel: "🔔 Alert Neighbors",
+    titleSub: "Helping reunite with family",
+    callout: {
+      emoji: "💛",
+      body: "3 possible lost reports nearby — owners being notified.",
+      bg: "#FCEFC9",
+      border: "#C9871A",
+      text: "#8A5A0E",
+    },
+    megaCta: {
+      label: "🔔 ALERT NEIGHBORS",
+      gradient: "linear-gradient(135deg, #FFD24A 0%, #C9871A 100%)",
+      textColor: "#3A2A07",
+    },
+    nearbyHelpers: "Neighbors, lost-pet groups, and local shelters in this area are being alerted.",
   },
   prevention: {
     id: "prevention",
@@ -99,41 +170,74 @@ export const MISSIONS: Record<MissionId, Mission> = {
     accent: "#1F9D57",
     accentSoft: "#E7F5EC",
     rolePills: [
-      { icon: "🏠", label: "Foster" },
-      { icon: "✂️", label: "TNR" },
+      { icon: "🏠", label: "Foster pups" },
+      { icon: "💛", label: "Adopt" },
+      { icon: "✂", label: "TNR" },
       { icon: "💉", label: "Vaccinate" },
-      { icon: "🩺", label: "Sterilize" },
-      { icon: "🙋", label: "Volunteer" },
-      { icon: "🤝", label: "Pledge" },
+      { icon: "🔧", label: "Sterilize" },
+      { icon: "🌳", label: "Volunteer" },
     ],
     ribbonLabel: "💛 CARE NEEDED",
-    ribbonGradient: "linear-gradient(135deg, #B8E3C6 0%, #1F9D57 100%)",
+    ribbonGradient: "linear-gradient(135deg, #4ADE80 0%, #1F9D57 100%)",
     ribbonText: "#0F3A22",
     titleColor: "#1F6B3D",
     ringBg: "#E7F5EC",
     capturePillLabel: "Prevention / Care",
-    alertButtonLabel: "🔔 Coordinate Care",
+    alertButtonLabel: "🌱 Arrange Care",
+    titleSub: "Healthy — needs care to prevent next litter",
+    callout: {
+      emoji: "🌱",
+      body: "Care now prevents the next litter. Spay + vaccines = lives saved long-term.",
+      bg: "#E7F5EC",
+      border: "#1F9D57",
+      text: "#1F6B3D",
+    },
+    megaCta: {
+      label: "🌱 ARRANGE CARE",
+      gradient: "linear-gradient(135deg, #4ADE80 0%, #1F9D57 100%)",
+      textColor: "#0F3A22",
+    },
+    nearbyHelpers: "TNR volunteers, clinics, and rescue partners in this area are being notified.",
   },
   wildlife: {
     id: "wildlife",
     icon: "🦝",
     label: "Wildlife",
     sub: "Routes to licensed rehabbers — never handle yourself",
-    accent: "#9DB7FF",
+    accent: "#4A8FB5",
     accentSoft: "#E4ECFF",
     rolePills: [
-      { icon: "🩺", label: "Rehabber" },
-      { icon: "📞", label: "Animal Control" },
-      { icon: "🤝", label: "Pledge for Rehab" },
       { icon: "🧭", label: "Navigate" },
+      { icon: "📞", label: "Call Rehabber" },
+      { icon: "🏛", label: "Animal Control" },
+      { icon: "🤝", label: "Pledge for rehab" },
+      { icon: "📤", label: "Share" },
     ],
     ribbonLabel: "🦝 WILDLIFE",
-    ribbonGradient: "linear-gradient(135deg, #BFDDF0 0%, #4A8FB8 100%)",
+    ribbonGradient: "linear-gradient(135deg, #9DB7FF 0%, #4A8FB5 100%)",
     ribbonText: "#0F2A3A",
     titleColor: "#2C5C7C",
     ringBg: "#E4F0F8",
     capturePillLabel: "Wildlife",
-    alertButtonLabel: "🔔 Route to Rehabber",
+    alertButtonLabel: "📞 Call Licensed Rehabber",
+    titleSub: "Routes only to licensed rehabilitators",
+    callout: {
+      emoji: "🌿",
+      body: "Voyce is routing this to local licensed wildlife rehabilitators. Keep distance and wait for trained help.",
+      bg: "#E4ECFF",
+      border: "#4A8FB5",
+      text: "#2C5C7C",
+    },
+    megaCta: {
+      label: "📞 CALL LICENSED REHABBER",
+      gradient: "linear-gradient(135deg, #9DB7FF 0%, #4A8FB5 100%)",
+      textColor: "#FFFFFF",
+    },
+    nearbyHelpers: "Licensed wildlife rehabbers and animal control in this area are being routed this report.",
+    showTopWarning: {
+      title: "🚨 DO NOT HANDLE",
+      body: "Wild animals can be dangerous to people AND to themselves if approached. Voyce routes only to licensed rehabbers.",
+    },
   },
 };
 
@@ -144,3 +248,15 @@ export const MISSION_LIST: Mission[] = [
   MISSIONS.prevention,
   MISSIONS.wildlife,
 ];
+
+// Layout used as fallback when AI judges the animal is healthy/monitoring,
+// regardless of the mission the user picked. Anti-cry-wolf moment.
+export const MONITORING_LAYOUT = {
+  ribbonLabel: "✓ MONITORING · NO ACTION NEEDED",
+  ribbonGradient: "linear-gradient(135deg, #4ADE80 0%, #1F9D57 100%)",
+  ribbonText: "#0F3A22",
+  titleColor: "#1F6B3D",
+  ringBg: "#E7F5EC",
+  titleSub: "Looks like an owned pet at home",
+  calmCallout: "Heads up — likely a pet at home. If yours, no action needed.",
+};
