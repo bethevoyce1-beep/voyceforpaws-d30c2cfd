@@ -15,7 +15,7 @@ export function MissionPicker({ onPick }: { onPick: (id: MissionId) => void }) {
       </header>
 
       <main className="mx-auto w-full max-w-2xl px-5 pt-8">
-        <h1 className="font-serif text-3xl font-semibold tracking-tight">Who needs help?</h1>
+        <h1 className="font-serif text-3xl font-semibold tracking-tight">Tell Voyce what you&apos;re seeing</h1>
         <p className="mt-1 text-[15px] text-muted-foreground">
           Pick the type of case so Voyce can tune the AI and rescue flow.
         </p>
