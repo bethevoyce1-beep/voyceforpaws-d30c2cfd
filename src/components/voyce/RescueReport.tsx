@@ -517,16 +517,26 @@ function CountdownBlock() {
 
 
 
-function bigTitle(data: Assessment, key: RibbonKey): string {
+function bigTitle(data: Assessment, mission: MissionId, monitoring: boolean): string {
   const species = (data.species || "animal").toUpperCase();
   const breed = data.breed && !/unknown|mixed/i.test(data.breed) ? data.breed.toUpperCase() : "";
-  if (key === "urgent_injured") return `INJURED ${species}`;
-  if (key === "at_risk") return `AT-RISK ${species}`;
-  if (key === "wildlife") return `WILDLIFE · ${species}`;
-  if (key === "care_needed") return breed ? `${breed} · NEEDS CARE` : `${species} · NEEDS CARE`;
-  // monitoring / healthy
-  return breed ? `HEALTHY ${breed} · RESTING AT HOME` : `HEALTHY ${species} · RESTING AT HOME`;
+  if (monitoring) {
+    return breed ? `HEALTHY ${breed} · RESTING AT HOME` : `HEALTHY ${species} · RESTING AT HOME`;
+  }
+  switch (mission) {
+    case "injured":
+      return `INJURED ${species}`;
+    case "at-risk-shelter":
+      return `AT-RISK SHELTER ${species}`;
+    case "lost-found":
+      return data.is_likely_pet ? `FOUND ${species}` : `LOST ${species}`;
+    case "prevention":
+      return breed ? `HEALTHY STRAY · ${breed}` : `HEALTHY STRAY · ${species}`;
+    case "wildlife":
+      return `WILDLIFE · ${species}`;
+  }
 }
+
 
 function locationLine(data: Assessment): string {
   // We don't have reverse-geocode here; surface the scene description if it reads like a place.
