@@ -204,7 +204,9 @@ export function RescueReport({
 
   return (
     <div className="min-h-[100dvh] bg-background pb-32">
+      <BrandHeader />
       <AIDisclosureBanner />
+
       <div className="mx-auto w-full max-w-2xl px-5 pt-4">
 
         {/* Card */}
