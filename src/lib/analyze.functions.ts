@@ -79,7 +79,18 @@ Specificity rules:
 If the photo is a tight close-up with no visible environment, environment_text must honestly say: "Only the animal is visible in this frame — limited environmental context."
 
 surface MUST be specific too: "Grey leather couch with cream throw" — not "Couch". "Hardwood floor with rug" — not "Floor".
-surrounding_objects MUST capture textures + items: e.g. ["cream throw blanket","fern in clay pot","hardwood floor","water bowl","remote control on couch arm"].`;
+surrounding_objects MUST capture textures + items: e.g. ["cream throw blanket","fern in clay pot","hardwood floor","water bowl","remote control on couch arm"].
+
+HEALTH SIGNS — CRITICAL. For animals showing signs of illness (not just injury), surface ALL observable health indicators: lethargy, discharge (eyes/nose/mouth), coughing, vomiting, diarrhea visible, skin/coat condition, body condition score, breathing patterns, posture, weight, hydration signs. Don't say only 'injured' if the animal is also clearly sick. Be honest about what you see — sick and injured can co-exist on one card.
+
+For every report, populate the health_signs object with booleans for sick/injured/lethargic/dehydrated based on what is visibly present, plus a short primary_sign label (e.g. "Limping", "Coughing", "Lethargic", "Eye discharge"). For a clearly healthy pet, all four booleans are false and primary_sign is omitted.
+
+Set visible_condition to "Healthy", "Concerning", or "Critical" based on the visible state alone — never on speculation.
+
+symptoms[]: every visible health sign as a short clinical-phrased line (e.g. "Mucopurulent ocular discharge, OD", "Right hindlimb non-weight-bearing lameness", "BCS 3/9 — underweight").
+clinical_actions[]: concrete clinician-oriented next steps (e.g. "Full physical exam", "Right hindlimb radiograph", "SC fluids 30 mL/kg", "FeLV/FIV snap test"). 3-5 items max.
+differentials[]: 2-4 differential possibilities a vet would consider given what's visible (e.g. "URI (feline herpesvirus / calicivirus)", "Soft-tissue trauma vs fracture", "Dehydration secondary to GI loss"). Omit or empty array if nothing concerning is visible.`;
+
 
 const SCHEMA_HINT = `{
   "title": "short cinematic title, e.g. 'Tabby resting on a sunlit couch'",
