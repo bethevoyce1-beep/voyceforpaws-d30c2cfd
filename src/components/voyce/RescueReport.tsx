@@ -142,7 +142,9 @@ export function RescueReport({
 
   return (
     <div className="min-h-[100dvh] bg-background pb-32">
-      <div className="mx-auto w-full max-w-2xl px-5 pt-[max(1rem,env(safe-area-inset-top))]">
+      <AIDisclosureBanner />
+      <div className="mx-auto w-full max-w-2xl px-5 pt-4">
+
         {/* Card */}
         <article className="overflow-hidden rounded-3xl border border-border bg-card shadow-[0_8px_30px_-12px_rgba(60,40,10,0.18)]">
           {/* Ribbon */}
