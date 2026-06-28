@@ -136,8 +136,10 @@ export function ProcessingPipeline({ aiPending, aiError, assessment, onComplete 
   );
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-background px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-10">
-      <div className="mx-auto w-full max-w-md flex-1 flex flex-col">
+    <div className="flex min-h-[100dvh] flex-col bg-background pb-10">
+      <AIDisclosureBanner />
+      <div className="mx-auto w-full max-w-md flex-1 flex flex-col px-5 pt-5">
+
         {/* Header row */}
         <div className="flex items-start justify-between gap-4">
           <div>
