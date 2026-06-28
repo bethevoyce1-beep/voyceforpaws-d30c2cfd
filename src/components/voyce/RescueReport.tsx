@@ -49,7 +49,7 @@ const RIBBONS: Record<RibbonKey, RibbonStyle> = {
     ringBg: "#FCEFC9",
   },
   monitoring: {
-    label: "✓ MONITORING",
+    label: "✓ MONITORING · NO ACTION NEEDED",
     gradient: "linear-gradient(135deg, #B8E3C6 0%, #1F9D57 100%)",
     textOnRibbon: "#0F3A22",
     titleColor: "#1F6B3D",
