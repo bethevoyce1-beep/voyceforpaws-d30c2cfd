@@ -224,15 +224,10 @@ function CaptureScreen({
 
   return (
     <div className="relative flex min-h-[100dvh] flex-col bg-background text-foreground">
-      <header className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <div className="flex items-center gap-2 rounded-full bg-background/85 px-3 py-1.5 backdrop-blur-md shadow-sm">
-          <img src={pawLogo} alt="Voyce" width={20} height={20} className="h-5 w-5" />
-          <span className="font-serif text-base font-semibold tracking-tight">Voyce</span>
-        </div>
-        <div className="rounded-full bg-background/85 px-3 py-1.5 text-[11px] font-medium text-muted-foreground backdrop-blur-md shadow-sm">
-          AI is advisory · not a diagnosis
-        </div>
+      <header className="sticky top-0 z-30">
+        <BrandHeader />
       </header>
+
 
       <div className="absolute inset-x-0 top-[max(3.5rem,calc(env(safe-area-inset-top)+3rem))] z-20 flex justify-center px-4">
         <button
