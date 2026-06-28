@@ -118,7 +118,7 @@ export function ProcessingPipeline({ aiPending, aiError, assessment, onComplete 
       },
       {
         title: "🪪 Creating rescue card",
-        sub: "Story + Voyce's First Look, side by side.",
+        sub: "Rescue Profile + AI Health Assessment, side by side.",
       },
       {
         title: "📢 Alerting the network",
