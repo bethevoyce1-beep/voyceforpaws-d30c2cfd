@@ -1,7 +1,12 @@
+import { BrandHeader } from "@/components/voyce/BrandHeader";
+
 export function Outcome({ onRestart }: { onRestart: () => void }) {
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-background px-6 pt-[max(2rem,env(safe-area-inset-top))] pb-12">
+    <div className="flex min-h-[100dvh] flex-col bg-background pb-12">
+      <BrandHeader />
+      <div className="flex-1 px-6 pt-8">
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center">
+
         <h1 className="font-serif text-3xl font-semibold tracking-tight leading-tight">
           Thank you for raising your voice.
         </h1>
