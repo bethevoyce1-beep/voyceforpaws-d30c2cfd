@@ -68,6 +68,11 @@ function Home() {
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [aiPending, setAiPending] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [consented, setConsented] = useState(true); // assume true during SSR; corrected on mount
+  useEffect(() => {
+    setConsented(hasValidConsent());
+  }, []);
+
 
   const startAnalysis = useCallback(
     async (src: string) => {
