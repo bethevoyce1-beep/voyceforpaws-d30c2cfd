@@ -172,7 +172,16 @@ export function RescueReport({
             >
               {bigTitle(data, ribbonKey)}
             </h1>
-            <p className="mt-1 font-serif text-[15px] italic text-muted-foreground">
+            <div className="mt-2">
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12.5px] font-bold uppercase tracking-[0.12em]"
+                style={{ background: urgency.soft, color: urgency.deep }}
+              >
+                <span className="text-muted-foreground/70">Urgency:</span>
+                <span>{urgency.emoji} {urgency.label}</span>
+              </span>
+            </div>
+            <p className="mt-2 font-serif text-[15px] italic text-muted-foreground">
               {r.subtitle}
             </p>
 
