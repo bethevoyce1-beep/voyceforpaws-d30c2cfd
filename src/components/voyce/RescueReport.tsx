@@ -67,18 +67,17 @@ const RIBBONS: Record<RibbonKey, RibbonStyle> = {
 };
 
 function pickRibbon(data: Assessment, mission: MissionId): RibbonKey {
-  // Mission strongly biases the ribbon, but AI urgency can escalate.
   if (mission === "wildlife") return "wildlife";
+  const u = getUrgency(data, mission);
+  if (u.level === "CRITICAL") return "critical";
   if (mission === "at-risk-shelter") return "at_risk";
   if (mission === "lost-found") return "care_needed";
   if (mission === "prevention") {
-    return data.status === "Healthy" || data.status === "Monitoring"
-      ? "monitoring"
-      : "care_needed";
+    return u.level === "LOW" ? "monitoring" : "care_needed";
   }
   // injured
-  if (data.status === "Urgent") return "urgent_injured";
-  if (data.status === "Monitoring" || data.status === "Healthy") return "monitoring";
+  if (u.level === "HIGH") return "urgent_injured";
+  if (u.level === "LOW") return "monitoring";
   return "care_needed";
 }
 
