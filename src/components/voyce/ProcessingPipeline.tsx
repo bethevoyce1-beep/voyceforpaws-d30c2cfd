@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
 import { getUrgency } from "@/lib/urgency";
+import { AIDisclosureBanner } from "@/components/voyce/AIDisclosureBanner";
+
 
 type Geo = {
   lat: number;
@@ -134,8 +136,10 @@ export function ProcessingPipeline({ aiPending, aiError, assessment, onComplete 
   );
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-background px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-10">
-      <div className="mx-auto w-full max-w-md flex-1 flex flex-col">
+    <div className="flex min-h-[100dvh] flex-col bg-background pb-10">
+      <AIDisclosureBanner />
+      <div className="mx-auto w-full max-w-md flex-1 flex flex-col px-5 pt-5">
+
         {/* Header row */}
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -437,6 +441,16 @@ function AIReveal({
             <span className="font-medium text-foreground">{l.value ?? "—"}</span>
           </div>
         ))}
+      {ready && revealed >= lines.length && (
+        <div
+          className={`pt-1 text-[11.5px] italic leading-snug text-muted-foreground transition-opacity duration-500 ${
+            revealed >= lines.length ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          ⚠️ AI may misidentify. Final assessments rest with rescuers and licensed vets.
+        </div>
+      )}
     </div>
   );
 }
+
