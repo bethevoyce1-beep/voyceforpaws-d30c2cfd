@@ -1,74 +1,32 @@
-import { useEffect, useState } from "react";
 import pawLogo from "@/assets/voyce-paw.png";
+import { ShieldPlus } from "lucide-react";
 import { MISSION_LIST, type MissionId } from "@/lib/missions";
 
 const GOLD = "#C9871A";
 
-// LILA (Live At-Risk Animal) — external Voyce data source
-const LILA_SUPABASE_URL = "https://okmukfrhvqkxphzueqww.supabase.co";
-const LILA_SUPABASE_KEY = "sb_publishable_e_OWsyXVeFqgV6EVGAKKTw_sgEV2cTN";
-const LILA_CACHE_KEY = "voyce.lila.v1";
-const LILA_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
-const LILA_FALLBACK_PHOTO = "/gap2_shelter.jpg";
-
-type LilaDog = { name: string; photo_url: string | null };
-
-function readLilaCache(): LilaDog | null {
-  try {
-    const raw = localStorage.getItem(LILA_CACHE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { at: number; dog: LilaDog };
-    if (Date.now() - parsed.at > LILA_CACHE_TTL_MS) return null;
-    return parsed.dog;
-  } catch {
-    return null;
-  }
-}
-
-function writeLilaCache(dog: LilaDog) {
-  try {
-    localStorage.setItem(LILA_CACHE_KEY, JSON.stringify({ at: Date.now(), dog }));
-  } catch {
-    /* ignore */
-  }
-}
-
-async function fetchLila(): Promise<LilaDog | null> {
-  const url =
-    `${LILA_SUPABASE_URL}/rest/v1/acs_animals` +
-    `?select=name,photo_url` +
-    `&status=eq.available` +
-    `&urgency_level=in.(high,critical,immediate)` +
-    `&order=intake_date.asc&limit=1`;
-  try {
-    const res = await fetch(url, {
-      headers: { apikey: LILA_SUPABASE_KEY, Authorization: `Bearer ${LILA_SUPABASE_KEY}` },
-    });
-    if (!res.ok) return null;
-    const rows = (await res.json()) as LilaDog[];
-    return rows?.[0] ?? null;
-  } catch {
-    return null;
-  }
+function OwlIcon({ size = 24, color = "currentColor" }: { size?: number; color?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 3c-3.5 0-6 2.5-6 6 0 2 1 3.5 2 4.5h8c1-1 2-2.5 2-4.5 0-3.5-2.5-6-6-6z" />
+      <path d="M8 5L6.5 2" />
+      <path d="M16 5L17.5 2" />
+      <circle cx="9.5" cy="9.5" r="2" />
+      <circle cx="14.5" cy="9.5" r="2" />
+      <path d="M12 11.5l-1 1.5h2z" />
+    </svg>
+  );
 }
 
 export function MissionPicker({ onPick }: { onPick: (id: MissionId) => void }) {
-  const [lila, setLila] = useState<LilaDog | null>(() => readLilaCache());
-  const [lilaPhotoLoaded, setLilaPhotoLoaded] = useState(false);
-
-  useEffect(() => {
-    if (lila) return;
-    let cancelled = false;
-    fetchLila().then((dog) => {
-      if (cancelled || !dog) return;
-      setLila(dog);
-      writeLilaCache(dog);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [lila]);
-
   return (
     <div className="min-h-[100dvh] bg-background pb-12">
       <header className="flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))]">
@@ -113,14 +71,6 @@ export function MissionPicker({ onPick }: { onPick: (id: MissionId) => void }) {
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {MISSION_LIST.map((m) => {
-            const isShelter = m.id === "at-risk-shelter";
-            const livePhoto = isShelter && lila?.photo_url ? lila.photo_url : null;
-            const displayPhoto = livePhoto ?? m.photo;
-            const altText =
-              isShelter && lila?.name
-                ? `${lila.name} — at-risk shelter dog awaiting foster or rescue`
-                : "";
-
             return (
               <button
                 key={m.id}
@@ -134,11 +84,17 @@ export function MissionPicker({ onPick }: { onPick: (id: MissionId) => void }) {
                   style={{ background: m.accentSoft }}
                   aria-hidden
                 >
-                  {m.icon}
+                  {m.id === "prevention" ? (
+                    <ShieldPlus size={24} color={m.accent} />
+                  ) : m.id === "wildlife" ? (
+                    <OwlIcon size={24} color={m.accent} />
+                  ) : (
+                    m.icon
+                  )}
                 </span>
 
                 {/* Middle: text */}
-                <span className="relative z-10 flex min-w-[180px] flex-1 flex-col justify-center px-3 py-3 sm:min-w-[240px]">
+                <span className="flex min-w-[180px] flex-1 flex-col justify-center px-3 py-3 sm:min-w-[240px]">
                   <span
                     className="font-serif text-[16px] font-semibold leading-tight"
                     style={{ color: m.titleColor }}
@@ -158,64 +114,6 @@ export function MissionPicker({ onPick }: { onPick: (id: MissionId) => void }) {
                   >
                     →
                   </span>
-                </span>
-
-                {/* Right: photo with gradient fade from accent → photo */}
-                <span className="relative w-[35%] flex-none overflow-hidden">
-                  {isShelter && livePhoto ? (
-                    <>
-                      {/* fallback layer while live image loads */}
-                      <img
-                        src={LILA_FALLBACK_PHOTO}
-                        alt=""
-                        aria-hidden
-                        className="absolute inset-0 h-full w-full object-cover"
-                      />
-                      <img
-                        src={livePhoto}
-                        alt={altText}
-                        loading="lazy"
-                        className="relative h-full w-full object-cover transition-opacity duration-500"
-                        style={{ opacity: lilaPhotoLoaded ? 1 : 0 }}
-                        onLoad={() => setLilaPhotoLoaded(true)}
-                        onError={(e) => {
-                          const img = e.currentTarget;
-                          if (img.dataset.fallback !== "1") {
-                            img.dataset.fallback = "1";
-                            img.src = LILA_FALLBACK_PHOTO;
-                          }
-                        }}
-                      />
-                      {lila?.name && (
-                        <span
-                          className="pointer-events-none absolute inset-x-0 bottom-0 px-2 py-1 text-[10px] font-medium text-white"
-                          style={{
-                            background:
-                              "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)",
-                          }}
-                        >
-                          TODAY: {lila.name}
-                        </span>
-                      )}
-                    </>
-                  ) : (
-                    <img
-                      src={displayPhoto}
-                      alt=""
-                      loading="lazy"
-                      width={768}
-                      height={768}
-                      className="h-full w-full object-cover"
-                    />
-                  )}
-                  <span
-                    className="pointer-events-none absolute inset-y-0 left-0 w-1/3"
-                    style={{
-                      background: `linear-gradient(to right, ${m.accentSoft} 0%, transparent 100%)`,
-                    }}
-                    aria-hidden
-                  />
-
                 </span>
               </button>
             );
