@@ -7,76 +7,56 @@ type IconProps = { size?: number; color?: string };
 
 const baseStroke = {
   fill: "none" as const,
-  strokeWidth: 1.75,
+  strokeWidth: 2.5,
   strokeLinecap: "round" as const,
   strokeLinejoin: "round" as const,
 };
 
-function HeartPulseIcon({ size = 26, color = "currentColor" }: IconProps) {
+function MedicalPlusIcon({ size = 28, color = "currentColor" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" stroke={color} {...baseStroke}>
-      <path d="M20.5 10.5c0-2.3-1.8-4-4-4-1.7 0-3.3 1-4.5 2.6C10.8 7.5 9.2 6.5 7.5 6.5c-2.2 0-4 1.7-4 4 0 1.4.6 2.7 1.6 3.8" />
-      <path d="M5.1 14.3c1.9 2.3 4.8 4.6 6.9 6.2 2.5-1.9 6.1-4.9 7.9-7.5" />
-      <path d="M3 13h3.5l1.5-2.5L10 15l2-7 1.8 5h3.7" />
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v10" />
+      <path d="M7 12h10" />
     </svg>
   );
 }
 
-function HourglassIcon({ size = 26, color = "currentColor" }: IconProps) {
+function HourglassIcon({ size = 28, color = "currentColor" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" stroke={color} {...baseStroke}>
-      <path d="M6 3h12" />
-      <path d="M6 21h12" />
-      <path d="M7 3c0 4 4 5 4 8.5v1C11 16 7 17 7 21" />
-      <path d="M17 3c0 4-4 5-4 8.5v1C13 16 17 17 17 21" />
-      <circle cx="11" cy="18" r="0.6" fill={color} stroke="none" />
-      <circle cx="13" cy="19" r="0.6" fill={color} stroke="none" />
-      <circle cx="12" cy="17" r="0.6" fill={color} stroke="none" />
+      <path d="M5 3h14" />
+      <path d="M5 21h14" />
+      <path d="M5 3l7 9 7-9" />
+      <path d="M5 21l7-9 7 9" />
     </svg>
   );
 }
 
-function PawInLensIcon({ size = 26, color = "currentColor" }: IconProps) {
+function MagnifierIcon({ size = 28, color = "currentColor" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" stroke={color} {...baseStroke}>
       <circle cx="10.5" cy="10.5" r="6.5" />
       <path d="M15.5 15.5L20 20" />
-      {/* paw inside */}
-      <ellipse cx="10.5" cy="12" rx="1.6" ry="1.2" />
-      <circle cx="7.8" cy="9.5" r="0.9" />
-      <circle cx="10.5" cy="8.4" r="0.9" />
-      <circle cx="13.2" cy="9.5" r="0.9" />
     </svg>
   );
 }
 
-function ShieldPawIcon({ size = 26, color = "currentColor" }: IconProps) {
+function ShieldIcon({ size = 28, color = "currentColor" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" stroke={color} {...baseStroke}>
       <path d="M12 3l7 2.5v6c0 4.2-3 8-7 9.5-4-1.5-7-5.3-7-9.5v-6L12 3z" />
-      <ellipse cx="12" cy="13.2" rx="1.6" ry="1.2" />
-      <circle cx="9.3" cy="10.8" r="0.85" />
-      <circle cx="12" cy="9.7" r="0.85" />
-      <circle cx="14.7" cy="10.8" r="0.85" />
     </svg>
   );
 }
 
-function OwlIcon({ size = 26, color = "currentColor" }: IconProps) {
+function OwlIcon({ size = 28, color = "currentColor" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" stroke={color} {...baseStroke}>
-      {/* head + body silhouette */}
-      <path d="M12 3c-3.6 0-6.3 2.6-6.3 6 0 1.5.5 2.8 1.3 3.8-.5 1.4-.5 3 0 4.6.7 2.2 2.7 3.6 5 3.6s4.3-1.4 5-3.6c.5-1.6.5-3.2 0-4.6.8-1 1.3-2.3 1.3-3.8 0-3.4-2.7-6-6.3-6z" />
-      {/* ear tufts */}
-      <path d="M7.2 4.8L6 3" />
-      <path d="M16.8 4.8L18 3" />
-      {/* eyes */}
-      <circle cx="9.5" cy="9.5" r="1.8" />
-      <circle cx="14.5" cy="9.5" r="1.8" />
-      <circle cx="9.5" cy="9.5" r="0.55" fill={color} stroke="none" />
-      <circle cx="14.5" cy="9.5" r="0.55" fill={color} stroke="none" />
-      {/* beak */}
-      <path d="M12 11l-0.8 1.4h1.6z" />
+      <circle cx="12" cy="11" r="7" />
+      <circle cx="9.5" cy="10" r="1.8" />
+      <circle cx="14.5" cy="10" r="1.8" />
+      <path d="M12 12.5l-.8 1.2h1.6z" />
     </svg>
   );
 }
@@ -84,13 +64,13 @@ function OwlIcon({ size = 26, color = "currentColor" }: IconProps) {
 function MissionIcon({ id, color }: { id: MissionId; color: string }) {
   switch (id) {
     case "injured":
-      return <HeartPulseIcon color={color} />;
+      return <MedicalPlusIcon color={color} />;
     case "at-risk-shelter":
       return <HourglassIcon color={color} />;
     case "lost-found":
-      return <PawInLensIcon color={color} />;
+      return <MagnifierIcon color={color} />;
     case "prevention":
-      return <ShieldPawIcon color={color} />;
+      return <ShieldIcon color={color} />;
     case "wildlife":
       return <OwlIcon color={color} />;
   }
