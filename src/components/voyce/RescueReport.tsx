@@ -5,6 +5,8 @@ import { getUrgency } from "@/lib/urgency";
 import { getCondition, CONDITION_COLORS, type ConditionInfo } from "@/lib/condition";
 import { AIDisclosureBanner } from "@/components/voyce/AIDisclosureBanner";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
+import { getTurnstileToken, loadTurnstile } from "@/lib/turnstile";
+import { verifyTurnstile } from "@/lib/turnstile.functions";
 
 import { useLiveAgo, formatTimer } from "@/lib/useLiveAgo";
 
@@ -119,6 +121,8 @@ export function RescueReport({
   const [tab, setTab] = useState<"story" | "vet">("story");
   const [shareConfirm, setShareConfirm] = useState(false);
   const [pendingShare, setPendingShare] = useState<SharePlatform | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const m = MISSIONS[mission];
   const urgency = useMemo(() => getUrgency(data, mission), [data, mission]);
   const condition = useMemo(() => getCondition(data), [data]);
@@ -129,6 +133,31 @@ export function RescueReport({
   const stamp = useMemo(() => formatStamp(reportedAt), [reportedAt]);
   const status = (data as { status?: string }).status;
   const ago = useLiveAgo(reportedAt, status);
+
+  // Warm up the invisible Turnstile script as soon as the report renders,
+  // so the silent challenge is ready by the time the user clicks Continue.
+  useEffect(() => {
+    loadTurnstile().catch((e) => {
+      console.warn("[voyce] turnstile preload failed:", e);
+    });
+  }, []);
+
+  const handleSubmitReport = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const token = await getTurnstileToken();
+      await verifyTurnstile({ data: { token } });
+      onContinue();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Verification failed";
+      console.error("[voyce] turnstile gate failed:", msg);
+      setSubmitError("Couldn't verify you're human. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const performShare = (platform: SharePlatform) => {
     const text = buildShareText(data, mission);
@@ -589,15 +618,22 @@ export function RescueReport({
 
       {/* Sticky continue */}
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
-        <div className="mx-auto flex max-w-2xl justify-end">
+        <div className="mx-auto flex max-w-2xl flex-col items-end gap-1.5">
+          {submitError && (
+            <div className="text-[12px] font-medium text-[#A8431F]" role="alert">
+              {submitError}
+            </div>
+          )}
           <button
-            onClick={onContinue}
-            className="rounded-full bg-gradient-to-b from-[oklch(0.90_0.16_85)] to-[oklch(0.78_0.15_70)] px-6 py-2.5 text-sm font-semibold text-[oklch(0.25_0.04_60)] shadow-md transition hover:brightness-105 active:scale-[0.98]"
+            onClick={handleSubmitReport}
+            disabled={submitting}
+            className="rounded-full bg-gradient-to-b from-[oklch(0.90_0.16_85)] to-[oklch(0.78_0.15_70)] px-6 py-2.5 text-sm font-semibold text-[oklch(0.25_0.04_60)] shadow-md transition hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
           >
-            Continue →
+            {submitting ? "Verifying…" : "Continue →"}
           </button>
         </div>
       </div>
+
 
       {shareConfirm && (
         <ShareConfirmDialog
