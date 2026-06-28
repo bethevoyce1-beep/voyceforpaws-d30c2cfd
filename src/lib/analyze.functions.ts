@@ -165,8 +165,42 @@ export function validateAssessment(a: Assessment): Assessment {
   if (!a.environment_text || typeof a.environment_text !== "string") {
     a.environment_text = a.location_scene || "Only the animal is visible in this frame — limited environmental context.";
   }
+
+  // Backfill health-sign fields from `noticed` keywords so downstream UI is honest.
+  const noticedText = a.noticed.join(" ").toLowerCase();
+  const detectedInjured = /\b(wound|laceration|abrasion|cut|bleed|blood|limp|lame|fracture|swelling|gash|broken)\b/.test(noticedText);
+  const detectedSick = /\b(discharge|coughing|cough|sneez|vomit|diarrh|fever|mucus|nasal|conjunct|infection|crust|wheez|drool|ulcer)\b/.test(noticedText);
+  const detectedLethargic = /\b(lethargic|lethargy|listless|weak|unresponsive|subdued)\b/.test(noticedText);
+  const detectedDehydrated = /\b(dehydrat|sunken|skin tent|tacky gums)\b/.test(noticedText);
+
+  if (!a.health_signs) {
+    a.health_signs = {
+      sick: detectedSick,
+      injured: detectedInjured,
+      lethargic: detectedLethargic,
+      dehydrated: detectedDehydrated,
+    };
+  } else {
+    a.health_signs.sick = a.health_signs.sick || detectedSick;
+    a.health_signs.injured = a.health_signs.injured || detectedInjured;
+    a.health_signs.lethargic = a.health_signs.lethargic || detectedLethargic;
+    a.health_signs.dehydrated = a.health_signs.dehydrated || detectedDehydrated;
+  }
+
+  if (!a.visible_condition) {
+    const anySign =
+      a.health_signs.sick || a.health_signs.injured ||
+      a.health_signs.lethargic || a.health_signs.dehydrated;
+    a.visible_condition =
+      a.status === "Urgent" ? "Critical" : anySign ? "Concerning" : "Healthy";
+  }
+  if (!Array.isArray(a.symptoms)) a.symptoms = a.noticed.slice();
+  if (!Array.isArray(a.clinical_actions)) a.clinical_actions = a.next_steps.slice();
+  if (!Array.isArray(a.differentials)) a.differentials = [];
+
   return a;
 }
+
 
 
 const MISSION_GUIDANCE: Record<string, string> = {
