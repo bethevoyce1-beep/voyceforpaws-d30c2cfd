@@ -30,8 +30,11 @@ export function DemoGate({ onDone }: { onDone: () => void }) {
 
   if (submitted) {
     return (
-      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-background px-6 text-center">
+      <div className="flex min-h-[100dvh] flex-col bg-background">
+        <BrandHeader />
+        <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
         <div className="max-w-md">
+
           <div className="text-5xl">🎉</div>
           <h1 className="mt-4 font-serif text-3xl font-semibold tracking-tight">You're in.</h1>
           <p className="mt-2 text-foreground/80">
