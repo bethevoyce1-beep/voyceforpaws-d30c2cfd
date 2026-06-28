@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
 import { MISSIONS, type MissionId } from "@/lib/missions";
 import { getUrgency } from "@/lib/urgency";
+import { AIDisclosureBanner } from "@/components/voyce/AIDisclosureBanner";
+
 
 
 type RibbonKey = "critical" | "urgent_injured" | "at_risk" | "care_needed" | "monitoring" | "wildlife";
