@@ -1,29 +1,99 @@
 import pawLogo from "@/assets/voyce-paw.png";
-import { ShieldPlus } from "lucide-react";
 import { MISSION_LIST, type MissionId } from "@/lib/missions";
 
 const GOLD = "#C9871A";
 
-function OwlIcon({ size = 24, color = "currentColor" }: { size?: number; color?: string }) {
+type IconProps = { size?: number; color?: string };
+
+const baseStroke = {
+  fill: "none" as const,
+  strokeWidth: 1.75,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+};
+
+function HeartPulseIcon({ size = 26, color = "currentColor" }: IconProps) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 3c-3.5 0-6 2.5-6 6 0 2 1 3.5 2 4.5h8c1-1 2-2.5 2-4.5 0-3.5-2.5-6-6-6z" />
-      <path d="M8 5L6.5 2" />
-      <path d="M16 5L17.5 2" />
-      <circle cx="9.5" cy="9.5" r="2" />
-      <circle cx="14.5" cy="9.5" r="2" />
-      <path d="M12 11.5l-1 1.5h2z" />
+    <svg width={size} height={size} viewBox="0 0 24 24" stroke={color} {...baseStroke}>
+      <path d="M20.5 10.5c0-2.3-1.8-4-4-4-1.7 0-3.3 1-4.5 2.6C10.8 7.5 9.2 6.5 7.5 6.5c-2.2 0-4 1.7-4 4 0 1.4.6 2.7 1.6 3.8" />
+      <path d="M5.1 14.3c1.9 2.3 4.8 4.6 6.9 6.2 2.5-1.9 6.1-4.9 7.9-7.5" />
+      <path d="M3 13h3.5l1.5-2.5L10 15l2-7 1.8 5h3.7" />
     </svg>
   );
+}
+
+function HourglassIcon({ size = 26, color = "currentColor" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" stroke={color} {...baseStroke}>
+      <path d="M6 3h12" />
+      <path d="M6 21h12" />
+      <path d="M7 3c0 4 4 5 4 8.5v1C11 16 7 17 7 21" />
+      <path d="M17 3c0 4-4 5-4 8.5v1C13 16 17 17 17 21" />
+      <circle cx="11" cy="18" r="0.6" fill={color} stroke="none" />
+      <circle cx="13" cy="19" r="0.6" fill={color} stroke="none" />
+      <circle cx="12" cy="17" r="0.6" fill={color} stroke="none" />
+    </svg>
+  );
+}
+
+function PawInLensIcon({ size = 26, color = "currentColor" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" stroke={color} {...baseStroke}>
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="M15.5 15.5L20 20" />
+      {/* paw inside */}
+      <ellipse cx="10.5" cy="12" rx="1.6" ry="1.2" />
+      <circle cx="7.8" cy="9.5" r="0.9" />
+      <circle cx="10.5" cy="8.4" r="0.9" />
+      <circle cx="13.2" cy="9.5" r="0.9" />
+    </svg>
+  );
+}
+
+function ShieldPawIcon({ size = 26, color = "currentColor" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" stroke={color} {...baseStroke}>
+      <path d="M12 3l7 2.5v6c0 4.2-3 8-7 9.5-4-1.5-7-5.3-7-9.5v-6L12 3z" />
+      <ellipse cx="12" cy="13.2" rx="1.6" ry="1.2" />
+      <circle cx="9.3" cy="10.8" r="0.85" />
+      <circle cx="12" cy="9.7" r="0.85" />
+      <circle cx="14.7" cy="10.8" r="0.85" />
+    </svg>
+  );
+}
+
+function OwlIcon({ size = 26, color = "currentColor" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" stroke={color} {...baseStroke}>
+      {/* head + body silhouette */}
+      <path d="M12 3c-3.6 0-6.3 2.6-6.3 6 0 1.5.5 2.8 1.3 3.8-.5 1.4-.5 3 0 4.6.7 2.2 2.7 3.6 5 3.6s4.3-1.4 5-3.6c.5-1.6.5-3.2 0-4.6.8-1 1.3-2.3 1.3-3.8 0-3.4-2.7-6-6.3-6z" />
+      {/* ear tufts */}
+      <path d="M7.2 4.8L6 3" />
+      <path d="M16.8 4.8L18 3" />
+      {/* eyes */}
+      <circle cx="9.5" cy="9.5" r="1.8" />
+      <circle cx="14.5" cy="9.5" r="1.8" />
+      <circle cx="9.5" cy="9.5" r="0.55" fill={color} stroke="none" />
+      <circle cx="14.5" cy="9.5" r="0.55" fill={color} stroke="none" />
+      {/* beak */}
+      <path d="M12 11l-0.8 1.4h1.6z" />
+    </svg>
+  );
+}
+
+function MissionIcon({ id, color }: { id: MissionId; color: string }) {
+  switch (id) {
+    case "injured":
+      return <HeartPulseIcon color={color} />;
+    case "at-risk-shelter":
+      return <HourglassIcon color={color} />;
+    case "lost-found":
+      return <PawInLensIcon color={color} />;
+    case "prevention":
+      return <ShieldPawIcon color={color} />;
+    case "wildlife":
+      return <OwlIcon color={color} />;
+  }
 }
 
 export function MissionPicker({ onPick }: { onPick: (id: MissionId) => void }) {
@@ -80,17 +150,11 @@ export function MissionPicker({ onPick }: { onPick: (id: MissionId) => void }) {
               >
                 {/* Left: icon tile */}
                 <span
-                  className="my-auto ml-4 flex h-12 w-12 flex-none items-center justify-center rounded-xl text-2xl"
+                  className="my-auto ml-4 flex h-12 w-12 flex-none items-center justify-center rounded-xl"
                   style={{ background: m.accentSoft }}
                   aria-hidden
                 >
-                  {m.id === "prevention" ? (
-                    <ShieldPlus size={24} color={m.accent} />
-                  ) : m.id === "wildlife" ? (
-                    <OwlIcon size={24} color={m.accent} />
-                  ) : (
-                    m.icon
-                  )}
+                  <MissionIcon id={m.id} color={m.accent} />
                 </span>
 
                 {/* Middle: text */}
@@ -120,16 +184,38 @@ export function MissionPicker({ onPick }: { onPick: (id: MissionId) => void }) {
           })}
         </div>
 
+        {/* Elegant helper callout */}
         <div
-          className="mt-5 rounded-xl border p-4 font-serif text-[14px] leading-snug"
-          style={{ backgroundColor: "#FFF7E0", borderColor: GOLD }}
+          className="mx-auto"
+          style={{
+            maxWidth: 580,
+            marginTop: 32,
+            marginBottom: 32,
+            background: "#FFFBF3",
+            border: "1px solid #E8D5A8",
+            borderRadius: 16,
+            padding: "24px 28px",
+          }}
         >
-          <div className="flex items-start gap-2">
-            <span aria-hidden className="text-lg leading-none">💡</span>
+          <div className="flex items-start gap-3">
+            <span aria-hidden style={{ color: GOLD, fontSize: 16, lineHeight: 1.4 }}>✨</span>
             <div>
-              <strong>Not sure which option fits?</strong>
-              <p className="mt-0.5 text-muted-foreground">
-                Just choose the closest match — Voyce AI will analyze the photo and automatically guide you to the right rescue category.
+              <p
+                className="font-serif"
+                style={{ color: "#5A4F44", fontSize: 15, fontWeight: 400, lineHeight: 1.5, margin: 0 }}
+              >
+                Not sure which option fits?
+              </p>
+              <p
+                style={{
+                  marginTop: 6,
+                  fontSize: 14,
+                  fontStyle: "italic",
+                  color: "#8A7F73",
+                  lineHeight: 1.55,
+                }}
+              >
+                Just choose the closest match — Voyce AI will analyze the photo and guide you to the right rescue category.
               </p>
             </div>
           </div>
