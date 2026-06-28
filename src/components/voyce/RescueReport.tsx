@@ -16,13 +16,21 @@ type RibbonStyle = {
 };
 
 const RIBBONS: Record<RibbonKey, RibbonStyle> = {
-  urgent_injured: {
-    label: "🚨 URGENT: INJURED",
-    gradient: "linear-gradient(135deg, #D14848 0%, #A82F2F 100%)",
+  critical: {
+    label: "🚨 CRITICAL: LIFE-THREATENING",
+    gradient: "linear-gradient(135deg, #D14848 0%, #6A1414 100%)",
     textOnRibbon: "#FFF6F4",
-    titleColor: "#A82F2F",
-    subtitle: "Needs help immediately",
-    ringBg: "#FCEAEA",
+    titleColor: "#7E1F1F",
+    subtitle: "Life-threatening — action needed today",
+    ringBg: "#F8D7D7",
+  },
+  urgent_injured: {
+    label: "🟠 URGENT: NEEDS RESCUE",
+    gradient: "linear-gradient(135deg, #FF6B35 0%, #A8431F 100%)",
+    textOnRibbon: "#FFF6F0",
+    titleColor: "#A8431F",
+    subtitle: "Needs help today",
+    ringBg: "#FFE4D6",
   },
   at_risk: {
     label: "⚠️ URGENT: AT RISK",
