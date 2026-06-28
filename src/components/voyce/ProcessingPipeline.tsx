@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import type { Assessment } from "@/lib/analyze.functions";
 import { getUrgency } from "@/lib/urgency";
 import { AIDisclosureBanner } from "@/components/voyce/AIDisclosureBanner";
+import { BrandHeader } from "@/components/voyce/BrandHeader";
+
 
 
 type Geo = {
@@ -137,8 +139,10 @@ export function ProcessingPipeline({ aiPending, aiError, assessment, onComplete 
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background pb-10">
+      <BrandHeader />
       <AIDisclosureBanner />
       <div className="mx-auto w-full max-w-md flex-1 flex flex-col px-5 pt-5">
+
 
         {/* Header row */}
         <div className="flex items-start justify-between gap-4">

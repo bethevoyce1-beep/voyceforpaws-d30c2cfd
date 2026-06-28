@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { BrandHeader } from "@/components/voyce/BrandHeader";
+
 
 const STEPS = ["REPORTED", "PROCESSED", "LIVE", "HELPED"];
 
@@ -10,9 +12,12 @@ export function StatusTimeline({ onContinue }: { onContinue: () => void }) {
   }, []);
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-background px-6 pt-[max(2rem,env(safe-area-inset-top))] pb-32">
+    <div className="flex min-h-[100dvh] flex-col bg-background">
+      <BrandHeader />
+      <div className="flex-1 px-6 pt-8 pb-32">
       <div className="mx-auto w-full max-w-md">
         <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+
           Reporter view · Just now
         </div>
         <h1 className="mt-3 font-serif text-3xl font-semibold tracking-tight">
@@ -62,6 +67,9 @@ export function StatusTimeline({ onContinue }: { onContinue: () => void }) {
           AI is advisory — not a diagnosis
         </div>
       </div>
+      </div>
+
+
 
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
         <div className="mx-auto flex max-w-md justify-end">
