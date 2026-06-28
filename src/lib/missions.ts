@@ -1,3 +1,9 @@
+import injuredPhoto from "@/assets/mission-injured.jpg";
+import shelterPhoto from "@/assets/mission-shelter.jpg";
+import lostFoundPhoto from "@/assets/mission-lostfound.jpg";
+import preventionPhoto from "@/assets/mission-prevention.jpg";
+import wildlifePhoto from "@/assets/mission-wildlife.jpg";
+
 export type MissionId =
   | "injured"
   | "at-risk-shelter"
@@ -12,6 +18,7 @@ export type Mission = {
   icon: string;
   label: string;
   sub: string;
+  photo: string;
   accent: string;
   accentSoft: string;
   rolePills: RolePill[];
