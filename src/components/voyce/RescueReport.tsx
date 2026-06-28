@@ -469,18 +469,6 @@ function ResponderBriefing({ data, calm }: { data: Assessment; calm: boolean }) 
       </div>
       <div className="mt-2.5 space-y-1.5 text-[14px] text-foreground/90">
         <div className="flex gap-2">
-          <span>🏠</span>
-          <span><span className="text-muted-foreground">Setting:</span> <span className="font-medium">{data.setting_type}</span></span>
-        </div>
-        <div className="flex gap-2">
-          <span>🪑</span>
-          <span><span className="text-muted-foreground">Surface:</span> <span className="font-medium">{data.surface}</span></span>
-        </div>
-        <div className="flex gap-2">
-          <span>💡</span>
-          <span><span className="text-muted-foreground">Lighting:</span> <span className="font-medium">{data.lighting_conditions}</span></span>
-        </div>
-        <div className="flex gap-2">
           <span>🚧</span>
           <div>
             <div className="text-muted-foreground">Safety flags:</div>
@@ -493,6 +481,29 @@ function ResponderBriefing({ data, calm }: { data: Assessment; calm: boolean }) 
               ))}
             </ul>
           </div>
+        </div>
+        {data.environment_text && (
+          <div className="flex gap-2">
+            <span>🎬</span>
+            <span>
+              <span className="text-muted-foreground">Scene:</span>{" "}
+              <span className="font-medium">
+                {data.environment_text.split(/(?<=[.!?])\s+/).slice(0, 2).join(" ")}
+              </span>
+            </span>
+          </div>
+        )}
+        <div className="flex gap-2">
+          <span>🏠</span>
+          <span><span className="text-muted-foreground">Setting:</span> <span className="font-medium">{data.setting_type}</span></span>
+        </div>
+        <div className="flex gap-2">
+          <span>🪑</span>
+          <span><span className="text-muted-foreground">Surface:</span> <span className="font-medium">{data.surface}</span></span>
+        </div>
+        <div className="flex gap-2">
+          <span>💡</span>
+          <span><span className="text-muted-foreground">Lighting:</span> <span className="font-medium">{data.lighting_conditions}</span></span>
         </div>
       </div>
       <div className="mt-3 border-t border-[#E89A7A]/40 pt-2 text-[12px] italic text-muted-foreground">
