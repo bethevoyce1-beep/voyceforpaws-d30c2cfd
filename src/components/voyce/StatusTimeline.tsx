@@ -12,9 +12,12 @@ export function StatusTimeline({ onContinue }: { onContinue: () => void }) {
   }, []);
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-background px-6 pt-[max(2rem,env(safe-area-inset-top))] pb-32">
+    <div className="flex min-h-[100dvh] flex-col bg-background">
+      <BrandHeader />
+      <div className="flex-1 px-6 pt-8 pb-32">
       <div className="mx-auto w-full max-w-md">
         <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+
           Reporter view · Just now
         </div>
         <h1 className="mt-3 font-serif text-3xl font-semibold tracking-tight">
