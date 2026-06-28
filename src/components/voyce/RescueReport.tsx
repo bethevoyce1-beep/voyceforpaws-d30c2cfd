@@ -119,10 +119,41 @@ export function RescueReport({
 }) {
   const [tab, setTab] = useState<"story" | "vet">("story");
   const [shareConfirm, setShareConfirm] = useState(false);
+  const [pendingShare, setPendingShare] = useState<SharePlatform | null>(null);
   const m = MISSIONS[mission];
   const urgency = useMemo(() => getUrgency(data, mission), [data, mission]);
   const condition = useMemo(() => getCondition(data), [data]);
   const { stamp, minsAgo } = useMemo(reportedNow, []);
+
+  const performShare = (platform: SharePlatform) => {
+    const text = buildShareText(data, mission);
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    const enc = encodeURIComponent;
+    let intent = "";
+    switch (platform) {
+      case "facebook":
+        intent = `https://www.facebook.com/sharer/sharer.php?u=${enc(url)}&quote=${enc(text)}`;
+        break;
+      case "whatsapp":
+        intent = `https://wa.me/?text=${enc(text + "\n" + url)}`;
+        break;
+      case "x":
+        intent = `https://twitter.com/intent/tweet?text=${enc(text)}&url=${enc(url)}`;
+        break;
+      case "nextdoor":
+        intent = `https://nextdoor.com/sharekit/?body=${enc(text)}&url=${enc(url)}`;
+        break;
+      case "copy":
+        if (typeof navigator !== "undefined" && navigator.clipboard) {
+          void navigator.clipboard.writeText(`${text}\n${url}`);
+        }
+        return;
+    }
+    if (typeof window !== "undefined" && intent) {
+      window.open(intent, "_blank", "noopener,noreferrer");
+    }
+  };
+
 
 
   // Monitoring fallback only for non-critical missions where AI judged the
