@@ -5,6 +5,8 @@ import { getUrgency } from "@/lib/urgency";
 import { getCondition, CONDITION_COLORS, type ConditionInfo } from "@/lib/condition";
 import { AIDisclosureBanner } from "@/components/voyce/AIDisclosureBanner";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
+import { getTurnstileToken, loadTurnstile } from "@/lib/turnstile";
+import { verifyTurnstile } from "@/lib/turnstile.functions";
 
 import { useLiveAgo, formatTimer } from "@/lib/useLiveAgo";
 
