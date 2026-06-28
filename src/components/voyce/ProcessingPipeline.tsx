@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
 import { getUrgency } from "@/lib/urgency";
 import { AIDisclosureBanner } from "@/components/voyce/AIDisclosureBanner";
@@ -243,7 +243,7 @@ function StepRow({
       }`}
       style={
         active
-          ? ({ ["--voyce-gold" as never]: GOLD } as React.CSSProperties)
+          ? ({ ["--voyce-gold" as never]: GOLD } as CSSProperties)
           : undefined
       }
     >

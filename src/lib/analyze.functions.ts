@@ -49,6 +49,7 @@ export type Assessment = {
   symptoms?: string[];           // clinical-phrased symptom list
   clinical_actions?: string[];   // suggested clinical next actions (exam, X-ray, fluids)
   differentials?: string[];      // differential possibilities
+  reportedAt?: string;           // ISO timestamp set when the AI assessment completes
 };
 
 
@@ -276,6 +277,9 @@ export const analyzeImage = createServerFn({ method: "POST" })
     } catch {
       throw new Error("AI returned non-JSON content");
     }
-    return validateAssessment(parsed);
+    return {
+      ...validateAssessment(parsed),
+      reportedAt: new Date().toISOString(),
+    };
   });
 
