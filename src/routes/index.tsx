@@ -107,14 +107,18 @@ function Home() {
 
   if (stage === "mission") {
     return (
-      <MissionPicker
-        onPick={(id) => {
-          setMission(id);
-          setStage("capture");
-        }}
-      />
+      <>
+        <MissionPicker
+          onPick={(id) => {
+            setMission(id);
+            setStage("capture");
+          }}
+        />
+        {!consented && <ConsentGate onAccept={() => setConsented(true)} />}
+      </>
     );
   }
+
 
   if (stage === "processing") {
     return (
