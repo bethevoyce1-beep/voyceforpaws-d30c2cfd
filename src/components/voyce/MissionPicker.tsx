@@ -16,7 +16,8 @@ export function MissionPicker({ onPick }: { onPick: (id: MissionId) => void }) {
 
       <main className="mx-auto w-full max-w-2xl px-5 pt-8">
         <h1 className="font-serif text-3xl font-semibold tracking-tight">Tell Voyce what you&apos;re seeing</h1>
-        <p className="mt-1 text-[15px] text-muted-foreground">
+        <p className="mt-1 flex items-center gap-1.5 text-[15px] text-muted-foreground">
+          <span aria-hidden style={{ color: "#C9871A" }}>✨</span>
           Pick the type of case so Voyce can tune the AI and rescue flow.
         </p>
 
@@ -59,8 +60,23 @@ export function MissionPicker({ onPick }: { onPick: (id: MissionId) => void }) {
           ))}
         </div>
 
-        <p className="mt-6 text-center text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-          Anonymous · No login required
+        <div
+          className="mt-5 rounded-xl border p-4 font-serif text-[14px] leading-snug"
+          style={{ backgroundColor: "#FFF7E0", borderColor: "#C9871A" }}
+        >
+          <div className="flex items-start gap-2">
+            <span aria-hidden className="text-lg leading-none">💡</span>
+            <div>
+              <strong>Not sure which option fits?</strong>
+              <p className="mt-0.5 text-muted-foreground">
+                Just choose the closest match — Voyce AI will analyze the photo and automatically guide you to the right rescue category.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <p className="mt-5 text-center text-[11px] text-muted-foreground">
+          🔒 Your report is confidential and shared only with trusted rescues near you.
         </p>
       </main>
     </div>
