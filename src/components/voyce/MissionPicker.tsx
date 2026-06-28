@@ -201,9 +201,6 @@ export function MissionPicker({ onPick }: { onPick: (id: MissionId) => void }) {
           </div>
         </div>
 
-        <p className="mt-5 text-center text-[11px] text-muted-foreground">
-          🔒 Your report is confidential and shared only with trusted rescues near you.
-        </p>
       </main>
     </div>
   );
