@@ -121,7 +121,9 @@ export function RescueReport({
   const [shareConfirm, setShareConfirm] = useState(false);
   const m = MISSIONS[mission];
   const urgency = useMemo(() => getUrgency(data, mission), [data, mission]);
+  const condition = useMemo(() => getCondition(data), [data]);
   const { stamp, minsAgo } = useMemo(reportedNow, []);
+
 
   // Monitoring fallback only for non-critical missions where AI judged the
   // animal healthy/low-priority. At-risk-shelter and wildlife always render
