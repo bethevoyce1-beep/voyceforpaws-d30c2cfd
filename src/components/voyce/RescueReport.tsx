@@ -408,7 +408,7 @@ export function RescueReport({
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {k === "story" ? "📖 Story" : "🩺 AI Health Assessment"}
+                  {k === "story" ? "🐾 Rescue Profile" : "🩺 AI Health Assessment"}
                 </button>
               ))}
             </div>
