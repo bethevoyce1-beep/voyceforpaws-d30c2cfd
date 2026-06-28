@@ -556,6 +556,140 @@ function bigTitle(data: Assessment, mission: MissionId, monitoring: boolean): st
   }
 }
 
+function AnimalProfileLine({ data }: { data: Assessment }) {
+  const chips = [
+    { label: "Species", value: data.species },
+    { label: "Breed", value: data.breed },
+    { label: "Age", value: data.age },
+    { label: "Weight", value: data.weight },
+  ].filter((c) => c.value && !/^unknown$/i.test(c.value));
+  if (chips.length === 0) return null;
+  return (
+    <div className="mt-3 flex flex-wrap gap-1.5">
+      {chips.map((c) => (
+        <span
+          key={c.label}
+          className="inline-flex items-center gap-1 rounded-full border border-border bg-background/60 px-2.5 py-0.5 text-[11.5px] text-foreground/80"
+        >
+          <span className="text-muted-foreground">{c.label}:</span>
+          <span className="font-medium text-foreground/90">{c.value}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function SectionDivider({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="h-px flex-1 bg-border" />
+      <span className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+        {children}
+      </span>
+      <span className="h-px flex-1 bg-border" />
+    </div>
+  );
+}
+
+function ReportRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-2">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="text-right font-medium text-foreground/85">{value}</dd>
+    </div>
+  );
+}
+
+function shareName(data: Assessment): string {
+  const breed = data.breed && !/unknown|mixed/i.test(data.breed) ? data.breed : "";
+  const species = data.species || "animal";
+  return (breed || species).replace(/^\w/, (c) => c.toUpperCase());
+}
+
+function buildShareText(data: Assessment, mission: MissionId): string {
+  const m = MISSIONS[mission];
+  const name = shareName(data);
+  const where = locationLine(data);
+  const intro =
+    mission === "injured"
+      ? `🚨 Injured ${name} needs help`
+      : mission === "at-risk-shelter"
+        ? `🆘 At-risk shelter ${name} needs a foster or rescue pull TODAY`
+        : mission === "lost-found"
+          ? `🔍 ${data.is_likely_pet ? "Found" : "Lost"} ${name} — help reunite them`
+          : mission === "prevention"
+            ? `💛 Healthy stray ${name} needs care — spay + vaccines saves litters`
+            : `🦝 Wildlife alert: ${name} — licensed rehabber needed`;
+  return `${intro}\n📍 ${where}\n\n${data.first_look}\n\n${m.callout.body}\n\nReport via Voyce 🐾`;
+}
+
+type SharePlatform = "nextdoor" | "facebook" | "whatsapp" | "x" | "copy";
+
+const SHARE_PLATFORMS: { id: SharePlatform; label: string; icon: string; bg: string; text: string }[] = [
+  { id: "nextdoor", label: "Nextdoor", icon: "🏘", bg: "#1F9D57", text: "#FFFFFF" },
+  { id: "facebook", label: "Facebook", icon: "📘", bg: "#1877F2", text: "#FFFFFF" },
+  { id: "whatsapp", label: "WhatsApp", icon: "💬", bg: "#25D366", text: "#FFFFFF" },
+  { id: "x", label: "X", icon: "✕", bg: "#111111", text: "#FFFFFF" },
+  { id: "copy", label: "Copy", icon: "📋", bg: "#E5E5E5", text: "#1F1F1F" },
+];
+
+function ShareRow({
+  data,
+  mission,
+  onIntercept,
+}: {
+  data: Assessment;
+  mission: MissionId;
+  onIntercept: () => void;
+}) {
+  const handleShare = (platform: SharePlatform) => {
+    onIntercept();
+    const text = buildShareText(data, mission);
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    const enc = encodeURIComponent;
+    let intent = "";
+    switch (platform) {
+      case "facebook":
+        intent = `https://www.facebook.com/sharer/sharer.php?u=${enc(url)}&quote=${enc(text)}`;
+        break;
+      case "whatsapp":
+        intent = `https://wa.me/?text=${enc(text + "\n" + url)}`;
+        break;
+      case "x":
+        intent = `https://twitter.com/intent/tweet?text=${enc(text)}&url=${enc(url)}`;
+        break;
+      case "nextdoor":
+        intent = `https://nextdoor.com/sharekit/?body=${enc(text)}&url=${enc(url)}`;
+        break;
+      case "copy":
+        if (typeof navigator !== "undefined" && navigator.clipboard) {
+          void navigator.clipboard.writeText(`${text}\n${url}`);
+        }
+        return;
+    }
+    if (typeof window !== "undefined" && intent) {
+      window.open(intent, "_blank", "noopener,noreferrer");
+    }
+  };
+  return (
+    <div className="grid grid-cols-5 gap-2">
+      {SHARE_PLATFORMS.map((p) => (
+        <button
+          key={p.id}
+          onClick={() => handleShare(p.id)}
+          className="flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2.5 text-[11px] font-semibold shadow-sm transition hover:brightness-110 active:scale-[0.97]"
+          style={{ background: p.bg, color: p.text }}
+          aria-label={`Share to ${p.label}`}
+        >
+          <span className="text-[15px] leading-none">{p.icon}</span>
+          <span>{p.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+
 
 function locationLine(data: Assessment): string {
   // We don't have reverse-geocode here; surface the scene description if it reads like a place.
