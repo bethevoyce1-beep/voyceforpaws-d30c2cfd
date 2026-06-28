@@ -132,6 +132,9 @@ export function validateAssessment(a: Assessment): Assessment {
   ) {
     // allow — medical urgency can exist indoors. no throw.
   }
+  if (!a.environment_text || typeof a.environment_text !== "string") {
+    a.environment_text = a.location_scene || "Only the animal is visible in this frame — limited environmental context.";
+  }
   return a;
 }
 
