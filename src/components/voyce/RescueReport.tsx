@@ -389,8 +389,13 @@ export function RescueReport({
         </article>
 
         <div className="mt-5 text-center text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-          AI is advisory — not a diagnosis
+          Pre-launch · shares grow Voyce
         </div>
+        <p className="mx-auto mt-3 max-w-xl text-center text-[12px] italic leading-relaxed text-muted-foreground">
+          ⚠️ AI may misidentify breed, age, or condition. AI cannot detect internal injuries,
+          disease, parasites, pain, pregnancy, vaccination status, or behavior. Confirm with a vet
+          before medical decisions.
+        </p>
       </div>
 
       {/* Sticky continue */}
@@ -404,9 +409,17 @@ export function RescueReport({
           </button>
         </div>
       </div>
+
+      {shareConfirm && (
+        <ShareConfirmDialog
+          onCancel={() => setShareConfirm(false)}
+          onConfirm={() => setShareConfirm(false)}
+        />
+      )}
     </div>
   );
 }
+
 
 function bigTitle(data: Assessment, key: RibbonKey): string {
   const species = (data.species || "animal").toUpperCase();
