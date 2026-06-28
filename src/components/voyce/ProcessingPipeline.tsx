@@ -109,12 +109,12 @@ export function ProcessingPipeline({ aiPending, aiError, assessment, onComplete 
         sub: "GPS detected automatically",
       },
       {
-        title: "🖼️ Processing the photo",
-        sub: "Preparing for AI vision.",
+        title: "🖼️ Preparing your photo",
+        sub: "Optimizing for AI analysis.",
       },
       {
-        title: "🤖 Understanding the situation ⭐",
-        sub: "Voyce AI identified:",
+        title: "🤖 AI analyzing the photo ⭐",
+        sub: "Voyce AI found:",
       },
       {
         title: "🪪 Creating rescue card",
