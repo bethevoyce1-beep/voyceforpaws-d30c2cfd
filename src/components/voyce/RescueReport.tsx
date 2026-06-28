@@ -385,13 +385,15 @@ export function RescueReport({
               </SectionDivider>
               <div className="mt-3">
                 <ShareRow
-                  data={data}
-                  mission={mission}
-                  onIntercept={() => setShareConfirm(true)}
+                  onPick={(p) => {
+                    setPendingShare(p);
+                    setShareConfirm(true);
+                  }}
                 />
               </div>
             </div>
           )}
+
 
           {/* Tabs */}
           <div className="mx-5 mt-5">
