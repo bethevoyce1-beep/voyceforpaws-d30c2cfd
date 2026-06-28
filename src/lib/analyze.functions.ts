@@ -37,7 +37,20 @@ export type Assessment = {
   lighting_conditions: string;
   safety_flags: string[];
   environment_text: string;
+  // Health-sign fields (sick + injured can co-exist)
+  health_signs?: {
+    sick: boolean;
+    injured: boolean;
+    lethargic: boolean;
+    dehydrated: boolean;
+    primary_sign?: string; // short label e.g. "Limping", "Coughing", "Lethargic"
+  };
+  visible_condition?: "Healthy" | "Concerning" | "Critical";
+  symptoms?: string[];           // clinical-phrased symptom list
+  clinical_actions?: string[];   // suggested clinical next actions (exam, X-ray, fluids)
+  differentials?: string[];      // differential possibilities
 };
+
 
 const SYSTEM = `You are Voyce, an AI that looks at a photo of an animal and produces an advisory rescue report. You are NOT a veterinarian. Output strict JSON only, matching the schema. Be cinematic and specific about what you actually see in the image (surfaces, lighting, posture, objects). NEVER contradict yourself: if status is "Healthy" or "Monitoring", next_steps must not say "seek medical attention" or treat it as urgent. If you see a collar, indoor scene, bedding, or grooming, set is_likely_pet=true and prefer status "Monitoring". If no real symptoms, noticed must be [].
 
@@ -66,7 +79,18 @@ Specificity rules:
 If the photo is a tight close-up with no visible environment, environment_text must honestly say: "Only the animal is visible in this frame — limited environmental context."
 
 surface MUST be specific too: "Grey leather couch with cream throw" — not "Couch". "Hardwood floor with rug" — not "Floor".
-surrounding_objects MUST capture textures + items: e.g. ["cream throw blanket","fern in clay pot","hardwood floor","water bowl","remote control on couch arm"].`;
+surrounding_objects MUST capture textures + items: e.g. ["cream throw blanket","fern in clay pot","hardwood floor","water bowl","remote control on couch arm"].
+
+HEALTH SIGNS — CRITICAL. For animals showing signs of illness (not just injury), surface ALL observable health indicators: lethargy, discharge (eyes/nose/mouth), coughing, vomiting, diarrhea visible, skin/coat condition, body condition score, breathing patterns, posture, weight, hydration signs. Don't say only 'injured' if the animal is also clearly sick. Be honest about what you see — sick and injured can co-exist on one card.
+
+For every report, populate the health_signs object with booleans for sick/injured/lethargic/dehydrated based on what is visibly present, plus a short primary_sign label (e.g. "Limping", "Coughing", "Lethargic", "Eye discharge"). For a clearly healthy pet, all four booleans are false and primary_sign is omitted.
+
+Set visible_condition to "Healthy", "Concerning", or "Critical" based on the visible state alone — never on speculation.
+
+symptoms[]: every visible health sign as a short clinical-phrased line (e.g. "Mucopurulent ocular discharge, OD", "Right hindlimb non-weight-bearing lameness", "BCS 3/9 — underweight").
+clinical_actions[]: concrete clinician-oriented next steps (e.g. "Full physical exam", "Right hindlimb radiograph", "SC fluids 30 mL/kg", "FeLV/FIV snap test"). 3-5 items max.
+differentials[]: 2-4 differential possibilities a vet would consider given what's visible (e.g. "URI (feline herpesvirus / calicivirus)", "Soft-tissue trauma vs fracture", "Dehydration secondary to GI loss"). Omit or empty array if nothing concerning is visible.`;
+
 
 const SCHEMA_HINT = `{
   "title": "short cinematic title, e.g. 'Tabby resting on a sunlit couch'",
@@ -93,8 +117,14 @@ const SCHEMA_HINT = `{
   "surrounding_objects": ["specific textured items actually visible — e.g. 'cream throw blanket','fern in clay pot','hardwood floor','water bowl'"],
   "lighting_conditions": "specific source + time, e.g. 'Soft late-afternoon light from south-facing window'",
   "safety_flags": ["honest hazards visible in photo; ['None — calm domestic environment'] if none"],
-  "environment_text": "60-80 words. Cinematic, sensory, specific. See system prompt for examples."
+  "environment_text": "60-80 words. Cinematic, sensory, specific. See system prompt for examples.",
+  "health_signs": { "sick": false, "injured": false, "lethargic": false, "dehydrated": false, "primary_sign": "short label or omit" },
+  "visible_condition": "Healthy | Concerning | Critical",
+  "symptoms": ["clinical-phrased visible signs; [] if none"],
+  "clinical_actions": ["clinician-oriented suggested actions; 3-5 items"],
+  "differentials": ["2-4 differential possibilities; [] if nothing concerning visible"]
 }`;
+
 
 const INDOOR_SETTINGS: SettingType[] = ["Home (Indoor)", "Shelter/Kennel"];
 
@@ -135,8 +165,42 @@ export function validateAssessment(a: Assessment): Assessment {
   if (!a.environment_text || typeof a.environment_text !== "string") {
     a.environment_text = a.location_scene || "Only the animal is visible in this frame — limited environmental context.";
   }
+
+  // Backfill health-sign fields from `noticed` keywords so downstream UI is honest.
+  const noticedText = a.noticed.join(" ").toLowerCase();
+  const detectedInjured = /\b(wound|laceration|abrasion|cut|bleed|blood|limp|lame|fracture|swelling|gash|broken)\b/.test(noticedText);
+  const detectedSick = /\b(discharge|coughing|cough|sneez|vomit|diarrh|fever|mucus|nasal|conjunct|infection|crust|wheez|drool|ulcer)\b/.test(noticedText);
+  const detectedLethargic = /\b(lethargic|lethargy|listless|weak|unresponsive|subdued)\b/.test(noticedText);
+  const detectedDehydrated = /\b(dehydrat|sunken|skin tent|tacky gums)\b/.test(noticedText);
+
+  if (!a.health_signs) {
+    a.health_signs = {
+      sick: detectedSick,
+      injured: detectedInjured,
+      lethargic: detectedLethargic,
+      dehydrated: detectedDehydrated,
+    };
+  } else {
+    a.health_signs.sick = a.health_signs.sick || detectedSick;
+    a.health_signs.injured = a.health_signs.injured || detectedInjured;
+    a.health_signs.lethargic = a.health_signs.lethargic || detectedLethargic;
+    a.health_signs.dehydrated = a.health_signs.dehydrated || detectedDehydrated;
+  }
+
+  if (!a.visible_condition) {
+    const anySign =
+      a.health_signs.sick || a.health_signs.injured ||
+      a.health_signs.lethargic || a.health_signs.dehydrated;
+    a.visible_condition =
+      a.status === "Urgent" ? "Critical" : anySign ? "Concerning" : "Healthy";
+  }
+  if (!Array.isArray(a.symptoms)) a.symptoms = a.noticed.slice();
+  if (!Array.isArray(a.clinical_actions)) a.clinical_actions = a.next_steps.slice();
+  if (!Array.isArray(a.differentials)) a.differentials = [];
+
   return a;
 }
+
 
 
 const MISSION_GUIDANCE: Record<string, string> = {

@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
 import { MISSIONS, MONITORING_LAYOUT, type MissionId } from "@/lib/missions";
 import { getUrgency } from "@/lib/urgency";
+import { getCondition, CONDITION_COLORS, type ConditionInfo } from "@/lib/condition";
 import { AIDisclosureBanner } from "@/components/voyce/AIDisclosureBanner";
+
 
 type RibbonKey = "critical" | "urgent_injured" | "at_risk" | "care_needed" | "monitoring" | "wildlife";
 
@@ -119,7 +121,9 @@ export function RescueReport({
   const [shareConfirm, setShareConfirm] = useState(false);
   const m = MISSIONS[mission];
   const urgency = useMemo(() => getUrgency(data, mission), [data, mission]);
+  const condition = useMemo(() => getCondition(data), [data]);
   const { stamp, minsAgo } = useMemo(reportedNow, []);
+
 
   // Monitoring fallback only for non-critical missions where AI judged the
   // animal healthy/low-priority. At-risk-shelter and wildlife always render
@@ -177,8 +181,11 @@ export function RescueReport({
             <span className="text-[12px] font-bold uppercase tracking-[0.12em]">
               {mission === "at-risk-shelter" && !isMonitoringFallback
                 ? <CountdownRibbonLabel />
-                : ribbonLabel}
+                : mission === "injured" && !isMonitoringFallback && condition.ribbonOverride
+                  ? condition.ribbonOverride
+                  : ribbonLabel}
             </span>
+
             <span
               className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider"
               style={{
@@ -222,7 +229,7 @@ export function RescueReport({
               className="font-serif text-[28px] font-bold leading-[1.05] uppercase tracking-tight"
               style={{ color: titleColor }}
             >
-              {bigTitle(data, mission, isMonitoringFallback)}
+              {bigTitle(data, mission, isMonitoringFallback, condition)}
             </h1>
 
             {/* 4 — Subtitle */}
@@ -245,7 +252,7 @@ export function RescueReport({
             </div>
 
             {/* 5 — Animal profile line */}
-            <AnimalProfileLine data={data} />
+            <AnimalProfileLine data={data} condition={condition} />
 
             {/* 6 — Location */}
             <div className="mt-3 flex items-center gap-1.5 text-[15px] font-semibold text-foreground">
@@ -381,13 +388,26 @@ export function RescueReport({
                 <ResponderBriefing data={data} calm={isMonitoringFallback} />
 
                 <Section title="What we noticed">
-                  {data.noticed.length === 0 ? (
+                  {(data.symptoms && data.symptoms.length > 0
+                    ? data.symptoms
+                    : data.noticed
+                  ).length === 0 ? (
                     <span className="text-muted-foreground">
                       Nothing concerning visible in this image.
                     </span>
                   ) : (
-                    <ul className="list-disc space-y-1 pl-5">
-                      {data.noticed.map((n, i) => <li key={i}>{n}</li>)}
+                    <ul className="space-y-1">
+                      {(data.symptoms && data.symptoms.length > 0
+                        ? data.symptoms
+                        : data.noticed
+                      ).map((n, i) => (
+                        <li key={i} className="flex gap-2">
+                          <span style={{ color: CONDITION_COLORS[condition.visibleCondition].dot }}>
+                            ✓
+                          </span>
+                          <span>{n}</span>
+                        </li>
+                      ))}
                     </ul>
                   )}
                 </Section>
@@ -405,13 +425,33 @@ export function RescueReport({
             ) : (
               <div className="mt-4 space-y-4">
                 <AIHealthDisclaimer />
+                <VisibleConditionPill condition={condition} />
+                <Section title="Possible symptoms">
+                  {(data.symptoms ?? []).length === 0 ? (
+                    <span className="text-muted-foreground">
+                      No visible symptoms in this image.
+                    </span>
+                  ) : (
+                    <ul className="space-y-1">
+                      {(data.symptoms ?? []).map((s, i) => (
+                        <li key={i} className="flex gap-2">
+                          <span className="text-[#A8431F]">•</span>
+                          <span>{s}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Section>
                 <Section title="Body condition">{data.vet_notes.bcs}</Section>
                 <Section title="Observed posture">{data.vet_notes.posture}</Section>
                 <Section title="Hydration">{data.vet_notes.hydration}</Section>
                 <Section title="Clinical summary">{data.vet_notes.clinical}</Section>
-                <Section title="Suggested next steps">
+                <Section title="Suggested clinical actions">
                   <ul className="space-y-1.5">
-                    {data.next_steps.map((n, i) => (
+                    {(data.clinical_actions && data.clinical_actions.length > 0
+                      ? data.clinical_actions
+                      : data.next_steps
+                    ).map((n, i) => (
                       <li key={i} className="flex gap-2">
                         <span className="text-[oklch(0.65_0.18_70)]">→</span>
                         <span>{n}</span>
@@ -419,8 +459,21 @@ export function RescueReport({
                     ))}
                   </ul>
                 </Section>
+                {(data.differentials ?? []).length > 0 && (
+                  <Section title="Differential possibilities">
+                    <ul className="space-y-1">
+                      {(data.differentials ?? []).map((d, i) => (
+                        <li key={i} className="flex gap-2">
+                          <span className="text-muted-foreground">↳</span>
+                          <span>{d}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </Section>
+                )}
               </div>
             )}
+
           </div>
 
           {/* 13 — Report details (gray footer block) */}
@@ -536,15 +589,23 @@ function CountdownBlock() {
 
 
 
-function bigTitle(data: Assessment, mission: MissionId, monitoring: boolean): string {
+function bigTitle(
+  data: Assessment,
+  mission: MissionId,
+  monitoring: boolean,
+  condition: ConditionInfo,
+): string {
   const species = (data.species || "animal").toUpperCase();
   const breed = data.breed && !/unknown|mixed/i.test(data.breed) ? data.breed.toUpperCase() : "";
   if (monitoring) {
     return breed ? `HEALTHY ${breed} · RESTING AT HOME` : `HEALTHY ${species} · RESTING AT HOME`;
   }
+  const strayPrefix = data.is_likely_pet ? "" : "STRAY ";
   switch (mission) {
-    case "injured":
-      return `INJURED ${species}`;
+    case "injured": {
+      const word = condition.titleWord ?? "INJURED";
+      return `${word} ${strayPrefix}${species}`.trim();
+    }
     case "at-risk-shelter":
       return `AT-RISK SHELTER ${species}`;
     case "lost-found":
@@ -556,14 +617,23 @@ function bigTitle(data: Assessment, mission: MissionId, monitoring: boolean): st
   }
 }
 
-function AnimalProfileLine({ data }: { data: Assessment }) {
+function AnimalProfileLine({
+  data,
+  condition,
+}: {
+  data: Assessment;
+  condition: ConditionInfo;
+}) {
   const chips = [
     { label: "Species", value: data.species },
     { label: "Breed", value: data.breed },
     { label: "Age", value: data.age },
     { label: "Weight", value: data.weight },
   ].filter((c) => c.value && !/^unknown$/i.test(c.value));
-  if (chips.length === 0) return null;
+  const conditionChip = condition.primarySign
+    ? { label: "Condition", value: condition.primarySign }
+    : null;
+  if (chips.length === 0 && !conditionChip) return null;
   return (
     <div className="mt-3 flex flex-wrap gap-1.5">
       {chips.map((c) => (
@@ -575,9 +645,45 @@ function AnimalProfileLine({ data }: { data: Assessment }) {
           <span className="font-medium text-foreground/90">{c.value}</span>
         </span>
       ))}
+      {conditionChip && (
+        <span
+          className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11.5px] font-medium"
+          style={{
+            background: CONDITION_COLORS[condition.visibleCondition].bg,
+            color: CONDITION_COLORS[condition.visibleCondition].text,
+            borderColor: CONDITION_COLORS[condition.visibleCondition].dot,
+          }}
+        >
+          <span
+            className="h-1.5 w-1.5 rounded-full"
+            style={{ background: CONDITION_COLORS[condition.visibleCondition].dot }}
+          />
+          {conditionChip.value}
+        </span>
+      )}
     </div>
   );
 }
+
+function VisibleConditionPill({ condition }: { condition: ConditionInfo }) {
+  const c = CONDITION_COLORS[condition.visibleCondition];
+  return (
+    <div className="flex items-center justify-between rounded-2xl border px-4 py-2.5"
+      style={{ background: c.bg, borderColor: c.dot, color: c.text }}
+    >
+      <div className="flex items-center gap-2">
+        <span className="h-2.5 w-2.5 rounded-full" style={{ background: c.dot }} />
+        <span className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-80">
+          Visible condition
+        </span>
+      </div>
+      <span className="text-[14px] font-bold uppercase tracking-wide">
+        {condition.visibleCondition}
+      </span>
+    </div>
+  );
+}
+
 
 function SectionDivider({ children }: { children: React.ReactNode }) {
   return (
