@@ -46,6 +46,8 @@ export function Outcome({ onRestart }: { onRestart: () => void }) {
           AI is advisory — not a diagnosis
         </div>
       </div>
+      </div>
     </div>
+
   );
 }
