@@ -94,17 +94,13 @@ const ACTIONS: { icon: string; label: string }[] = [
   { icon: "➕", label: "Add Update" },
 ];
 
-function reportedNow(): { stamp: string; minsAgo: number } {
-  const d = new Date();
-  return {
-    stamp: d.toLocaleString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    }),
-    minsAgo: 0,
-  };
+function formatStamp(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 export function RescueReport({
