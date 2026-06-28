@@ -81,15 +81,8 @@ function MissionIcon({ id, color }: { id: MissionId; color: string }) {
 export function MissionPicker({ onPick }: { onPick: (id: MissionId) => void }) {
   return (
     <div className="min-h-[100dvh] bg-background pb-12">
-      <header className="flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))]">
-        <div className="flex items-center gap-2">
-          <img src={pawLogo} alt="Voyce" width={22} height={22} className="h-5 w-5" />
-          <span className="font-serif text-base font-semibold tracking-tight">Voyce</span>
-        </div>
-        <div className="rounded-full bg-card px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm">
-          AI is advisory · not a diagnosis
-        </div>
-      </header>
+      <BrandHeader />
+
 
       <main className="mx-auto w-full max-w-2xl px-5 pt-8">
         <h1 className="text-center font-serif text-3xl font-semibold tracking-tight">
