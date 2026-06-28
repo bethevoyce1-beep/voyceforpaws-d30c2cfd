@@ -146,7 +146,7 @@ export function RescueReport({
             className="flex items-center justify-between gap-3 px-4 py-2.5"
             style={{ background: r.gradient, color: r.textOnRibbon }}
           >
-            <span className="text-[12px] font-bold uppercase tracking-[0.12em]">{isCalm ? r.label : m.ribbonLabel}</span>
+            <span className="text-[12px] font-bold uppercase tracking-[0.12em]">{ribbonKey === "critical" || isCalm || isWildlife ? r.label : m.ribbonLabel}</span>
             <span
               className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider"
               style={{
