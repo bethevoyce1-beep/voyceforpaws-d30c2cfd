@@ -571,9 +571,17 @@ export function RescueReport({
 
       {shareConfirm && (
         <ShareConfirmDialog
-          onCancel={() => setShareConfirm(false)}
-          onConfirm={() => setShareConfirm(false)}
+          onCancel={() => {
+            setShareConfirm(false);
+            setPendingShare(null);
+          }}
+          onConfirm={() => {
+            setShareConfirm(false);
+            if (pendingShare) performShare(pendingShare);
+            setPendingShare(null);
+          }}
         />
+
       )}
     </div>
   );
