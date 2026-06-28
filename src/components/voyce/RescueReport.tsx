@@ -388,13 +388,26 @@ export function RescueReport({
                 <ResponderBriefing data={data} calm={isMonitoringFallback} />
 
                 <Section title="What we noticed">
-                  {data.noticed.length === 0 ? (
+                  {(data.symptoms && data.symptoms.length > 0
+                    ? data.symptoms
+                    : data.noticed
+                  ).length === 0 ? (
                     <span className="text-muted-foreground">
                       Nothing concerning visible in this image.
                     </span>
                   ) : (
-                    <ul className="list-disc space-y-1 pl-5">
-                      {data.noticed.map((n, i) => <li key={i}>{n}</li>)}
+                    <ul className="space-y-1">
+                      {(data.symptoms && data.symptoms.length > 0
+                        ? data.symptoms
+                        : data.noticed
+                      ).map((n, i) => (
+                        <li key={i} className="flex gap-2">
+                          <span style={{ color: CONDITION_COLORS[condition.visibleCondition].dot }}>
+                            ✓
+                          </span>
+                          <span>{n}</span>
+                        </li>
+                      ))}
                     </ul>
                   )}
                 </Section>
@@ -412,13 +425,33 @@ export function RescueReport({
             ) : (
               <div className="mt-4 space-y-4">
                 <AIHealthDisclaimer />
+                <VisibleConditionPill condition={condition} />
+                <Section title="Possible symptoms">
+                  {(data.symptoms ?? []).length === 0 ? (
+                    <span className="text-muted-foreground">
+                      No visible symptoms in this image.
+                    </span>
+                  ) : (
+                    <ul className="space-y-1">
+                      {(data.symptoms ?? []).map((s, i) => (
+                        <li key={i} className="flex gap-2">
+                          <span className="text-[#A8431F]">•</span>
+                          <span>{s}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Section>
                 <Section title="Body condition">{data.vet_notes.bcs}</Section>
                 <Section title="Observed posture">{data.vet_notes.posture}</Section>
                 <Section title="Hydration">{data.vet_notes.hydration}</Section>
                 <Section title="Clinical summary">{data.vet_notes.clinical}</Section>
-                <Section title="Suggested next steps">
+                <Section title="Suggested clinical actions">
                   <ul className="space-y-1.5">
-                    {data.next_steps.map((n, i) => (
+                    {(data.clinical_actions && data.clinical_actions.length > 0
+                      ? data.clinical_actions
+                      : data.next_steps
+                    ).map((n, i) => (
                       <li key={i} className="flex gap-2">
                         <span className="text-[oklch(0.65_0.18_70)]">→</span>
                         <span>{n}</span>
@@ -426,8 +459,21 @@ export function RescueReport({
                     ))}
                   </ul>
                 </Section>
+                {(data.differentials ?? []).length > 0 && (
+                  <Section title="Differential possibilities">
+                    <ul className="space-y-1">
+                      {(data.differentials ?? []).map((d, i) => (
+                        <li key={i} className="flex gap-2">
+                          <span className="text-muted-foreground">↳</span>
+                          <span>{d}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </Section>
+                )}
               </div>
             )}
+
           </div>
 
           {/* 13 — Report details (gray footer block) */}
