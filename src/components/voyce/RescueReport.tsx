@@ -120,7 +120,10 @@ export function RescueReport({
   const m = MISSIONS[mission];
   const urgency = useMemo(() => getUrgency(data, mission), [data, mission]);
   const condition = useMemo(() => getCondition(data), [data]);
-  const reportedAt = useMemo(() => new Date().toISOString(), []);
+  const reportedAt = useMemo(
+    () => data.reportedAt ?? new Date().toISOString(),
+    [data.reportedAt],
+  );
   const stamp = useMemo(() => formatStamp(reportedAt), [reportedAt]);
   const status = (data as { status?: string }).status;
   const ago = useLiveAgo(reportedAt, status);
