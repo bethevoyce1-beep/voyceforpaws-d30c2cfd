@@ -121,6 +121,8 @@ export function RescueReport({
   const [tab, setTab] = useState<"story" | "vet">("story");
   const [shareConfirm, setShareConfirm] = useState(false);
   const [pendingShare, setPendingShare] = useState<SharePlatform | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const m = MISSIONS[mission];
   const urgency = useMemo(() => getUrgency(data, mission), [data, mission]);
   const condition = useMemo(() => getCondition(data), [data]);
@@ -131,6 +133,31 @@ export function RescueReport({
   const stamp = useMemo(() => formatStamp(reportedAt), [reportedAt]);
   const status = (data as { status?: string }).status;
   const ago = useLiveAgo(reportedAt, status);
+
+  // Warm up the invisible Turnstile script as soon as the report renders,
+  // so the silent challenge is ready by the time the user clicks Continue.
+  useEffect(() => {
+    loadTurnstile().catch((e) => {
+      console.warn("[voyce] turnstile preload failed:", e);
+    });
+  }, []);
+
+  const handleSubmitReport = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const token = await getTurnstileToken();
+      await verifyTurnstile({ data: { token } });
+      onContinue();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Verification failed";
+      console.error("[voyce] turnstile gate failed:", msg);
+      setSubmitError("Couldn't verify you're human. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const performShare = (platform: SharePlatform) => {
     const text = buildShareText(data, mission);
