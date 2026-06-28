@@ -225,8 +225,31 @@ export function RescueReport({
                 backdropFilter: "blur(4px)",
               }}
             >
-              Just Reported · {minsAgo} min ago
+              {ago.totalSeconds < 60 ? "Just Reported" : "Reported"} · {ago.label.toLowerCase()}
             </span>
+          </div>
+
+          {/* Mission Timer */}
+          <div className="mx-4 mt-3 flex items-center justify-between gap-3 rounded-2xl border border-[#E8D58A] bg-gradient-to-b from-[#FBF1C8] to-[#F5E3A0] px-4 py-2.5">
+            <div className="flex items-center gap-2">
+              <span className="text-base">{ago.frozen ? "✅" : "🕐"}</span>
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#7A5A0E]">
+                  {ago.frozen ? "Resolved" : "Mission Timer"}
+                </div>
+                <div className="text-[10px] leading-tight text-[#8A6A1E]">
+                  {ago.frozen
+                    ? `Resolved after ${formatTimer(ago.totalSeconds)}`
+                    : "Time since this case was reported."}
+                </div>
+              </div>
+            </div>
+            <div
+              className="rounded-full bg-white/70 px-3 py-1 font-mono text-[15px] font-bold tabular-nums text-[#7A5A0E]"
+              aria-live={ago.frozen ? "off" : "polite"}
+            >
+              {formatTimer(ago.totalSeconds)}
+            </div>
           </div>
 
           {/* Photo */}
