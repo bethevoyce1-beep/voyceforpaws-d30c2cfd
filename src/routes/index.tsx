@@ -15,6 +15,8 @@ import { DemoGate } from "@/components/voyce/DemoGate";
 import { Outcome } from "@/components/voyce/Outcome";
 import { MissionPicker } from "@/components/voyce/MissionPicker";
 import { MISSIONS, type MissionId } from "@/lib/missions";
+import { ConsentGate, hasValidConsent } from "@/components/voyce/ConsentGate";
+
 
 
 export const Route = createFileRoute("/")({
