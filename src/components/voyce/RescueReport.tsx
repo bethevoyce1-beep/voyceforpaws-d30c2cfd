@@ -274,14 +274,14 @@ export function RescueReport({
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {k === "story" ? "📖 Story" : "🩺 Voyce's First Look"}
+                  {k === "story" ? "📖 Story" : "🩺 AI Health Assessment"}
                 </button>
               ))}
             </div>
 
             {tab === "story" ? (
               <div className="mt-4 space-y-4">
-                <Section title="Voyce's First Look">{data.first_look}</Section>
+                <Section title="AI Health Assessment">{data.first_look}</Section>
                 <Section title="Behavior">{data.behavior}</Section>
                 <Section title="Where we found them">{data.location_scene}</Section>
                 <ResponderBriefing data={data} calm={isCalm} />
