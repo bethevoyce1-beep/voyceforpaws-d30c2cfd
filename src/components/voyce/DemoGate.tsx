@@ -151,6 +151,8 @@ export function DemoGate({ onDone }: { onDone: () => void }) {
           </button>
         </div>
       </form>
+      </div>
     </div>
+
   );
 }
