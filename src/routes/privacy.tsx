@@ -39,22 +39,25 @@ function PrivacyPage() {
           for your name or contact information for an anonymous report.
         </Section>
 
-        <Section title="2. AI processing — what it can and cannot do">
+        <Section title="2. AI processing &amp; limitations">
           <p>
-            Voyce uses computer-vision AI to generate a rescue card from your photo. The AI is
-            advisory. It <strong>can</strong> suggest a likely species, an apparent body condition,
-            visible signs in the frame, and a rough setting description.
+            Voyce uses <strong>Google Gemini Flash</strong>, a multimodal AI model, to assess
+            animal photos. AI processing happens on Google servers. Photos are sent for analysis
+            but are not stored by the AI provider for training.
           </p>
           <p className="mt-2">
-            The AI <strong>cannot</strong> detect internal injuries or diseases, diagnose any
-            medical condition, estimate exact age, weight, or breed, assess parasites, pain,
-            pregnancy, or vaccination status, or replace a veterinary examination.
+            AI assessments may be inaccurate, incomplete, or wrong about species, breed, age,
+            condition, urgency, environment, or any other field. The AI <strong>cannot</strong>{" "}
+            detect internal injuries or diseases, diagnose any medical condition, estimate exact
+            age, weight, or breed, assess parasites, pain, pregnancy, or vaccination status, or
+            replace a veterinary examination.
           </p>
           <p className="mt-2 italic">
             Always verify with a licensed veterinarian before any medical, rescue, or transport
             decision. Voyce is not liable for outcomes from acting on an AI assessment.
           </p>
         </Section>
+
 
         <Section title="3. How we use your data">
           Photos and location are used to generate the rescue card, notify nearby responders, and
