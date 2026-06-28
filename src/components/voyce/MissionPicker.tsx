@@ -209,12 +209,13 @@ export function MissionPicker({ onPick }: { onPick: (id: MissionId) => void }) {
                     />
                   )}
                   <span
-                    className="pointer-events-none absolute inset-0"
+                    className="pointer-events-none absolute inset-y-0 left-0 w-1/3"
                     style={{
-                      background: `linear-gradient(to right, ${m.accentSoft} 0%, transparent 55%)`,
+                      background: `linear-gradient(to right, ${m.accentSoft} 0%, transparent 100%)`,
                     }}
                     aria-hidden
                   />
+
                 </span>
               </button>
             );
