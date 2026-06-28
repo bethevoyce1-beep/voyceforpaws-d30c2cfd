@@ -252,7 +252,7 @@ export function RescueReport({
             </div>
 
             {/* 5 — Animal profile line */}
-            <AnimalProfileLine data={data} />
+            <AnimalProfileLine data={data} condition={condition} />
 
             {/* 6 — Location */}
             <div className="mt-3 flex items-center gap-1.5 text-[15px] font-semibold text-foreground">
