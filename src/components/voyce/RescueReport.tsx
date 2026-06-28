@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
 import { MISSIONS, MONITORING_LAYOUT, type MissionId } from "@/lib/missions";
 import { getUrgency } from "@/lib/urgency";
@@ -752,7 +752,7 @@ function VisibleConditionPill({ condition }: { condition: ConditionInfo }) {
 }
 
 
-function SectionDivider({ children }: { children: React.ReactNode }) {
+function SectionDivider({ children }: { children: ReactNode }) {
   return (
     <div className="flex items-center gap-3">
       <span className="h-px flex-1 bg-border" />
@@ -836,7 +836,7 @@ function locationLine(data: Assessment): string {
   return "Location pinned nearby";
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
       <h2 className="font-serif text-base font-semibold tracking-tight">{title}</h2>
