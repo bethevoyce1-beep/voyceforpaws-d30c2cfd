@@ -391,11 +391,8 @@ function AIReveal({
 
   const priority = useMemo(() => {
     if (!assessment) return null;
-    const s = assessment.status;
-    if (s === "Urgent") return "Immediate Risk";
-    if (s === "Monitoring") return "Care Needed";
-    if (s === "Stable") return "Monitoring";
-    return "Healthy";
+    const u = getUrgency(assessment);
+    return `${u.emoji} ${u.label}`;
   }, [assessment]);
 
   const species = assessment
