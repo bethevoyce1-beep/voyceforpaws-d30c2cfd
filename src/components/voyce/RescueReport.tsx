@@ -772,50 +772,13 @@ const SHARE_PLATFORMS: { id: SharePlatform; label: string; icon: string; bg: str
   { id: "copy", label: "Copy", icon: "📋", bg: "#E5E5E5", text: "#1F1F1F" },
 ];
 
-function ShareRow({
-  data,
-  mission,
-  onIntercept,
-}: {
-  data: Assessment;
-  mission: MissionId;
-  onIntercept: () => void;
-}) {
-  const handleShare = (platform: SharePlatform) => {
-    onIntercept();
-    const text = buildShareText(data, mission);
-    const url = typeof window !== "undefined" ? window.location.href : "";
-    const enc = encodeURIComponent;
-    let intent = "";
-    switch (platform) {
-      case "facebook":
-        intent = `https://www.facebook.com/sharer/sharer.php?u=${enc(url)}&quote=${enc(text)}`;
-        break;
-      case "whatsapp":
-        intent = `https://wa.me/?text=${enc(text + "\n" + url)}`;
-        break;
-      case "x":
-        intent = `https://twitter.com/intent/tweet?text=${enc(text)}&url=${enc(url)}`;
-        break;
-      case "nextdoor":
-        intent = `https://nextdoor.com/sharekit/?body=${enc(text)}&url=${enc(url)}`;
-        break;
-      case "copy":
-        if (typeof navigator !== "undefined" && navigator.clipboard) {
-          void navigator.clipboard.writeText(`${text}\n${url}`);
-        }
-        return;
-    }
-    if (typeof window !== "undefined" && intent) {
-      window.open(intent, "_blank", "noopener,noreferrer");
-    }
-  };
+function ShareRow({ onPick }: { onPick: (p: SharePlatform) => void }) {
   return (
     <div className="grid grid-cols-5 gap-2">
       {SHARE_PLATFORMS.map((p) => (
         <button
           key={p.id}
-          onClick={() => handleShare(p.id)}
+          onClick={() => onPick(p.id)}
           className="flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2.5 text-[11px] font-semibold shadow-sm transition hover:brightness-110 active:scale-[0.97]"
           style={{ background: p.bg, color: p.text }}
           aria-label={`Share to ${p.label}`}
@@ -827,6 +790,7 @@ function ShareRow({
     </div>
   );
 }
+
 
 
 
