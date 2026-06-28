@@ -283,7 +283,7 @@ export function RescueReport({
               <div className="mt-4 space-y-4">
                 <Section title="AI Health Assessment">{data.first_look}</Section>
                 <Section title="Behavior">{data.behavior}</Section>
-                <Section title="Where we found them">{data.location_scene}</Section>
+                <WhereFound data={data} />
                 <ResponderBriefing data={data} calm={isCalm} />
 
                 <Section title="What we noticed">
