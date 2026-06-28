@@ -150,3 +150,54 @@
   }
 }
 
+/* ===== Voyce for Paws brand mark ===== */
+.voyce-brand-mark {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(145deg, #1A1A1A, #000000);
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 210, 79, 0.35),
+    0 4px 10px rgba(0, 0, 0, 0.35);
+  flex: none;
+}
+.voyce-brand-mark svg {
+  filter:
+    drop-shadow(0 0 4px rgba(255, 222, 46, 0.7))
+    drop-shadow(0 0 8px rgba(255, 222, 46, 0.35));
+}
+.voyce-brand-mark::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #FFDE2E;
+  box-shadow:
+    0 0 6px rgba(255, 216, 77, 0.95),
+    0 0 12px rgba(255, 222, 46, 0.55);
+  animation: voyceLogoDot 1.6s ease-in-out infinite;
+}
+@keyframes voyceLogoDot {
+  0%, 100% { transform: scale(1); opacity: 0.95; }
+  50% {
+    transform: scale(1.25);
+    opacity: 1;
+    box-shadow:
+      0 0 12px rgba(255, 216, 77, 0.95),
+      0 0 22px rgba(255, 222, 46, 0.55);
+  }
+}
+.voyce-wordmark em {
+  font-style: italic;
+  color: #FFD24F;
+  text-shadow: 0 1px 0 rgba(180, 110, 0, 0.18);
+}
+
+
