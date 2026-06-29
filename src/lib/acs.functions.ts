@@ -6,12 +6,14 @@ export type AcsAnimal = {
   shelter_id: string;
   shelter_name: string;
   kennel_id: string | null;
+  kennel: string | null;
   name: string;
   species: string;
   breed: string | null;
   age: string | null;
   sex: string | null;
   weight: string | null;
+  color: string | null;
   photo_url: string;
   story: string | null;
   status: "at_risk" | "med_foster" | "pm_cutoff" | string;
@@ -20,6 +22,7 @@ export type AcsAnimal = {
   tags: string[];
   last_pulled_at: string;
 };
+
 
 export type AcsListResult = {
   animals: AcsAnimal[];
@@ -57,7 +60,7 @@ export const listAcsAnimals = createServerFn({ method: "GET" })
     const { data: rows, error } = await sb
       .from("acs_animals")
       .select(
-        "id, shelter_id, shelter_name, kennel_id, name, species, breed, age, sex, weight, photo_url, story, status, urgency, days_at_shelter, tags, last_pulled_at",
+        "id, shelter_id, shelter_name, kennel_id, kennel, name, species, breed, age, sex, weight, color, photo_url, story, status, urgency, days_at_shelter, tags, last_pulled_at",
       )
       .eq("shelter_id", data.shelterId)
       .order("urgency", { ascending: false })
