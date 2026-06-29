@@ -41,6 +41,45 @@ export type Database = {
         }
         Relationships: []
       }
+      network_signups: {
+        Row: {
+          city: string | null
+          created_at: string
+          email: string
+          id: string
+          ip_hash: string | null
+          phone: string | null
+          roles: string[]
+          source: string
+          user_agent_hash: string | null
+          zip: string
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          ip_hash?: string | null
+          phone?: string | null
+          roles?: string[]
+          source?: string
+          user_agent_hash?: string | null
+          zip: string
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          ip_hash?: string | null
+          phone?: string | null
+          roles?: string[]
+          source?: string
+          user_agent_hash?: string | null
+          zip?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
