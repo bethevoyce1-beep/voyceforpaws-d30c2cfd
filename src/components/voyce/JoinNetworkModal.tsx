@@ -60,6 +60,7 @@ export function JoinNetworkModal({
     if (selected.length === 0) return setError("Pick at least one role.");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError("Enter a valid email.");
     if (!zip.trim()) return setError("Enter your ZIP / postal code.");
+    if (!consent) return setError("Please accept Privacy & Terms to continue.");
     setSubmitting(true);
     try {
       const turnstileToken = await getTurnstileToken();
