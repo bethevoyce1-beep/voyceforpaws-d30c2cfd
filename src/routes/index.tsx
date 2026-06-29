@@ -15,6 +15,8 @@ import { DemoGate } from "@/components/voyce/DemoGate";
 import { Outcome } from "@/components/voyce/Outcome";
 import { MissionPicker } from "@/components/voyce/MissionPicker";
 import { ShareCard } from "@/components/voyce/ShareCard";
+import { ShelterPicker } from "@/components/voyce/ShelterPicker";
+import type { AcsAnimal } from "@/lib/acs.functions";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
 import { MISSIONS, type MissionId } from "@/lib/missions";
 
@@ -43,7 +45,7 @@ const SAMPLES = [
   { src: sampleBird, label: "Bird beak" },
 ];
 
-type Stage = "mission" | "capture" | "processing" | "report" | "share" | "timeline" | "gate" | "outcome";
+type Stage = "mission" | "shelter" | "capture" | "processing" | "report" | "share" | "timeline" | "gate" | "outcome";
 
 function isLikelyMobile() {
   if (typeof navigator === "undefined") return false;
@@ -106,7 +108,21 @@ function Home() {
       <MissionPicker
         onPick={(id) => {
           setMission(id);
-          setStage("capture");
+          setStage(id === "at-risk-shelter" ? "shelter" : "capture");
+        }}
+      />
+    );
+  }
+
+  if (stage === "shelter") {
+    return (
+      <ShelterPicker
+        onBack={() => setStage("mission")}
+        onPick={(animal: AcsAnimal) => {
+          setMission("at-risk-shelter");
+          setCaptured(animal.photo_url);
+          setAssessment(assessmentFromAcs(animal));
+          setStage("share");
         }}
       />
     );
