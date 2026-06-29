@@ -198,6 +198,14 @@ function Home() {
       />
     );
   }
+  if (stage === "share" && mission === "at-risk-shelter" && acsAnimal) {
+    return (
+      <AcsShareCard
+        animal={acsAnimal}
+        onContinue={() => setStage("timeline")}
+      />
+    );
+  }
   if (stage === "share" && assessment && captured) {
     return (
       <ShareCard
