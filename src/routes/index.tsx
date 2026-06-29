@@ -43,7 +43,7 @@ const SAMPLES = [
   { src: sampleBird, label: "Bird beak" },
 ];
 
-type Stage = "mission" | "capture" | "processing" | "report" | "timeline" | "gate" | "outcome";
+type Stage = "mission" | "capture" | "processing" | "report" | "share" | "timeline" | "gate" | "outcome";
 
 function isLikelyMobile() {
   if (typeof navigator === "undefined") return false;
@@ -126,6 +126,16 @@ function Home() {
   if (stage === "report" && assessment && captured) {
     return (
       <RescueReport
+        image={captured}
+        data={assessment}
+        mission={mission}
+        onContinue={() => setStage("share")}
+      />
+    );
+  }
+  if (stage === "share" && assessment && captured) {
+    return (
+      <ShareCard
         image={captured}
         data={assessment}
         mission={mission}
