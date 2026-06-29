@@ -18,16 +18,19 @@ export function JoinNetworkModal({
   onClose,
   initialRole,
   city,
+  animalName,
 }: {
   open: boolean;
   onClose: () => void;
   initialRole?: NetworkRole;
   city?: string;
+  animalName?: string;
 }) {
   const [selected, setSelected] = useState<NetworkRole[]>([]);
   const [email, setEmail] = useState("");
   const [zip, setZip] = useState("");
   const [phone, setPhone] = useState("");
+  const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -38,6 +41,7 @@ export function JoinNetworkModal({
     setEmail("");
     setZip("");
     setPhone("");
+    setConsent(false);
     setError(null);
     setDone(false);
     loadTurnstile().catch(() => {});
