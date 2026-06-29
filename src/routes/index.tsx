@@ -15,6 +15,8 @@ import { DemoGate } from "@/components/voyce/DemoGate";
 import { Outcome } from "@/components/voyce/Outcome";
 import { MissionPicker } from "@/components/voyce/MissionPicker";
 import { ShareCard } from "@/components/voyce/ShareCard";
+import { ShelterPicker } from "@/components/voyce/ShelterPicker";
+import type { AcsAnimal } from "@/lib/acs.functions";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
 import { MISSIONS, type MissionId } from "@/lib/missions";
 
@@ -43,7 +45,7 @@ const SAMPLES = [
   { src: sampleBird, label: "Bird beak" },
 ];
 
-type Stage = "mission" | "capture" | "processing" | "report" | "share" | "timeline" | "gate" | "outcome";
+type Stage = "mission" | "shelter" | "capture" | "processing" | "report" | "share" | "timeline" | "gate" | "outcome";
 
 function isLikelyMobile() {
   if (typeof navigator === "undefined") return false;
@@ -60,6 +62,51 @@ async function toDataUrl(src: string): Promise<string> {
     r.onerror = reject;
     r.readAsDataURL(blob);
   });
+}
+
+function assessmentFromAcs(a: AcsAnimal): Assessment {
+  const urgent = a.status === "pm_cutoff" || a.urgency >= 85;
+  return {
+    title: `${a.name} · ${a.shelter_name}`,
+    status: urgent ? "Urgent" : "Stable",
+    status_reason: urgent
+      ? `On the shelter's at-risk list · ${a.days_at_shelter} days in kennel`
+      : `Listed at ${a.shelter_name}`,
+    species: a.species || "dog",
+    breed: a.breed || "Mixed",
+    age: a.age || "unknown",
+    weight: a.weight || "unknown",
+    first_look:
+      a.story ||
+      `${a.name} is listed at ${a.shelter_name}, kennel ${a.kennel_id ?? "—"}. ${a.days_at_shelter} days in shelter.`,
+    behavior: `Calm in kennel context · ${a.tags?.join(", ") || "standard intake"}`,
+    location_scene: `${a.shelter_name}, kennel ${a.kennel_id ?? "—"}`,
+    noticed: [],
+    next_steps: [
+      "Commit a foster bed tonight",
+      "Coordinate rescue pull with shelter",
+      "Share to grow the network",
+    ],
+    vet_notes: {
+      bcs: "Not yet assessed",
+      posture: "Kennel-stressed but responsive",
+      hydration: "Provided in-kennel",
+      clinical: `Animal ID: ${a.kennel_id ?? "n/a"} · Intake info via ${a.shelter_name}.`,
+    },
+    is_likely_pet: false,
+    setting_type: "Shelter/Kennel",
+    surface: "Concrete kennel floor with rubber mat",
+    surrounding_objects: ["stainless water bowl", "kennel bars", "ID card"],
+    lighting_conditions: "Fluorescent shelter lighting",
+    safety_flags: ["None — controlled shelter environment"],
+    environment_text: `${a.shelter_name} kennel ${a.kennel_id ?? "—"}. ${a.name} has been waiting ${a.days_at_shelter} days.`,
+    health_signs: { sick: false, injured: false, lethargic: false, dehydrated: false },
+    visible_condition: urgent ? "Concerning" : "Healthy",
+    symptoms: [],
+    clinical_actions: ["Intake exam", "Vaccinate per shelter protocol", "Spay/neuter pre-release"],
+    differentials: [],
+    reportedAt: a.last_pulled_at,
+  };
 }
 
 function Home() {
@@ -106,7 +153,21 @@ function Home() {
       <MissionPicker
         onPick={(id) => {
           setMission(id);
-          setStage("capture");
+          setStage(id === "at-risk-shelter" ? "shelter" : "capture");
+        }}
+      />
+    );
+  }
+
+  if (stage === "shelter") {
+    return (
+      <ShelterPicker
+        onBack={() => setStage("mission")}
+        onPick={(animal: AcsAnimal) => {
+          setMission("at-risk-shelter");
+          setCaptured(animal.photo_url);
+          setAssessment(assessmentFromAcs(animal));
+          setStage("share");
         }}
       />
     );

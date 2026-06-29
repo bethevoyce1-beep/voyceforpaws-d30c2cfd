@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      acs_animals: {
+        Row: {
+          age: string | null
+          breed: string | null
+          created_at: string
+          days_at_shelter: number
+          id: string
+          kennel_id: string | null
+          last_pulled_at: string
+          name: string
+          photo_url: string
+          sex: string | null
+          shelter_id: string
+          shelter_name: string
+          species: string
+          status: string
+          story: string | null
+          tags: string[]
+          urgency: number
+          weight: string | null
+        }
+        Insert: {
+          age?: string | null
+          breed?: string | null
+          created_at?: string
+          days_at_shelter?: number
+          id?: string
+          kennel_id?: string | null
+          last_pulled_at?: string
+          name: string
+          photo_url: string
+          sex?: string | null
+          shelter_id: string
+          shelter_name: string
+          species?: string
+          status?: string
+          story?: string | null
+          tags?: string[]
+          urgency?: number
+          weight?: string | null
+        }
+        Update: {
+          age?: string | null
+          breed?: string | null
+          created_at?: string
+          days_at_shelter?: number
+          id?: string
+          kennel_id?: string | null
+          last_pulled_at?: string
+          name?: string
+          photo_url?: string
+          sex?: string | null
+          shelter_id?: string
+          shelter_name?: string
+          species?: string
+          status?: string
+          story?: string | null
+          tags?: string[]
+          urgency?: number
+          weight?: string | null
+        }
+        Relationships: []
+      }
       ai_consent_log: {
         Row: {
           consent_at: string
