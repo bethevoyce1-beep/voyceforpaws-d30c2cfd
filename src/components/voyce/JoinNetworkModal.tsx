@@ -123,7 +123,7 @@ export function JoinNetworkModal({
             </h2>
             <p className="mt-1.5 text-[13.5px] leading-relaxed text-foreground/70">
               We're building the network animal by animal. Your sign-up means
-              the next rescue reaches someone — instead of no one.
+              the next {animalName || "rescue"} reaches someone — instead of no one.
             </p>
 
             <div className="mt-4 space-y-1.5">
