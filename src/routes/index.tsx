@@ -147,6 +147,7 @@ function Home() {
     setStage("mission");
     setCaptured(null);
     setAssessment(null);
+    setAcsAnimal(null);
     setAiError(null);
   };
 
@@ -169,6 +170,7 @@ function Home() {
           setMission("at-risk-shelter");
           setCaptured(animal.photo_url);
           setAssessment(assessmentFromAcs(animal));
+          setAcsAnimal(animal);
           setStage("share");
         }}
       />
