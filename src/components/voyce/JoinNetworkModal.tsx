@@ -18,16 +18,19 @@ export function JoinNetworkModal({
   onClose,
   initialRole,
   city,
+  animalName,
 }: {
   open: boolean;
   onClose: () => void;
   initialRole?: NetworkRole;
   city?: string;
+  animalName?: string;
 }) {
   const [selected, setSelected] = useState<NetworkRole[]>([]);
   const [email, setEmail] = useState("");
   const [zip, setZip] = useState("");
   const [phone, setPhone] = useState("");
+  const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -38,6 +41,7 @@ export function JoinNetworkModal({
     setEmail("");
     setZip("");
     setPhone("");
+    setConsent(false);
     setError(null);
     setDone(false);
     loadTurnstile().catch(() => {});
@@ -56,6 +60,7 @@ export function JoinNetworkModal({
     if (selected.length === 0) return setError("Pick at least one role.");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError("Enter a valid email.");
     if (!zip.trim()) return setError("Enter your ZIP / postal code.");
+    if (!consent) return setError("Please accept Privacy & Terms to continue.");
     setSubmitting(true);
     try {
       const turnstileToken = await getTurnstileToken();
@@ -118,7 +123,7 @@ export function JoinNetworkModal({
             </h2>
             <p className="mt-1.5 text-[13.5px] leading-relaxed text-foreground/70">
               We're building the network animal by animal. Your sign-up means
-              the next rescue reaches someone — instead of no one.
+              the next {animalName || "rescue"} reaches someone — instead of no one.
             </p>
 
             <div className="mt-4 space-y-1.5">
@@ -196,6 +201,21 @@ export function JoinNetworkModal({
                 />
               </label>
             </div>
+
+            <label className="mt-3 flex items-start gap-2.5 text-[12px] leading-snug text-foreground/70">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-[#C9871A]"
+              />
+              <span>
+                I agree to Voyce's{" "}
+                <a href="/privacy" target="_blank" className="underline">Privacy</a> &{" "}
+                <a href="/terms" target="_blank" className="underline">Terms</a>, and
+                consent to launch emails for my area.
+              </span>
+            </label>
 
             {error && (
               <div className="mt-3 rounded-xl bg-[#FCE4E4] px-3 py-2 text-[12.5px] font-medium text-[#7E1F1F]">
