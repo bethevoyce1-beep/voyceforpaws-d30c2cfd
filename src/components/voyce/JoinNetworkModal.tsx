@@ -202,6 +202,21 @@ export function JoinNetworkModal({
               </label>
             </div>
 
+            <label className="mt-3 flex items-start gap-2.5 text-[12px] leading-snug text-foreground/70">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-[#C9871A]"
+              />
+              <span>
+                I agree to Voyce's{" "}
+                <a href="/privacy" target="_blank" className="underline">Privacy</a> &{" "}
+                <a href="/terms" target="_blank" className="underline">Terms</a>, and
+                consent to launch emails for my area.
+              </span>
+            </label>
+
             {error && (
               <div className="mt-3 rounded-xl bg-[#FCE4E4] px-3 py-2 text-[12.5px] font-medium text-[#7E1F1F]">
                 {error}
