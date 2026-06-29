@@ -15,6 +15,7 @@ import { DemoGate } from "@/components/voyce/DemoGate";
 import { Outcome } from "@/components/voyce/Outcome";
 import { MissionPicker } from "@/components/voyce/MissionPicker";
 import { ShareCard } from "@/components/voyce/ShareCard";
+import { AcsShareCard } from "@/components/voyce/AcsShareCard";
 import { ShelterPicker } from "@/components/voyce/ShelterPicker";
 import type { AcsAnimal } from "@/lib/acs.functions";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
@@ -114,6 +115,7 @@ function Home() {
   const [mission, setMission] = useState<MissionId>("injured");
   const [captured, setCaptured] = useState<string | null>(null);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
+  const [acsAnimal, setAcsAnimal] = useState<AcsAnimal | null>(null);
   const [aiPending, setAiPending] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
@@ -145,6 +147,7 @@ function Home() {
     setStage("mission");
     setCaptured(null);
     setAssessment(null);
+    setAcsAnimal(null);
     setAiError(null);
   };
 
@@ -167,6 +170,7 @@ function Home() {
           setMission("at-risk-shelter");
           setCaptured(animal.photo_url);
           setAssessment(assessmentFromAcs(animal));
+          setAcsAnimal(animal);
           setStage("share");
         }}
       />
@@ -191,6 +195,14 @@ function Home() {
         data={assessment}
         mission={mission}
         onContinue={() => setStage("share")}
+      />
+    );
+  }
+  if (stage === "share" && mission === "at-risk-shelter" && acsAnimal) {
+    return (
+      <AcsShareCard
+        animal={acsAnimal}
+        onContinue={() => setStage("timeline")}
       />
     );
   }

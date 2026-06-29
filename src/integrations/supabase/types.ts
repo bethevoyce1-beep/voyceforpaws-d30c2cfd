@@ -14,13 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      acs_animal_media: {
+        Row: {
+          animal_id: string
+          created_at: string
+          credit: string | null
+          id: string
+          note: string | null
+          source: string
+          url: string
+        }
+        Insert: {
+          animal_id: string
+          created_at?: string
+          credit?: string | null
+          id?: string
+          note?: string | null
+          source: string
+          url: string
+        }
+        Update: {
+          animal_id?: string
+          created_at?: string
+          credit?: string | null
+          id?: string
+          note?: string | null
+          source?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acs_animal_media_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "acs_animals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       acs_animals: {
         Row: {
           age: string | null
           breed: string | null
+          color: string | null
           created_at: string
           days_at_shelter: number
           id: string
+          kennel: string | null
           kennel_id: string | null
           last_pulled_at: string
           name: string
@@ -38,9 +78,11 @@ export type Database = {
         Insert: {
           age?: string | null
           breed?: string | null
+          color?: string | null
           created_at?: string
           days_at_shelter?: number
           id?: string
+          kennel?: string | null
           kennel_id?: string | null
           last_pulled_at?: string
           name: string
@@ -58,9 +100,11 @@ export type Database = {
         Update: {
           age?: string | null
           breed?: string | null
+          color?: string | null
           created_at?: string
           days_at_shelter?: number
           id?: string
+          kennel?: string | null
           kennel_id?: string | null
           last_pulled_at?: string
           name?: string
