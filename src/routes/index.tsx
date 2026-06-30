@@ -345,17 +345,39 @@ function CaptureScreen({
               muted
               className="absolute inset-0 h-full w-full object-cover"
             />
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="aspect-square w-[78%] max-w-md rounded-3xl border-2 border-[oklch(0.88_0.16_85)]/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.25)]" />
+            {/* Polish-list fix (June 30, 2026): warm helper text + brand viewfinder.
+                Viewfinder uses brand gold border + soft black scrim for focus. */}
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+              <div className="mb-5 inline-flex items-center gap-1.5 rounded-full bg-black/55 px-3.5 py-1.5 text-[11.5px] font-semibold tracking-tight text-white shadow-md backdrop-blur-md">
+                <span aria-hidden>🐾</span>
+                <span>Center the animal in the frame</span>
+              </div>
+              <div className="aspect-square w-[78%] max-w-md rounded-3xl border-2 border-[oklch(0.88_0.16_85)]/85 shadow-[0_0_0_9999px_rgba(20,15,5,0.42)]" />
             </div>
-            <button
-              type="button"
-              onClick={capture}
-              aria-label="Capture photo"
-              className="absolute left-1/2 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-10 -translate-x-1/2 rounded-full bg-white p-1.5 shadow-lg ring-2 ring-[oklch(0.88_0.16_85)] active:scale-95 transition"
-            >
-              <div className="h-16 w-16 rounded-full bg-[oklch(0.88_0.16_85)]" />
-            </button>
+            {/* Polish-list fix (June 30, 2026): brand-aligned shutter
+                — gradient gold inner disc + soft highlight for depth
+                — explicit "Take a photo" label below for clarity */}
+            <div className="absolute left-1/2 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-10 -translate-x-1/2 flex flex-col items-center gap-2.5">
+              <button
+                type="button"
+                onClick={capture}
+                aria-label="Take a photo"
+                className="rounded-full bg-white p-1.5 shadow-lg ring-2 ring-[oklch(0.88_0.16_85)] active:scale-95 transition hover:brightness-105"
+              >
+                <div
+                  className="relative h-16 w-16 overflow-hidden rounded-full shadow-inner"
+                  style={{ background: "linear-gradient(135deg, #FFD24A 0%, #C9871A 100%)" }}
+                >
+                  <div
+                    className="absolute inset-0 rounded-full"
+                    style={{ background: "radial-gradient(circle at 32% 28%, rgba(255,255,255,0.45) 0%, transparent 48%)" }}
+                  />
+                </div>
+              </button>
+              <span className="rounded-full bg-white/95 px-3 py-1 text-[11px] font-bold tracking-wide text-[oklch(0.25_0.04_60)] shadow-sm backdrop-blur">
+                Take a photo
+              </span>
+            </div>
           </div>
         )}
 

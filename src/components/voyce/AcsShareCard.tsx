@@ -33,8 +33,9 @@ const PAPER = "#FAF7F1";
 const INK = "#1A1611";
 
 // ============================================================
-// Countdown to today's capacity deadline
-//   Mon–Fri 12:30 PM, Sat 11:00 AM, Sun rolls to Monday
+// Countdown to today's capacity deadline (UPDATED June 30, 2026)
+//   Mon–Fri 5:00 PM, Sat 12:30 PM, Sun closed (rolls to Monday 5:00 PM)
+//   Previous (now wrong): Mon–Fri 12:30 PM, Sat 11:00 AM
 // ============================================================
 function nextDeadline(now = new Date()): Date {
   const d = new Date(now);
@@ -42,12 +43,15 @@ function nextDeadline(now = new Date()): Date {
     const day = d.getDay(); // 0 Sun .. 6 Sat
     const target = new Date(d);
     if (day === 0) {
+      // Sunday — ACS closed; roll to Monday 5:00 PM
       target.setDate(d.getDate() + 1);
-      target.setHours(12, 30, 0, 0);
+      target.setHours(17, 0, 0, 0);
     } else if (day === 6) {
-      target.setHours(11, 0, 0, 0);
-    } else {
+      // Saturday — capacity deadline 12:30 PM
       target.setHours(12, 30, 0, 0);
+    } else {
+      // Mon–Fri — capacity deadline 5:00 PM
+      target.setHours(17, 0, 0, 0);
     }
     if (target.getTime() > now.getTime()) return target;
     d.setDate(d.getDate() + 1);
@@ -268,7 +272,7 @@ export function AcsShareCard({
               {countdown}
             </p>
             <p className="mt-1 text-[11.5px] text-[#6B7280]">
-              ACS capacity euthanasia · 12:30 PM Mon–Fri / 11:00 AM Sat · confirm with ACS
+              ACS capacity euthanasia · 5:00 PM Mon–Fri / 12:30 PM Sat · confirm with ACS
             </p>
           </div>
 
