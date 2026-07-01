@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
+import type { PhotoMeta } from "@/lib/exif";
 import { getUrgency } from "@/lib/urgency";
 import { AIDisclosureBanner } from "@/components/voyce/AIDisclosureBanner";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
@@ -9,12 +10,43 @@ import { BrandHeader } from "@/components/voyce/BrandHeader";
 type Geo = {
   lat: number;
   lon: number;
-  label: string; // city/state or "Your area"
-  accuracy: "High" | "Approx";
+  label: string; // place/neighbourhood/city or "Your area"
+  accuracy: "High" | "Approx" | "Photo";
 };
+
+// Turn coordinates into a human place label — as specific as the data allows
+// (place/park/road → neighbourhood → city), so rescuers see more than just a city.
+async function reverseGeocode(lat: number, lon: number): Promise<string> {
+  try {
+    const r = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&zoom=18&lat=${lat}&lon=${lon}`,
+      { headers: { Accept: "application/json" } },
+    );
+    if (!r.ok) return "Your area";
+    const j = (await r.json()) as {
+      name?: string;
+      display_name?: string;
+      address?: Record<string, string>;
+    };
+    const a = j.address ?? {};
+    const place =
+      j.name || a.leisure || a.amenity || a.building || a.road || a.pedestrian;
+    const area = a.neighbourhood || a.suburb || a.quarter || a.city_district;
+    const city = a.city || a.town || a.village || a.municipality || a.county;
+    const parts = [place, area, city].filter((p): p is string => Boolean(p));
+    const seen = new Set<string>();
+    const uniq = parts.filter((p) => (seen.has(p) ? false : (seen.add(p), true)));
+    if (uniq.length) return uniq.slice(0, 3).join(", ");
+    if (j.display_name) return j.display_name.split(",").slice(0, 2).join(",").trim();
+    return "Your area";
+  } catch {
+    return "Your area";
+  }
+}
 
 type Props = {
   image: string | null;
+  meta: PhotoMeta | null;
   aiPending: boolean;
   aiError: string | null;
   assessment: Assessment | null;
@@ -28,7 +60,7 @@ const GREEN = "oklch(0.6 0.17 145)";
 // Step durations in ms (steps 2 and 4 are the wow moments)
 const STEP_MS = [1000, 2500, 1000, 3000, 1000, 1000, 1000];
 
-export function ProcessingPipeline({ image, aiPending, aiError, assessment, onComplete }: Props) {
+export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment, onComplete }: Props) {
   const [elapsed, setElapsed] = useState(0);
   const [step, setStep] = useState(0); // 0..6 active; 7 = all done
   const [frozen, setFrozen] = useState(false);
@@ -41,8 +73,18 @@ export function ProcessingPipeline({ image, aiPending, aiError, assessment, onCo
     return () => clearInterval(t);
   }, [frozen]);
 
-  // Kick off geolocation immediately so it's ready by step 2
+  // Determine the animal's location. If the uploaded photo carried its own GPS,
+  // trust that (it's where the animal actually is). Otherwise fall back to the
+  // reporter's current device location.
   useEffect(() => {
+    if (meta && meta.lat != null && meta.lon != null) {
+      const la = meta.lat;
+      const lo = meta.lon;
+      void reverseGeocode(la, lo).then((label) =>
+        setGeo({ lat: la, lon: lo, label, accuracy: "Photo" }),
+      );
+      return;
+    }
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       setGeo({ lat: 0, lon: 0, label: "Your area", accuracy: "Approx" });
       return;
@@ -50,23 +92,7 @@ export function ProcessingPipeline({ image, aiPending, aiError, assessment, onCo
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude, longitude, accuracy } = pos.coords;
-        let label = "Your area";
-        try {
-          const r = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10`,
-            { headers: { Accept: "application/json" } },
-          );
-          if (r.ok) {
-            const j = (await r.json()) as { address?: Record<string, string> };
-            const a = j.address ?? {};
-            const city = a.city || a.town || a.village || a.suburb || a.county;
-            const region = a.state || a.region || a.country;
-            if (city && region) label = `${city}, ${region}`;
-            else if (region) label = region;
-          }
-        } catch {
-          // ignore — keep fallback
-        }
+        const label = await reverseGeocode(latitude, longitude);
         setGeo({
           lat: latitude,
           lon: longitude,
@@ -77,7 +103,7 @@ export function ProcessingPipeline({ image, aiPending, aiError, assessment, onCo
       () => setGeo({ lat: 0, lon: 0, label: "Your area", accuracy: "Approx" }),
       { enableHighAccuracy: true, timeout: 4000, maximumAge: 60000 },
     );
-  }, []);
+  }, [meta]);
 
   // Advance steps on a timer. Step 4 (index 3) waits for AI; final step waits for AI too.
   const timerRef = useRef<number | null>(null);

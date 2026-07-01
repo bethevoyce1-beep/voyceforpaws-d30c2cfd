@@ -9,6 +9,7 @@ import sampleDogSkin from "@/assets/sample-dog-skin.jpg";
 import sampleBird from "@/assets/sample-bird.jpg";
 import { analyzeImage, type Assessment } from "@/lib/analyze.functions";
 import { ProcessingPipeline } from "@/components/voyce/ProcessingPipeline";
+import { readPhotoMeta, type PhotoMeta } from "@/lib/exif";
 import { RescueReport } from "@/components/voyce/RescueReport";
 import { StatusTimeline } from "@/components/voyce/StatusTimeline";
 import { DemoGate } from "@/components/voyce/DemoGate";
@@ -114,13 +115,15 @@ function Home() {
   const [stage, setStage] = useState<Stage>("mission");
   const [mission, setMission] = useState<MissionId>("injured");
   const [captured, setCaptured] = useState<string | null>(null);
+  const [captureMeta, setCaptureMeta] = useState<PhotoMeta | null>(null);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [acsAnimal, setAcsAnimal] = useState<AcsAnimal | null>(null);
   const [aiPending, setAiPending] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
   const startAnalysis = useCallback(
-    async (src: string) => {
+    async (src: string, meta?: PhotoMeta | null) => {
+      setCaptureMeta(meta ?? null);
       setAiPending(true);
       setAiError(null);
       setAssessment(null);
@@ -131,7 +134,13 @@ function Home() {
         const result = await analyzeImage({
           data: { imageDataUrl: dataUrl, mission },
         });
-        setAssessment(result);
+        // If the uploaded photo carried its own capture time, stamp the report
+        // as of when the animal was actually seen — not when it was uploaded.
+        setAssessment(
+          meta?.takenAt
+            ? { ...result, reportedAt: new Date(meta.takenAt).toISOString() }
+            : result,
+        );
       } catch (e) {
         const msg = e instanceof Error ? e.message : "AI analysis failed.";
         console.error("[voyce] analyze failed:", msg);
@@ -146,6 +155,7 @@ function Home() {
   const reset = () => {
     setStage("mission");
     setCaptured(null);
+    setCaptureMeta(null);
     setAssessment(null);
     setAcsAnimal(null);
     setAiError(null);
@@ -181,6 +191,7 @@ function Home() {
     return (
       <ProcessingPipeline
         image={captured}
+        meta={captureMeta}
         aiPending={aiPending}
         aiError={aiError}
         assessment={assessment}
@@ -242,7 +253,7 @@ function CaptureScreen({
   mission,
   onBack,
 }: {
-  onAnalyze: (src: string) => void;
+  onAnalyze: (src: string, meta?: PhotoMeta | null) => void;
   mission: MissionId;
   onBack: () => void;
 }) {
@@ -253,6 +264,8 @@ function CaptureScreen({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  // EXIF metadata (capture time + GPS) of the most recently picked photo.
+  const captureMetaRef = useRef<PhotoMeta | null>(null);
   // Separate refs so buttons open the right thing (image vs video, gallery vs camera).
   const videoUploadRef = useRef<HTMLInputElement | null>(null);   // "Upload a Video" → gallery
   const videoRecordRef = useRef<HTMLInputElement | null>(null);   // "Record a Video" → device camera
@@ -339,6 +352,7 @@ function CaptureScreen({
       try {
         const frameDataUrl = await extractVideoFrame(file);
         setVideoProcessing(false);
+        captureMetaRef.current = null; // video frame — use current time/location
         setPreview(frameDataUrl);
       } catch (e) {
         setVideoProcessing(false);
@@ -363,7 +377,7 @@ function CaptureScreen({
   // user doesn't have to tap "Analyze" separately. onAnalyze advances to the
   // analysis stage, so this runs once per capture.
   useEffect(() => {
-    if (preview) onAnalyze(preview);
+    if (preview) onAnalyze(preview, captureMetaRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preview]);
 
@@ -413,6 +427,7 @@ function CaptureScreen({
   const capture = () => {
     const video = videoRef.current;
     if (!video) return;
+    captureMetaRef.current = null; // live capture — use current time/location
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -731,9 +746,10 @@ function CaptureScreen({
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={(e) => {
+        onChange={async (e) => {
           const f = e.target.files?.[0];
           if (!f) return;
+          captureMetaRef.current = await readPhotoMeta(f);
           const reader = new FileReader();
           reader.onload = () => setPreview(String(reader.result));
           reader.readAsDataURL(f);
@@ -749,9 +765,10 @@ function CaptureScreen({
         accept="image/*"
         capture="environment"
         className="hidden"
-        onChange={(e) => {
+        onChange={async (e) => {
           const f = e.target.files?.[0];
           if (!f) return;
+          captureMetaRef.current = await readPhotoMeta(f);
           const reader = new FileReader();
           reader.onload = () => setPreview(String(reader.result));
           reader.readAsDataURL(f);
