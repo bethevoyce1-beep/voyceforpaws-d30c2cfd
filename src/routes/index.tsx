@@ -251,16 +251,102 @@ function CaptureScreen({
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  // "intake" = new pre-camera screen with 4 capture options + pre-launch banner.
-  // Added June 30, 2026 per user request — matches landing-page modal design.
+  // Separate refs so buttons open the right thing (image vs video, gallery vs camera).
+  const videoUploadRef = useRef<HTMLInputElement | null>(null);   // "Upload a Video" → gallery
+  const videoRecordRef = useRef<HTMLInputElement | null>(null);   // "Record a Video" → device camera
+  // "intake" = pre-camera screen with 4 capture options + pre-launch banner.
   const [mode, setMode] = useState<"intake" | "loading" | "camera" | "samples" | "permission">("intake");
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  // Toast for "video coming soon" — AI gateway only handles photos today.
-  const [videoNotice, setVideoNotice] = useState(false);
+  // Visible notice while a video is being processed into a still frame for the AI.
+  const [videoProcessing, setVideoProcessing] = useState(false);
 
   // Track the active camera stream so we can stop it cleanly on unmount or mode-switch.
   const streamRef = useRef<MediaStream | null>(null);
+
+  /**
+   * Extract a single still frame from a user-supplied video and hand it back as a data URL.
+   * Voyce's AI pipeline only reads images — pulling a frame lets video reports feed the
+   * same rescue-card generator without any backend changes.
+   *
+   * Strategy:
+   *   - Load the video off-screen with metadata + preload set.
+   *   - Seek to ~1 second in (avoids black title frames) or 20 percent of duration.
+   *   - Draw that frame to a canvas and export as a JPEG.
+   */
+  const extractVideoFrame = useCallback((file: File): Promise<string> => {
+    return new Promise<string>((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const v = document.createElement("video");
+      v.preload = "auto";
+      v.muted = true;
+      v.playsInline = true;
+      v.src = url;
+
+      const cleanup = () => URL.revokeObjectURL(url);
+
+      const grab = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = v.videoWidth || 1080;
+          canvas.height = v.videoHeight || 1080;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            cleanup();
+            reject(new Error("Could not read frame"));
+            return;
+          }
+          ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+          cleanup();
+          resolve(dataUrl);
+        } catch (err) {
+          cleanup();
+          reject(err instanceof Error ? err : new Error("Frame extract failed"));
+        }
+      };
+
+      v.onloadedmetadata = () => {
+        const target = Math.min(1, (v.duration || 5) * 0.2);
+        try {
+          v.currentTime = target;
+        } catch {
+          // If seek isn't supported, fall through — onseeked won't fire but timeupdate will.
+        }
+      };
+      v.onseeked = grab;
+      // Fallback: on Safari + some Android combos onseeked may not fire; use timeupdate once.
+      let grabbed = false;
+      v.ontimeupdate = () => {
+        if (grabbed) return;
+        if (v.currentTime > 0) {
+          grabbed = true;
+          grab();
+        }
+      };
+      v.onerror = () => {
+        cleanup();
+        reject(new Error("Video could not be read"));
+      };
+    });
+  }, []);
+
+  const handleVideoFile = useCallback(
+    async (file: File) => {
+      setVideoProcessing(true);
+      try {
+        const frameDataUrl = await extractVideoFrame(file);
+        setVideoProcessing(false);
+        setPreview(frameDataUrl);
+      } catch (e) {
+        setVideoProcessing(false);
+        const msg = e instanceof Error ? e.message : "Could not read video";
+        setError(msg);
+        setMode("samples");
+      }
+    },
+    [extractVideoFrame],
+  );
 
   useEffect(() => {
     // Cleanup-only effect. The camera stream is now started on demand when the
@@ -382,10 +468,11 @@ function CaptureScreen({
                   <span className="text-[20px]" aria-hidden>📷</span>
                   <span>Take a Photo</span>
                 </button>
-                {/* Record a Video — purple accent, "coming soon" */}
+                {/* Record a Video — purple accent. Opens device camera in video mode
+                    on mobile. Voyce extracts a still frame for the AI to analyze. */}
                 <button
                   type="button"
-                  onClick={() => setVideoNotice(true)}
+                  onClick={() => videoRecordRef.current?.click()}
                   className="flex flex-col items-center justify-center gap-1.5 rounded-2xl py-4 text-[13.5px] font-bold shadow-sm transition active:scale-[0.98] hover:brightness-105"
                   style={{
                     background: "linear-gradient(135deg, #A78BFA 0%, #7C5BD9 100%)",
@@ -404,10 +491,11 @@ function CaptureScreen({
                   <span className="text-[20px]" aria-hidden>⬆️</span>
                   <span>Upload a Photo</span>
                 </button>
-                {/* Upload a Video — outlined, "coming soon" */}
+                {/* Upload a Video — outlined. Opens gallery/file picker for video files.
+                    Voyce extracts a still frame for the AI to analyze. */}
                 <button
                   type="button"
-                  onClick={() => setVideoNotice(true)}
+                  onClick={() => videoUploadRef.current?.click()}
                   className="flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-border bg-card py-4 text-[13.5px] font-bold text-foreground shadow-sm transition active:scale-[0.98] hover:bg-background"
                 >
                   <span className="text-[20px]" aria-hidden>⬆️</span>
@@ -433,9 +521,9 @@ function CaptureScreen({
 
               {/* Pre-launch + inclusivity note */}
               <div className="mt-4 rounded-xl border border-dashed border-[#E0D6BB] bg-[#FBF7EC] px-4 py-3 text-center text-[12px] leading-relaxed text-[#6B5832]">
-                Try Voyce on your own pet, a stray you&apos;ve seen, or any animal —
-                photos work, video coming soon. <strong>We&apos;re not live yet</strong> —
-                this is a preview of how Voyce will alert the network when we launch.
+                Try Voyce on your own pet, a stray you&apos;ve seen, or any animal — photo
+                or video, either works. <strong>We&apos;re not live yet</strong> — this is a
+                preview of how Voyce will alert the network when we launch.
               </div>
 
               {/* Fallback: try a sample */}
@@ -448,15 +536,14 @@ function CaptureScreen({
               </button>
             </div>
 
-            {/* Video coming-soon toast */}
-            {videoNotice && (
+            {/* Video-processing toast — shown while we extract a still frame for the AI */}
+            {videoProcessing && (
               <div
                 role="status"
-                onClick={() => setVideoNotice(false)}
-                className="fixed inset-x-0 bottom-[max(1.5rem,env(safe-area-inset-bottom))] z-40 mx-auto w-fit max-w-[90%] cursor-pointer rounded-full bg-[#1A1611] px-5 py-3 text-[13px] font-semibold text-white shadow-xl"
+                className="fixed inset-x-0 bottom-[max(1.5rem,env(safe-area-inset-bottom))] z-40 mx-auto flex w-fit max-w-[90%] items-center gap-2 rounded-full bg-[#1A1611] px-5 py-3 text-[13px] font-semibold text-white shadow-xl"
               >
-                🎥 Video reports coming soon. For now, snap a photo or upload an image.
-                <span className="ml-2 text-white/60">✕</span>
+                <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                <span>Reading a frame from your video…</span>
               </div>
             )}
           </div>
@@ -628,6 +715,35 @@ function CaptureScreen({
           const reader = new FileReader();
           reader.onload = () => setPreview(String(reader.result));
           reader.readAsDataURL(f);
+        }}
+      />
+
+      {/* "Upload a Video" — file picker for videos (gallery on mobile, file browser
+          on desktop). Voyce extracts a still frame for AI analysis. */}
+      <input
+        ref={videoUploadRef}
+        type="file"
+        accept="video/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (!f) return;
+          void handleVideoFile(f);
+        }}
+      />
+
+      {/* "Record a Video" — same accept, but capture="environment" hints the browser to
+          open the device's video camera on mobile instead of the file picker. */}
+      <input
+        ref={videoRecordRef}
+        type="file"
+        accept="video/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (!f) return;
+          void handleVideoFile(f);
         }}
       />
     </div>
