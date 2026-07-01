@@ -14,6 +14,7 @@ type Geo = {
 };
 
 type Props = {
+  image: string | null;
   aiPending: boolean;
   aiError: string | null;
   assessment: Assessment | null;
@@ -27,7 +28,7 @@ const GREEN = "oklch(0.6 0.17 145)";
 // Step durations in ms (steps 2 and 4 are the wow moments)
 const STEP_MS = [1000, 2500, 1000, 3000, 1000, 1000, 1000];
 
-export function ProcessingPipeline({ aiPending, aiError, assessment, onComplete }: Props) {
+export function ProcessingPipeline({ image, aiPending, aiError, assessment, onComplete }: Props) {
   const [elapsed, setElapsed] = useState(0);
   const [step, setStep] = useState(0); // 0..6 active; 7 = all done
   const [frozen, setFrozen] = useState(false);
@@ -123,7 +124,7 @@ export function ProcessingPipeline({ aiPending, aiError, assessment, onComplete 
       },
       {
         title: "🪪 Creating rescue card",
-        sub: "Rescue Profile + Vet Notes, side by side.",
+        sub: "Rescue Profile + Health Assessment, side by side.",
       },
       {
         title: "📢 Alerting the network",
@@ -148,10 +149,10 @@ export function ProcessingPipeline({ aiPending, aiError, assessment, onComplete 
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="font-serif text-[26px] leading-tight font-semibold tracking-tight">
-              Your Rescue Journey
+              The Rescue Journey
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Voyce is working on this animal's behalf
+              Every second counts — help is on the way
             </p>
           </div>
           <div className="flex flex-col items-end">
@@ -166,6 +167,43 @@ export function ProcessingPipeline({ aiPending, aiError, assessment, onComplete 
             </span>
           </div>
         </div>
+
+        {/* Animal photo being analyzed — Voyce-styled: gold frame + gold scan
+            sweep + status chip. Distinct from Karuna's plain photo rectangle;
+            reassures the reporter the right photo is being read. */}
+        {image && (
+          <div
+            className="relative mx-auto mt-4 w-full overflow-hidden rounded-2xl border-2 shadow-md"
+            style={{ borderColor: GOLD, aspectRatio: "4 / 3" }}
+          >
+            <img
+              src={image}
+              alt="Animal being analyzed"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            {aiPending && (
+              <div
+                className="voyce-scan pointer-events-none absolute inset-x-0 h-1/3"
+                style={{
+                  background:
+                    "linear-gradient(to bottom, transparent, rgba(255,210,74,0.45), transparent)",
+                }}
+              />
+            )}
+            <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-[color:rgba(255,210,74,0.55)]" />
+            <div className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm backdrop-blur-md">
+              <span aria-hidden>{aiPending ? "🔍" : "✓"}</span>
+              <span>{aiPending ? "Reading the photo…" : "Photo read"}</span>
+            </div>
+            <style>{`
+              @keyframes voyce-scan {
+                0% { transform: translateY(-110%); }
+                100% { transform: translateY(410%); }
+              }
+              .voyce-scan { animation: voyce-scan 1.8s ease-in-out infinite; }
+            `}</style>
+          </div>
+        )}
 
         {/* Progress bar */}
         <div className="mt-5 h-2 w-full overflow-hidden rounded-full bg-[oklch(0.92_0.02_85)]">

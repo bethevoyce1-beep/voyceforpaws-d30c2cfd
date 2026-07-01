@@ -79,7 +79,7 @@ export const MISSIONS: Record<MissionId, Mission> = {
     alertButtonLabel: "🔔 Send Urgent Alert",
     intakeTitle: "Injured or Stray Animal",
     intakeDescription:
-      "Spotted on the street right now, or worried about your own pet? One photo — Voyce AI generates a Vet Card + Rescue Card with visible injury notes. Closest in the network alerted first — vets, rescuers, fosters, and good samaritans — alert ripples outward until someone responds.",
+      "Spotted an injured or stray animal on the street? One photo — Voyce AI generates a Rescue Card — Rescue Profile + Health Assessment — with visible injury notes. Closest in the network alerted first — vets, rescuers, fosters, and good samaritans — alert ripples outward until someone responds.",
     titleSub: "Needs medical attention",
     callout: {
       emoji: "❤",

@@ -180,6 +180,7 @@ function Home() {
   if (stage === "processing") {
     return (
       <ProcessingPipeline
+        image={captured}
         aiPending={aiPending}
         aiError={aiError}
         assessment={assessment}
@@ -358,6 +359,14 @@ function CaptureScreen({
     };
   }, []);
 
+  // Auto-start analysis the moment a photo/frame is captured or selected, so the
+  // user doesn't have to tap "Analyze" separately. onAnalyze advances to the
+  // analysis stage, so this runs once per capture.
+  useEffect(() => {
+    if (preview) onAnalyze(preview);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preview]);
+
   const startCameraFlow = useCallback(async () => {
     const mobile = isLikelyMobile();
     const hasCamera =
@@ -534,8 +543,8 @@ function CaptureScreen({
 
               {/* Pre-launch + inclusivity note */}
               <div className="mt-4 rounded-xl border border-dashed border-[#E0D6BB] bg-[#FBF7EC] px-4 py-3 text-center text-[12px] leading-relaxed text-[#6B5832]">
-                Try Voyce on your own pet, a stray you&apos;ve seen, or any animal — photo
-                or video, either works. <strong>We&apos;re not live yet</strong> — this is a
+                Try Voyce on a stray or injured animal you&apos;ve seen — photo or
+                video, either works. <strong>We&apos;re not live yet</strong> — this is a
                 preview of how Voyce will alert the network when we launch.
               </div>
 

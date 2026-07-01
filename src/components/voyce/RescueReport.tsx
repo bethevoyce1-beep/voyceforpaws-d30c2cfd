@@ -462,7 +462,7 @@ export function RescueReport({
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {k === "story" ? "🐾 Rescue Profile" : "🩺 Vet Notes"}
+                  {k === "story" ? "🐾 Rescue Profile" : "🩺 Health Assessment"}
                 </button>
               ))}
             </div>
