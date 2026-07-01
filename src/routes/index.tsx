@@ -229,8 +229,7 @@ function Home() {
   return (
     <CaptureScreen
       onAnalyze={startAnalysis}
-      missionLabel={MISSIONS[mission].capturePillLabel}
-      missionAccent={MISSIONS[mission].accent}
+      mission={mission}
       onBack={() => setStage("mission")}
     />
   );
@@ -239,61 +238,68 @@ function Home() {
 
 function CaptureScreen({
   onAnalyze,
-  missionLabel,
-  missionAccent,
+  mission,
   onBack,
 }: {
   onAnalyze: (src: string) => void;
-  missionLabel: string;
-  missionAccent: string;
+  mission: MissionId;
   onBack: () => void;
 }) {
+  const m = MISSIONS[mission];
+  const missionLabel = m.capturePillLabel;
+  const missionAccent = m.accent;
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [mode, setMode] = useState<"loading" | "camera" | "samples" | "permission">("loading");
+  // "intake" = new pre-camera screen with 4 capture options + pre-launch banner.
+  // Added June 30, 2026 per user request — matches landing-page modal design.
+  const [mode, setMode] = useState<"intake" | "loading" | "camera" | "samples" | "permission">("intake");
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  // Toast for "video coming soon" — AI gateway only handles photos today.
+  const [videoNotice, setVideoNotice] = useState(false);
+
+  // Track the active camera stream so we can stop it cleanly on unmount or mode-switch.
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    let activeStream: MediaStream | null = null;
+    // Cleanup-only effect. The camera stream is now started on demand when the
+    // user taps "Take a Photo" from the intake screen — no auto-request.
+    return () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    };
+  }, []);
+
+  const startCameraFlow = useCallback(async () => {
     const mobile = isLikelyMobile();
     const hasCamera =
       typeof navigator !== "undefined" &&
       !!navigator.mediaDevices &&
       typeof navigator.mediaDevices.getUserMedia === "function";
     if (!mobile || !hasCamera) {
+      // Desktop or browser without a camera — fall back to sample picker.
       setMode("samples");
       return;
     }
-    (async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" } },
-          audio: false,
-        });
-        if (cancelled) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        activeStream = stream;
-        if (videoRef.current) videoRef.current.srcObject = stream;
-        setMode("camera");
-      } catch (e) {
-        const name = (e as { name?: string })?.name ?? "";
-        if (name === "NotAllowedError" || name === "SecurityError") {
-          setMode("permission");
-        } else {
-          setMode("samples");
-          setError("Camera unavailable — pick a sample below.");
-        }
+    setMode("loading");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) videoRef.current.srcObject = stream;
+      setMode("camera");
+    } catch (e) {
+      const name = (e as { name?: string })?.name ?? "";
+      if (name === "NotAllowedError" || name === "SecurityError") {
+        setMode("permission");
+      } else {
+        setMode("samples");
+        setError("Camera unavailable — pick a sample below.");
       }
-    })();
-    return () => {
-      cancelled = true;
-      activeStream?.getTracks().forEach((t) => t.stop());
-    };
+    }
   }, []);
 
   const capture = () => {
@@ -333,6 +339,126 @@ function CaptureScreen({
         {mode === "loading" && (
           <div className="flex flex-1 items-center justify-center">
             <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-[oklch(0.88_0.16_85)] border-t-transparent" />
+          </div>
+        )}
+
+        {/* Mission intake screen — added June 30, 2026. Matches landing-page modal:
+            4 capture options + pre-launch banner + inclusive copy. */}
+        {mode === "intake" && (
+          <div className="flex flex-1 flex-col items-center px-5 pb-32 pt-20">
+            <div className="w-full max-w-md">
+              {/* Pre-launch pill */}
+              <div className="mx-auto mb-5 inline-flex items-center gap-1.5 rounded-full border border-[#E8C97A] bg-gradient-to-b from-[#FBF1C8] to-[#F5E3A0] px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[#7A5A0A] shadow-sm">
+                <span aria-hidden>📷</span>
+                <span>Live Demo · Pre-launch</span>
+              </div>
+
+              {/* Mission title + cinematic description */}
+              <h1
+                className="text-center font-serif text-[28px] font-bold leading-[1.1] tracking-tight"
+                style={{ color: m.titleColor }}
+              >
+                {m.intakeTitle}
+              </h1>
+              <p className="mx-auto mt-3 max-w-sm text-center text-[14px] leading-relaxed text-foreground/80">
+                {m.intakeDescription}
+              </p>
+
+              {/* 4-button grid: Take Photo / Record Video / Upload Photo / Upload Video */}
+              <p className="mt-6 text-center text-[12.5px] font-semibold uppercase tracking-[0.12em] text-foreground/60">
+                How are you reaching out?
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-2.5">
+                {/* PRIMARY: Take a Photo — gold gradient */}
+                <button
+                  type="button"
+                  onClick={startCameraFlow}
+                  className="flex flex-col items-center justify-center gap-1.5 rounded-2xl py-4 text-[13.5px] font-bold shadow-sm transition active:scale-[0.98] hover:brightness-105"
+                  style={{
+                    background: "linear-gradient(135deg, #FFD24A 0%, #C9871A 100%)",
+                    color: "#3A2A07",
+                  }}
+                >
+                  <span className="text-[20px]" aria-hidden>📷</span>
+                  <span>Take a Photo</span>
+                </button>
+                {/* Record a Video — purple accent, "coming soon" */}
+                <button
+                  type="button"
+                  onClick={() => setVideoNotice(true)}
+                  className="flex flex-col items-center justify-center gap-1.5 rounded-2xl py-4 text-[13.5px] font-bold shadow-sm transition active:scale-[0.98] hover:brightness-105"
+                  style={{
+                    background: "linear-gradient(135deg, #A78BFA 0%, #7C5BD9 100%)",
+                    color: "#FFFFFF",
+                  }}
+                >
+                  <span className="text-[20px]" aria-hidden>🎥</span>
+                  <span>Record a Video</span>
+                </button>
+                {/* Upload a Photo — outlined */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-border bg-card py-4 text-[13.5px] font-bold text-foreground shadow-sm transition active:scale-[0.98] hover:bg-background"
+                >
+                  <span className="text-[20px]" aria-hidden>⬆️</span>
+                  <span>Upload a Photo</span>
+                </button>
+                {/* Upload a Video — outlined, "coming soon" */}
+                <button
+                  type="button"
+                  onClick={() => setVideoNotice(true)}
+                  className="flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-border bg-card py-4 text-[13.5px] font-bold text-foreground shadow-sm transition active:scale-[0.98] hover:bg-background"
+                >
+                  <span className="text-[20px]" aria-hidden>⬆️</span>
+                  <span>Upload a Video</span>
+                </button>
+              </div>
+
+              {/* Privacy helper — same wording as landing-page modal */}
+              <p className="mt-3 text-center text-[11px] leading-relaxed text-foreground/55">
+                📱 Camera opens automatically on mobile &amp; tablet · 🔒 Stays on your device until you tap Send
+              </p>
+
+              {/* Voyce AI ready indicator — pulsing dot */}
+              <div className="mx-auto mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border border-[#E8D58A] bg-gradient-to-b from-[#FBF1C8]/70 to-[#F5E3A0]/70 px-4 py-2.5">
+                <span className="relative inline-flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#C9871A] opacity-65" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#C9871A]" />
+                </span>
+                <span className="text-[12.5px] font-semibold text-[#7A5A0A]">
+                  ✨ Voyce AI · Ready to read your photo
+                </span>
+              </div>
+
+              {/* Pre-launch + inclusivity note */}
+              <div className="mt-4 rounded-xl border border-dashed border-[#E0D6BB] bg-[#FBF7EC] px-4 py-3 text-center text-[12px] leading-relaxed text-[#6B5832]">
+                Try Voyce on your own pet, a stray you&apos;ve seen, or any animal —
+                photos work, video coming soon. <strong>We&apos;re not live yet</strong> —
+                this is a preview of how Voyce will alert the network when we launch.
+              </div>
+
+              {/* Fallback: try a sample */}
+              <button
+                type="button"
+                onClick={() => setMode("samples")}
+                className="mx-auto mt-5 block text-[12.5px] font-medium text-[#8A5A0E] underline-offset-2 hover:underline"
+              >
+                🎲 No photo handy? Try with a sample →
+              </button>
+            </div>
+
+            {/* Video coming-soon toast */}
+            {videoNotice && (
+              <div
+                role="status"
+                onClick={() => setVideoNotice(false)}
+                className="fixed inset-x-0 bottom-[max(1.5rem,env(safe-area-inset-bottom))] z-40 mx-auto w-fit max-w-[90%] cursor-pointer rounded-full bg-[#1A1611] px-5 py-3 text-[13px] font-semibold text-white shadow-xl"
+              >
+                🎥 Video reports coming soon. For now, snap a photo or upload an image.
+                <span className="ml-2 text-white/60">✕</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -475,7 +601,9 @@ function CaptureScreen({
               Upload
             </button>
           )}
-          {mode !== "samples" && (
+          {/* Hide the bottom "Try with a sample" pill on intake (it has its own
+              link) and on samples mode (would be redundant). */}
+          {mode !== "samples" && mode !== "intake" && (
             <button
               type="button"
               onClick={() => setMode("samples")}
@@ -487,11 +615,12 @@ function CaptureScreen({
         </div>
       </div>
 
+      {/* "Upload a Photo" file picker — gallery only, no camera.
+          (Live camera capture has its own viewport in mode === "camera".) */}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];

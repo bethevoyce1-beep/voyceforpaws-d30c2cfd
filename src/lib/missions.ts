@@ -30,6 +30,10 @@ export type Mission = {
   capturePillLabel: string;
   alertButtonLabel: string;
 
+  // Intake screen (shown after mission picked, before camera opens)
+  intakeTitle: string;        // e.g. "Injured or Stray Animal"
+  intakeDescription: string;  // 2-3 sentences explaining what Voyce does for this mission
+
   // Card layout (per-mission)
   titleSub: string;
   callout: {
@@ -73,6 +77,9 @@ export const MISSIONS: Record<MissionId, Mission> = {
     ringBg: "#FFE7DC",
     capturePillLabel: "Injured / Sick",
     alertButtonLabel: "🔔 Send Urgent Alert",
+    intakeTitle: "Injured or Stray Animal",
+    intakeDescription:
+      "Spotted on the street right now, or worried about your own pet? One photo — Voyce AI generates a Vet Card + Rescue Card with visible injury notes. Closest in the network alerted first — vets, rescuers, fosters, and good samaritans — alert ripples outward until someone responds.",
     titleSub: "Needs medical attention",
     callout: {
       emoji: "❤",
@@ -112,6 +119,9 @@ export const MISSIONS: Record<MissionId, Mission> = {
     ringBg: "#F8E2E2",
     capturePillLabel: "At-Risk Shelter",
     alertButtonLabel: "🆘 Save This Dog",
+    intakeTitle: "At-Risk Shelter Animal",
+    intakeDescription:
+      "Facing the shelter's capacity deadline. Pick an animal from the live ACS list — Voyce builds a full share card with countdown, shelter contacts, and direct ACS links. The whole network is alerted: rescuers, fosters, adopters, pledgers, transporters — every role that can save this life.",
     titleSub: "Needs foster or rescue pull TODAY",
     callout: {
       emoji: "🚨",
@@ -157,6 +167,9 @@ export const MISSIONS: Record<MissionId, Mission> = {
     ringBg: "#FCEFC9",
     capturePillLabel: "Lost / Found",
     alertButtonLabel: "🔔 Alert Neighbors",
+    intakeTitle: "Lost or Found Pet",
+    intakeDescription:
+      "Reuniting strays with their families — fast. One photo and Voyce AI checks for collar, tags, and signs of an owned pet, then alerts the neighborhood network: lost-pet groups, neighbors, and local shelters. The closest helpers see it first.",
     titleSub: "Helping reunite with family",
     callout: {
       emoji: "💛",
@@ -195,6 +208,9 @@ export const MISSIONS: Record<MissionId, Mission> = {
     ringBg: "#E7F5EC",
     capturePillLabel: "Prevention / Care",
     alertButtonLabel: "🌱 Arrange Care",
+    intakeTitle: "Community Care · Prevention",
+    intakeDescription:
+      "Healthy stray or community cat? One photo and Voyce routes to TNR volunteers, low-cost spay/neuter clinics, and vaccine partners in the area. Care now prevents the next litter — lives saved long-term, not just today.",
     titleSub: "Healthy — needs care to prevent next litter",
     callout: {
       emoji: "🌱",
@@ -232,6 +248,9 @@ export const MISSIONS: Record<MissionId, Mission> = {
     ringBg: "#E4F0F8",
     capturePillLabel: "Wildlife",
     alertButtonLabel: "📞 Call Licensed Rehabber",
+    intakeTitle: "Injured Wildlife",
+    intakeDescription:
+      "Deer, bird, raccoon, or any wildlife in need? One photo and Voyce routes only to licensed wildlife rehabilitators and animal control — never untrained handlers. Keep distance. Trained help is on the way.",
     titleSub: "Routes only to licensed rehabilitators",
     callout: {
       emoji: "🌿",
