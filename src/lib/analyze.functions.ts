@@ -256,8 +256,8 @@ export const analyzeImage = createServerFn({ method: "POST" })
 
     if (geminiKey) {
       // Direct Google Gemini API (free tier: 15 rpm, ~1M tokens/day).
-      // gemini-2.0-flash-exp handles multimodal (text + image) with JSON output.
-      const model = "gemini-2.0-flash-exp";
+      // gemini-2.5-flash handles multimodal (text + image) with JSON output.
+      const model = "gemini-2.5-flash";
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(geminiKey)}`;
       const res = await fetch(url, {
         method: "POST",
