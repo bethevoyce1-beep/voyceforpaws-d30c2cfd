@@ -251,6 +251,7 @@ function CaptureScreen({
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
   // Separate refs so buttons open the right thing (image vs video, gallery vs camera).
   const videoUploadRef = useRef<HTMLInputElement | null>(null);   // "Upload a Video" → gallery
   const videoRecordRef = useRef<HTMLInputElement | null>(null);   // "Record a Video" → device camera
@@ -388,6 +389,18 @@ function CaptureScreen({
     }
   }, []);
 
+  // "Take a Photo": on phones/tablets, open the native camera via a file input
+  // with capture="environment". This is far more reliable than getUserMedia +
+  // canvas, which returned blank/broken frames on iOS Safari. On desktop, keep
+  // the existing webcam/sample flow.
+  const handleTakePhoto = useCallback(() => {
+    if (isLikelyMobile()) {
+      cameraInputRef.current?.click();
+    } else {
+      void startCameraFlow();
+    }
+  }, [startCameraFlow]);
+
   const capture = () => {
     const video = videoRef.current;
     if (!video) return;
@@ -458,7 +471,7 @@ function CaptureScreen({
                 {/* PRIMARY: Take a Photo — gold gradient */}
                 <button
                   type="button"
-                  onClick={startCameraFlow}
+                  onClick={handleTakePhoto}
                   className="flex flex-col items-center justify-center gap-1.5 rounded-2xl py-4 text-[13.5px] font-bold shadow-sm transition active:scale-[0.98] hover:brightness-105"
                   style={{
                     background: "linear-gradient(135deg, #FFD24A 0%, #C9871A 100%)",
@@ -708,6 +721,24 @@ function CaptureScreen({
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (!f) return;
+          const reader = new FileReader();
+          reader.onload = () => setPreview(String(reader.result));
+          reader.readAsDataURL(f);
+        }}
+      />
+
+      {/* "Take a Photo" (mobile) — opens the native camera via capture="environment"
+          and reuses the same reliable FileReader path as Upload a Photo. Replaces the
+          getUserMedia + canvas capture that produced blank frames on iOS Safari. */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];
