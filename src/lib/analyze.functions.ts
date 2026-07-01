@@ -227,49 +227,99 @@ export const analyzeImage = createServerFn({ method: "POST" })
     return { imageDataUrl: o.imageDataUrl, mission };
   })
   .handler(async ({ data }): Promise<Assessment> => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("Missing LOVABLE_API_KEY");
+    // June 30, 2026: Swapped from Lovable's AI gateway to Google Gemini directly.
+    // Lovable's gateway required a paid Lovable subscription. Gemini has a free
+    // tier (15 rpm / 1M tokens per day) that fits Voyce's pre-launch usage easily.
+    // Falls back to LOVABLE_API_KEY if GEMINI_API_KEY is not set, so the app
+    // still works during migration.
+    const geminiKey = process.env.GEMINI_API_KEY;
+    const lovableKey = process.env.LOVABLE_API_KEY;
+    if (!geminiKey && !lovableKey) {
+      throw new Error(
+        "Missing AI key. Set GEMINI_API_KEY (recommended) or LOVABLE_API_KEY.",
+      );
+    }
 
     const missionLine =
       MISSION_GUIDANCE[data.mission] ?? MISSION_GUIDANCE.injured;
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Lovable-API-Key": key,
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          {
-            role: "system",
-            content: SYSTEM + "\n\n" + missionLine + "\n\nSchema:\n" + SCHEMA_HINT,
-          },
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: `Analyze this animal photo for mission "${data.mission}". Return ONLY the JSON object, no markdown.`,
-              },
-              { type: "image_url", image_url: { url: data.imageDataUrl } },
-            ],
-          },
-        ],
-        response_format: { type: "json_object" },
-      }),
-    });
+    // Gemini expects images as base64 without the data-URL prefix, and a mime type.
+    const match = data.imageDataUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
+    if (!match) throw new Error("Invalid image data URL for Gemini");
+    const mimeType = match[1];
+    const base64Data = match[2];
 
-    if (!res.ok) {
-      const body = await res.text();
-      throw new Error(`AI gateway ${res.status}: ${body.slice(0, 300)}`);
+    const systemInstruction = SYSTEM + "\n\n" + missionLine + "\n\nSchema:\n" + SCHEMA_HINT;
+    const userText = `Analyze this animal photo for mission "${data.mission}". Return ONLY the JSON object, no markdown.`;
+
+    let content = "";
+
+    if (geminiKey) {
+      // Direct Google Gemini API (free tier: 15 rpm, ~1M tokens/day).
+      // gemini-2.0-flash-exp handles multimodal (text + image) with JSON output.
+      const model = "gemini-2.0-flash-exp";
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(geminiKey)}`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemInstruction }] },
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: userText },
+                { inlineData: { mimeType, data: base64Data } },
+              ],
+            },
+          ],
+          generationConfig: {
+            responseMimeType: "application/json",
+            temperature: 0.2,
+          },
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`Gemini ${res.status}: ${body.slice(0, 300)}`);
+      }
+      const json = (await res.json()) as {
+        candidates?: { content?: { parts?: { text?: string }[] } }[];
+      };
+      content = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+    } else {
+      // Legacy path: Lovable's AI gateway (OpenAI-shaped API). Kept as fallback.
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Lovable-API-Key": lovableKey!,
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: systemInstruction },
+            {
+              role: "user",
+              content: [
+                { type: "text", text: userText },
+                { type: "image_url", image_url: { url: data.imageDataUrl } },
+              ],
+            },
+          ],
+          response_format: { type: "json_object" },
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`Lovable gateway ${res.status}: ${body.slice(0, 300)}`);
+      }
+      const json = (await res.json()) as {
+        choices?: { message?: { content?: string } }[];
+      };
+      content = json.choices?.[0]?.message?.content ?? "";
     }
 
-    const json = (await res.json()) as {
-      choices?: { message?: { content?: string } }[];
-    };
-    const content = json.choices?.[0]?.message?.content ?? "";
     let parsed: Assessment;
     try {
       const cleaned = content.replace(/^```json\s*|\s*```$/g, "").trim();
