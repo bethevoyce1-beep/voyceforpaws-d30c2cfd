@@ -199,6 +199,39 @@ export function validateAssessment(a: Assessment): Assessment {
   if (!Array.isArray(a.clinical_actions)) a.clinical_actions = a.next_steps.slice();
   if (!Array.isArray(a.differentials)) a.differentials = [];
 
+  // Consistency safeguard: the model occasionally marks a calm, uninjured pet
+  // resting in a home as "Urgent" even though its own signals say otherwise.
+  // When there are NO visible health signs, NO noticed symptoms, and it reads as
+  // a settled indoor pet in a safe environment, downgrade to "Monitoring" so a
+  // clearly healthy animal is never printed as "Urgent / Visible injury". This
+  // only fires when nothing concerning was detected, so it cannot mask a real
+  // emergency (any wound/blood/limp/sickness keeps the urgent status).
+  const hasHealthSign =
+    a.health_signs.sick ||
+    a.health_signs.injured ||
+    a.health_signs.lethargic ||
+    a.health_signs.dehydrated;
+  const safeEnvironment =
+    a.safety_flags.length > 0 &&
+    a.safety_flags.every((f) => /^none|calm|domestic|safe/i.test(f));
+  const calmIndoorPet =
+    a.is_likely_pet === true &&
+    INDOOR_SETTINGS.includes(a.setting_type) &&
+    safeEnvironment;
+  if (
+    (a.status === "Urgent" || a.status === "Stable") &&
+    !hasHealthSign &&
+    a.noticed.length === 0 &&
+    calmIndoorPet
+  ) {
+    a.status = "Monitoring";
+    a.visible_condition = "Healthy";
+    if (!a.status_reason || /urgent|injur|distress|rescue/i.test(a.status_reason)) {
+      a.status_reason =
+        "Calm, uninjured pet resting in a home — no visible signs needing rescue.";
+    }
+  }
+
   return a;
 }
 
@@ -206,7 +239,7 @@ export function validateAssessment(a: Assessment): Assessment {
 
 const MISSION_GUIDANCE: Record<string, string> = {
   injured:
-    "MISSION: INJURED / SICK. Look closely for visible injuries (limb angle, wounds, lameness, lethargy, blood, swelling). Calibrate urgency honestly. Orient next_steps toward RESCUE: stabilize, transport, vet contact.",
+    "MISSION: INJURED / SICK. Look closely for visible injuries (limb angle, wounds, lameness, lethargy, blood, swelling). Calibrate urgency honestly — do NOT default to Urgent. If there is NO visible wound, blood, swelling, limp, or sign of sickness, the animal is NOT urgent: a groomed, collared, or calmly resting pet with no injury must be status 'Monitoring' or 'Healthy', never 'Urgent'. Orient next_steps toward RESCUE only when a real problem is visible: stabilize, transport, vet contact.",
   "at-risk-shelter":
     "MISSION: AT-RISK SHELTER. Note kennel context (bars, concrete, ID tags), body condition for foster suitability, temperament cues. Orient next_steps toward FOSTER / PULL: foster commitment, rescue pull, transport coordination.",
   "lost-found":
