@@ -205,11 +205,10 @@ export function validateAssessment(a: Assessment): Assessment {
   // animal is. Downgrade an over-called "Urgent"/"Stable" to "Monitoring". This
   // ONLY fires when the AI itself found nothing wrong, so it can never hide a
   // real emergency: any wound, blood, limp, swelling, or sickness keeps Urgent.
-  const hasHealthSign =
-    a.health_signs.sick ||
-    a.health_signs.injured ||
-    a.health_signs.lethargic ||
-    a.health_signs.dehydrated;
+  // Only a clear INJURY or SICKNESS keeps "Urgent". "Lethargic" / "dehydrated"
+  // alone are too easily mis-read for a calmly resting or sleeping healthy pet,
+  // so on their own they must not force an emergency reading.
+  const hasHealthSign = a.health_signs.injured || a.health_signs.sick;
   if ((a.status === "Urgent" || a.status === "Stable") && !hasHealthSign) {
     a.status = "Monitoring";
     a.visible_condition = "Healthy";
