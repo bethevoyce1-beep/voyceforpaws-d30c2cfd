@@ -29,8 +29,11 @@ async function reverseGeocode(lat: number, lon: number): Promise<string> {
       address?: Record<string, string>;
     };
     const a = j.address ?? {};
+    // Prefer a full street line (house number + road) when the point is precise
+    // enough to have one; otherwise fall back to a named place / road.
+    const street = [a.house_number, a.road || a.pedestrian].filter(Boolean).join(" ").trim();
     const place =
-      j.name || a.leisure || a.amenity || a.building || a.road || a.pedestrian;
+      street || j.name || a.leisure || a.amenity || a.building;
     const area = a.neighbourhood || a.suburb || a.quarter || a.city_district;
     const city = a.city || a.town || a.village || a.municipality || a.county;
     const parts = [place, area, city].filter((p): p is string => Boolean(p));

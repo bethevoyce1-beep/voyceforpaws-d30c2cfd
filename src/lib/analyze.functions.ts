@@ -299,12 +299,15 @@ export const analyzeImage = createServerFn({ method: "POST" })
     // governs (don't invent injuries that aren't visible in the photo).
     const ctx = data.context;
     const reporterLines: string[] = [];
-    if (ctx.animalType) reporterLines.push(`Animal type they selected: ${ctx.animalType}`);
-    if (ctx.situation) reporterLines.push(`What's happening (reporter): ${ctx.situation}`);
+    if (ctx.animalType) reporterLines.push(`Animal type the reporter selected: ${ctx.animalType}`);
     if (ctx.notes) reporterLines.push(`Reporter notes: ${ctx.notes}`);
+    // The reporter's urgency/situation category is deliberately NOT sent to the AI.
+    // The health assessment must reflect the animal AS-IS from the photo, never
+    // swayed by which category the reporter tapped. Only concrete details (animal
+    // type, free-text notes) are shared as hints.
     const reporterBlock =
       reporterLines.length > 0
-        ? `\n\nCONTEXT FROM THE PERSON ON THE SCENE (use as helpful hints to guide breed/species and what to look for, but base your health assessment on what you ACTUALLY SEE in the photo — never invent injuries that aren't visible):\n${reporterLines.join("\n")}`
+        ? `\n\nCONTEXT FROM THE PERSON ON THE SCENE (helpful hints only — use to guide breed/species and what to look for, but judge health ONLY from what you actually see in the photo; never invent injuries or symptoms that aren't visible):\n${reporterLines.join("\n")}`
         : "";
     const userText = `Analyze this animal photo for mission "${data.mission}". Return ONLY the JSON object, no markdown.${reporterBlock}`;
 
