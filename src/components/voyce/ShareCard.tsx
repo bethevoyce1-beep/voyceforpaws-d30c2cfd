@@ -316,7 +316,8 @@ function variantFor(mission: MissionId, data: Assessment): Variant {
 }
 
 // =============================================================
-// Live "X min ago" since report
+// Live ticking stopwatch since report — "every second counts"
+// Counts UP every second: MM:SS, then H:MM:SS past an hour.
 // =============================================================
 function useAgo(reportedAt?: string): string {
   const start = useMemo(
@@ -328,13 +329,12 @@ function useAgo(reportedAt?: string): string {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
-  const sec = Math.max(0, Math.floor((now - start) / 1000));
-  if (sec < 60) return "just now";
-  const m = Math.floor(sec / 60);
-  if (m < 60) return `${m} min ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h} hr ago`;
-  return `${Math.floor(h / 24)}d ago`;
+  const total = Math.max(0, Math.floor((now - start) / 1000));
+  const s = total % 60;
+  const m = Math.floor(total / 60) % 60;
+  const h = Math.floor(total / 3600);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 }
 
 // =============================================================
@@ -510,7 +510,7 @@ export function ShareCard({
                 Just Reported
               </span>
               <span className="rounded-full bg-white/95 px-2.5 py-0.5 text-[10.5px] font-bold text-[#0B0B0C] shadow-sm tabular-nums">
-                {ago}
+                ⏱ {ago} waiting
               </span>
             </div>
           </div>
