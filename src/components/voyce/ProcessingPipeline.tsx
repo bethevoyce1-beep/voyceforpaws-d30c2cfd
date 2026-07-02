@@ -390,9 +390,25 @@ function LocationReveal({ geo }: { geo: Geo | null }) {
   const label = geo?.label ?? "Your area";
   const accuracy = geo?.accuracy ?? "Approx";
   const hasReal = !!geo && geo.lat !== 0 && geo.lon !== 0;
-  // OSM static map via staticmap.openstreetmap.de is unreliable; use a tile snippet
-  const mapUrl = hasReal
-    ? `https://staticmap.openstreetmap.de/staticmap.php?center=${geo!.lat},${geo!.lon}&zoom=12&size=240x160&maptype=mapnik`
+  // Interactive OpenStreetMap embed (no API key, reliable). A small bounding box
+  // around the point gives a street-level view with a marker on the animal.
+  const mapEmbed = hasReal
+    ? (() => {
+        const d = 0.004; // ~400m box
+        const bbox = `${geo!.lon - d},${geo!.lat - d},${geo!.lon + d},${geo!.lat + d}`;
+        return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${geo!.lat},${geo!.lon}`;
+      })()
+    : null;
+  // Free Google Maps deep-links (no API key). On a phone these open the native
+  // Maps app with turn-by-turn directions, satellite, and street-level house view.
+  const directionsLink = hasReal
+    ? `https://www.google.com/maps/dir/?api=1&destination=${geo!.lat},${geo!.lon}`
+    : null;
+  const satelliteLink = hasReal
+    ? `https://www.google.com/maps/@${geo!.lat},${geo!.lon},19z/data=!3m1!1e3`
+    : null;
+  const streetViewLink = hasReal
+    ? `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${geo!.lat},${geo!.lon}`
     : null;
 
   return (
@@ -407,36 +423,31 @@ function LocationReveal({ geo }: { geo: Geo | null }) {
       >
         Approx: <span className="font-medium">{label}</span>
       </div>
-      <div
-        className={`relative mt-2 overflow-hidden rounded-lg border border-border bg-[oklch(0.94_0.03_85)] transition-all duration-500 ${
-          show.map ? "h-[80px] w-[120px] opacity-100" : "h-0 w-[120px] opacity-0"
-        }`}
-      >
-        {mapUrl ? (
-          <img
-            src={mapUrl}
-            alt="Location snapshot"
-            width={120}
-            height={80}
-            className="h-full w-full object-cover"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = "none";
-            }}
+      {hasReal && mapEmbed && (
+        <div
+          className={`mt-2 overflow-hidden rounded-xl border border-border transition-opacity duration-500 ${
+            show.map ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          <iframe
+            title="Animal location map"
+            src={mapEmbed}
+            loading="lazy"
+            className="block h-[190px] w-full border-0"
           />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">
-            map
+          <div className="grid grid-cols-3 divide-x divide-border border-t border-border bg-card text-center text-[12px] font-semibold text-[color:oklch(0.45_0.13_150)]">
+            <a href={directionsLink ?? "#"} target="_blank" rel="noopener noreferrer" className="py-2.5 transition hover:bg-muted">
+              🧭 Directions
+            </a>
+            <a href={satelliteLink ?? "#"} target="_blank" rel="noopener noreferrer" className="py-2.5 transition hover:bg-muted">
+              🛰️ Satellite
+            </a>
+            <a href={streetViewLink ?? "#"} target="_blank" rel="noopener noreferrer" className="py-2.5 transition hover:bg-muted">
+              🏠 Street View
+            </a>
           </div>
-        )}
-        {show.pin && (
-          <span
-            className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full text-2xl drop-shadow"
-            style={{ animation: "voyce-pin-drop 0.6s cubic-bezier(.34,1.56,.64,1) both" }}
-          >
-            📍
-          </span>
-        )}
-      </div>
+        </div>
+      )}
       <style>{`
         @keyframes voyce-pin-drop {
           0% { transform: translate(-50%, -180%); opacity: 0; }
