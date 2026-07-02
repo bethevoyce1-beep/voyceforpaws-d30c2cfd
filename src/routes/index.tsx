@@ -331,53 +331,98 @@ function CaptureScreen({
       v.preload = "auto";
       v.muted = true;
       v.playsInline = true;
+      v.setAttribute("playsinline", "true");
+      v.setAttribute("webkit-playsinline", "true");
+      v.setAttribute("muted", "true");
+      // iOS Safari will NOT decode or seek an off-DOM <video>, so mount it hidden.
+      v.style.cssText =
+        "position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;";
+      document.body.appendChild(v);
       v.src = url;
 
-      const cleanup = () => URL.revokeObjectURL(url);
+      let done = false;
+      const cleanup = () => {
+        try {
+          v.pause();
+          v.removeAttribute("src");
+          v.load();
+        } catch {
+          // ignore
+        }
+        if (v.parentNode) v.parentNode.removeChild(v);
+        URL.revokeObjectURL(url);
+      };
+      const finish = (dataUrl: string) => {
+        if (done) return;
+        done = true;
+        cleanup();
+        resolve(dataUrl);
+      };
+      const fail = (err: Error) => {
+        if (done) return;
+        done = true;
+        cleanup();
+        reject(err);
+      };
 
       const grab = () => {
         try {
+          const w = v.videoWidth || 720;
+          const h = v.videoHeight || 1280;
           const canvas = document.createElement("canvas");
-          canvas.width = v.videoWidth || 1080;
-          canvas.height = v.videoHeight || 1080;
+          canvas.width = w;
+          canvas.height = h;
           const ctx = canvas.getContext("2d");
           if (!ctx) {
-            cleanup();
-            reject(new Error("Could not read frame"));
+            fail(new Error("Could not read frame"));
             return;
           }
-          ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
-          const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
-          cleanup();
-          resolve(dataUrl);
+          ctx.drawImage(v, 0, 0, w, h);
+          finish(canvas.toDataURL("image/jpeg", 0.9));
         } catch (err) {
-          cleanup();
-          reject(err instanceof Error ? err : new Error("Frame extract failed"));
+          fail(err instanceof Error ? err : new Error("Frame extract failed"));
         }
       };
 
-      v.onloadedmetadata = () => {
-        const target = Math.min(1, (v.duration || 5) * 0.2);
+      // Never hang: if no frame within 10s, fail gracefully so the UI recovers.
+      const timer = window.setTimeout(() => {
+        if (v.videoWidth && v.readyState >= 2) grab();
+        else fail(new Error("Couldn't read a frame from this video — try Upload a Photo instead."));
+      }, 10000);
+
+      const seekAndGrab = () => {
+        v.onseeked = () => {
+          window.clearTimeout(timer);
+          grab();
+        };
+        const target = Math.min(1, (isFinite(v.duration) ? v.duration : 5) * 0.2);
         try {
           v.currentTime = target;
         } catch {
-          // If seek isn't supported, fall through — onseeked won't fire but timeupdate will.
-        }
-      };
-      v.onseeked = grab;
-      // Fallback: on Safari + some Android combos onseeked may not fire; use timeupdate once.
-      let grabbed = false;
-      v.ontimeupdate = () => {
-        if (grabbed) return;
-        if (v.currentTime > 0) {
-          grabbed = true;
+          window.clearTimeout(timer);
           grab();
         }
       };
-      v.onerror = () => {
-        cleanup();
-        reject(new Error("Video could not be read"));
+
+      v.onloadeddata = () => {
+        // iOS needs an actual play() to decode frames before we can draw one.
+        const p = v.play();
+        if (p && typeof (p as Promise<void>).then === "function") {
+          (p as Promise<void>)
+            .then(() => {
+              try {
+                v.pause();
+              } catch {
+                // ignore
+              }
+              seekAndGrab();
+            })
+            .catch(() => seekAndGrab());
+        } else {
+          seekAndGrab();
+        }
       };
+      v.onerror = () => fail(new Error("Video could not be read"));
     });
   }, []);
 
