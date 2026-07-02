@@ -199,36 +199,27 @@ export function validateAssessment(a: Assessment): Assessment {
   if (!Array.isArray(a.clinical_actions)) a.clinical_actions = a.next_steps.slice();
   if (!Array.isArray(a.differentials)) a.differentials = [];
 
-  // Consistency safeguard: the model occasionally marks a calm, uninjured pet
-  // resting in a home as "Urgent" even though its own signals say otherwise.
-  // When there are NO visible health signs, NO noticed symptoms, and it reads as
-  // a settled indoor pet in a safe environment, downgrade to "Monitoring" so a
-  // clearly healthy animal is never printed as "Urgent / Visible injury". This
-  // only fires when nothing concerning was detected, so it cannot mask a real
-  // emergency (any wound/blood/limp/sickness keeps the urgent status).
+  // Consistency safeguard — enforces an "as-is" read. If the AI detected NO
+  // injury/sickness signs and listed NO concerning observations, the animal is
+  // not an emergency — no matter which category the reporter picked or where the
+  // animal is. Downgrade an over-called "Urgent"/"Stable" to "Monitoring". This
+  // ONLY fires when the AI itself found nothing wrong, so it can never hide a
+  // real emergency: any wound, blood, limp, swelling, or sickness keeps Urgent.
   const hasHealthSign =
     a.health_signs.sick ||
     a.health_signs.injured ||
     a.health_signs.lethargic ||
     a.health_signs.dehydrated;
-  const safeEnvironment =
-    a.safety_flags.length > 0 &&
-    a.safety_flags.every((f) => /^none|calm|domestic|safe/i.test(f));
-  const calmIndoorPet =
-    a.is_likely_pet === true &&
-    INDOOR_SETTINGS.includes(a.setting_type) &&
-    safeEnvironment;
   if (
     (a.status === "Urgent" || a.status === "Stable") &&
     !hasHealthSign &&
-    a.noticed.length === 0 &&
-    calmIndoorPet
+    a.noticed.length === 0
   ) {
     a.status = "Monitoring";
     a.visible_condition = "Healthy";
     if (!a.status_reason || /urgent|injur|distress|rescue/i.test(a.status_reason)) {
       a.status_reason =
-        "Calm, uninjured pet resting in a home — no visible signs needing rescue.";
+        "No visible injury or sickness in the photo — not an emergency.";
     }
   }
 
