@@ -124,24 +124,45 @@ function Home() {
   const [aiPending, setAiPending] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
-  const startAnalysis = useCallback(
+  // Photo captured/selected → go collect the reporter's details BEFORE analyzing,
+  // so the AI can build the card with that on-scene context.
+  const handleCaptured = useCallback(
     async (src: string, meta?: PhotoMeta | null) => {
+      const dataUrl = await toDataUrl(src);
+      setCaptured(dataUrl);
       setCaptureMeta(meta ?? null);
+      setStage("details");
+    },
+    [],
+  );
+
+  // Reporter finished the "Tell us about them" form → now analyze the photo,
+  // passing their answers to the AI as context.
+  const startAnalysis = useCallback(
+    async (details: ReportDetailsData) => {
+      if (!captured) return;
+      setReportDetails(details);
       setAiPending(true);
       setAiError(null);
       setAssessment(null);
       setStage("processing");
       try {
-        const dataUrl = await toDataUrl(src);
-        setCaptured(dataUrl);
         const result = await analyzeImage({
-          data: { imageDataUrl: dataUrl, mission },
+          data: {
+            imageDataUrl: captured,
+            mission,
+            context: {
+              animalType: details.animalType,
+              situation: details.situation,
+              notes: details.notes,
+            },
+          },
         });
         // If the uploaded photo carried its own capture time, stamp the report
         // as of when the animal was actually seen — not when it was uploaded.
         setAssessment(
-          meta?.takenAt
-            ? { ...result, reportedAt: new Date(meta.takenAt).toISOString() }
+          captureMeta?.takenAt
+            ? { ...result, reportedAt: new Date(captureMeta.takenAt).toISOString() }
             : result,
         );
       } catch (e) {
@@ -152,7 +173,7 @@ function Home() {
         setAiPending(false);
       }
     },
-    [mission],
+    [captured, mission, captureMeta],
   );
 
   const reset = () => {
@@ -191,6 +212,16 @@ function Home() {
     );
   }
 
+  if (stage === "details" && captured) {
+    return (
+      <ReportDetails
+        image={captured}
+        mission={mission}
+        onContinue={(d) => startAnalysis(d)}
+      />
+    );
+  }
+
   if (stage === "processing") {
     return (
       <ProcessingPipeline
@@ -210,21 +241,7 @@ function Home() {
         image={captured}
         data={assessment}
         mission={mission}
-        onContinue={() => setStage("details")}
-      />
-    );
-  }
-
-  if (stage === "details" && assessment && captured) {
-    return (
-      <ReportDetails
-        image={captured}
-        data={assessment}
-        mission={mission}
-        onContinue={(d) => {
-          setReportDetails(d);
-          setStage("share");
-        }}
+        onContinue={() => setStage("share")}
       />
     );
   }
@@ -258,7 +275,7 @@ function Home() {
 
   return (
     <CaptureScreen
-      onAnalyze={startAnalysis}
+      onAnalyze={handleCaptured}
       mission={mission}
       onBack={() => setStage("mission")}
     />

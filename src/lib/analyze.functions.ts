@@ -252,12 +252,22 @@ const MISSION_GUIDANCE: Record<string, string> = {
 
 export const analyzeImage = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => {
-    const o = input as { imageDataUrl?: string; mission?: string };
+    const o = input as {
+      imageDataUrl?: string;
+      mission?: string;
+      context?: { animalType?: string; situation?: string; notes?: string };
+    };
     if (!o?.imageDataUrl || !o.imageDataUrl.startsWith("data:image/")) {
       throw new Error("imageDataUrl required");
     }
     const mission = typeof o.mission === "string" ? o.mission : "injured";
-    return { imageDataUrl: o.imageDataUrl, mission };
+    const c = o.context ?? {};
+    const context = {
+      animalType: typeof c.animalType === "string" ? c.animalType.slice(0, 60) : "",
+      situation: typeof c.situation === "string" ? c.situation.slice(0, 80) : "",
+      notes: typeof c.notes === "string" ? c.notes.slice(0, 500) : "",
+    };
+    return { imageDataUrl: o.imageDataUrl, mission, context };
   })
   .handler(async ({ data }): Promise<Assessment> => {
     // June 30, 2026: Swapped from Lovable's AI gateway to Google Gemini directly.
@@ -283,7 +293,20 @@ export const analyzeImage = createServerFn({ method: "POST" })
     const base64Data = match[2];
 
     const systemInstruction = SYSTEM + "\n\n" + missionLine + "\n\nSchema:\n" + SCHEMA_HINT;
-    const userText = `Analyze this animal photo for mission "${data.mission}". Return ONLY the JSON object, no markdown.`;
+
+    // Context the reporter filled in on-scene. Treat as helpful hints — it can
+    // steer breed/species and flag concerns — but the visual assessment still
+    // governs (don't invent injuries that aren't visible in the photo).
+    const ctx = data.context;
+    const reporterLines: string[] = [];
+    if (ctx.animalType) reporterLines.push(`Animal type they selected: ${ctx.animalType}`);
+    if (ctx.situation) reporterLines.push(`What's happening (reporter): ${ctx.situation}`);
+    if (ctx.notes) reporterLines.push(`Reporter notes: ${ctx.notes}`);
+    const reporterBlock =
+      reporterLines.length > 0
+        ? `\n\nCONTEXT FROM THE PERSON ON THE SCENE (use as helpful hints to guide breed/species and what to look for, but base your health assessment on what you ACTUALLY SEE in the photo — never invent injuries that aren't visible):\n${reporterLines.join("\n")}`
+        : "";
+    const userText = `Analyze this animal photo for mission "${data.mission}". Return ONLY the JSON object, no markdown.${reporterBlock}`;
 
     let content = "";
 

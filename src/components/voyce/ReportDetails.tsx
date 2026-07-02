@@ -1,5 +1,4 @@
 import { useState, type ReactNode } from "react";
-import type { Assessment } from "@/lib/analyze.functions";
 import type { MissionId } from "@/lib/missions";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
 
@@ -26,16 +25,6 @@ const SITUATIONS = [
   "Needs spay/vaccine",
 ];
 
-// Pre-select the animal type from what the AI saw.
-function defaultAnimal(species: string): string {
-  const s = (species || "").toLowerCase();
-  if (s.includes("pup")) return "Puppy";
-  if (s.includes("kit")) return "Kitten";
-  if (s.includes("dog") || s.includes("canine")) return "Dog";
-  if (s.includes("cat") || s.includes("feline")) return "Cat";
-  return "Other";
-}
-
 // Pre-select "what's happening" from the mission the reporter came in through.
 function defaultSituation(mission: MissionId): string {
   switch (mission) {
@@ -54,22 +43,18 @@ function defaultSituation(mission: MissionId): string {
 
 export function ReportDetails({
   image,
-  data,
   mission,
   onContinue,
 }: {
   image: string;
-  data: Assessment;
   mission: MissionId;
   onContinue: (details: ReportDetails) => void;
 }) {
-  const [animalType, setAnimalType] = useState<string>(() => defaultAnimal(data.species));
+  const [animalType, setAnimalType] = useState<string>("");
   const [situation, setSituation] = useState<string>(() => defaultSituation(mission));
   const [notes, setNotes] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-
-  const canSend = email.trim().length > 0 || phone.trim().length > 0;
 
   const submit = () => {
     onContinue({
@@ -87,8 +72,8 @@ export function ReportDetails({
       <div className="mx-auto w-full max-w-md px-5 pt-4">
         <h1 className="font-serif text-[24px] font-bold tracking-tight">Tell us about them</h1>
         <p className="mt-1 text-[13.5px] leading-relaxed text-muted-foreground">
-          A few details help the closest rescuers respond faster. We pre-filled what
-          Voyce could tell — fix anything that's off.
+          Tell Voyce a little about the animal first — this helps the AI build a more
+          accurate rescue card and reach the right responders.
         </p>
 
         {/* Photo */}
@@ -114,7 +99,7 @@ export function ReportDetails({
           />
         </Section>
 
-        <Section label="How can we reach you? (at least one)">
+        <Section label="How can we reach you? (optional)">
           <input
             type="email"
             inputMode="email"
@@ -139,23 +124,16 @@ export function ReportDetails({
         <button
           type="button"
           onClick={submit}
-          disabled={!canSend}
-          className="mt-6 w-full rounded-2xl py-4 text-[15px] font-bold uppercase tracking-wide shadow-md transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-6 w-full rounded-2xl py-4 text-[15px] font-bold uppercase tracking-wide shadow-md transition active:scale-[0.99]"
           style={{
             background: `linear-gradient(135deg, ${GOLD} 0%, ${DEEP_GOLD} 100%)`,
             color: "#3A2A07",
           }}
         >
-          🔔 Send to nearest network
+          ✨ Build the rescue card
         </button>
-        {!canSend && (
-          <p className="mt-2 text-center text-[12px] text-muted-foreground">
-            Add an email or phone so rescuers can reach you.
-          </p>
-        )}
         <p className="mt-3 text-center text-[11.5px] leading-relaxed text-muted-foreground">
-          No signal where you found them? Send anyway — Voyce saves the report and
-          delivers it the moment you reconnect.
+          Voyce AI will read the photo with these details and generate the card next.
         </p>
       </div>
     </div>
