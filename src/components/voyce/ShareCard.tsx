@@ -8,7 +8,7 @@ import type { NetworkRole } from "@/lib/signups.functions";
 // =============================================================
 // Variant kinds — drive every visual + textual choice on the card
 // =============================================================
-type Kind = "EMERGENCY" | "AT-RISK" | "LOST" | "FOUND" | "PREVENTION" | "WILDLIFE";
+type Kind = "EMERGENCY" | "AT-RISK" | "LOST" | "FOUND" | "PREVENTION" | "WILDLIFE" | "MONITORING";
 
 type Pill = {
   label: string;
@@ -74,6 +74,13 @@ const PILL = {
 };
 
 function kindFor(mission: MissionId, data: Assessment): Kind {
+  // If the AI judged the animal healthy/monitoring, use the calm layout instead
+  // of the mission's urgent one — mirrors the Rescue Card's monitoring fallback,
+  // so a healthy pet is never printed as "URGENT" on the share card either.
+  const healthy = data.status === "Monitoring" || data.status === "Healthy";
+  if (healthy && mission !== "at-risk-shelter" && mission !== "wildlife") {
+    return "MONITORING";
+  }
   switch (mission) {
     case "injured": return "EMERGENCY";
     case "at-risk-shelter": return "AT-RISK";
@@ -93,6 +100,7 @@ function inferTitle(kind: Kind, data: Assessment): string {
     case "FOUND":     return `FOUND ${species.toUpperCase()}`;
     case "PREVENTION": return `${Cap(species)} & community care`;
     case "WILDLIFE":  return `INJURED ${species.toUpperCase()}`;
+    case "MONITORING": return `HEALTHY ${species.toUpperCase()}`;
   }
 }
 
@@ -115,6 +123,39 @@ function variantFor(mission: MissionId, data: Assessment): Variant {
   const title = inferTitle(kind, data);
 
   switch (kind) {
+    case "MONITORING":
+      return {
+        kind,
+        badgeIcon: "✓", badgeText: "MONITORING",
+        badgeGradient: `linear-gradient(135deg, ${GREEN1} 0%, ${GREEN2} 100%)`,
+        title, titleColor: GREEN2,
+        subhead: "Looks healthy — no action needed",
+        urgency: {
+          bg: "#ECFDF5", border: GREEN1, icon: "✓",
+          title: "No action needed:",
+          body: "Appears healthy with no visible injury or distress.",
+        },
+        alertBtn: {
+          label: "🔔 SHARE TO NETWORK",
+          gradient: `linear-gradient(135deg, ${GREEN1} 0%, ${GREEN2} 100%)`,
+        },
+        actionRow: [
+          { icon: "🧭", label: "Navigate" },
+          { icon: "🤝", label: "Volunteer" },
+          { icon: "✏️", label: "Add Update" },
+          { icon: "📸", label: "Recheck" },
+        ],
+        urgencyLine: { icon: "✓", text: "No immediate action needed", color: GREEN2 },
+        pills: [
+          { label: "Foster",    ...PILL.fosterGreen,    role: "foster" },
+          { label: "Adopt",     ...PILL.adoptGold,      role: "animal_lover" },
+          { label: "Volunteer", ...PILL.volunteerGreen, role: "animal_lover" },
+        ],
+        helpersBg: "#ECFDF5", helpersText: "#065F46",
+        helpersBody:
+          "This animal appears safe. No urgent alert is sent — sharing just keeps nearby animal lovers aware.",
+        ctaRole: "Volunteer",
+      };
     case "EMERGENCY":
       return {
         kind,
