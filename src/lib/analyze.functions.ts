@@ -210,13 +210,10 @@ export function validateAssessment(a: Assessment): Assessment {
     a.health_signs.injured ||
     a.health_signs.lethargic ||
     a.health_signs.dehydrated;
-  if (
-    (a.status === "Urgent" || a.status === "Stable") &&
-    !hasHealthSign &&
-    a.noticed.length === 0
-  ) {
+  if ((a.status === "Urgent" || a.status === "Stable") && !hasHealthSign) {
     a.status = "Monitoring";
     a.visible_condition = "Healthy";
+    a.noticed = [];
     if (!a.status_reason || /urgent|injur|distress|rescue/i.test(a.status_reason)) {
       a.status_reason =
         "No visible injury or sickness in the photo — not an emergency.";
