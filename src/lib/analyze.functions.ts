@@ -301,37 +301,59 @@ export const analyzeImage = createServerFn({ method: "POST" })
     let content = "";
 
     if (geminiKey) {
-      // Direct Google Gemini API (free tier: 15 rpm, ~1M tokens/day).
-      // gemini-2.5-flash handles multimodal (text + image) with JSON output.
-      const model = "gemini-2.5-flash";
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(geminiKey)}`;
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemInstruction }] },
-          contents: [
-            {
-              role: "user",
-              parts: [
-                { text: userText },
-                { inlineData: { mimeType, data: base64Data } },
-              ],
-            },
-          ],
-          generationConfig: {
-            responseMimeType: "application/json",
-            temperature: 0.2,
+      // Direct Google Gemini API (free tier). Both models handle multimodal
+      // (text + image) with JSON output. If the primary model hits its free
+      // daily quota (429), fall back to flash-lite, which has its OWN separate
+      // free allowance — so a busy day on one model still goes through.
+      const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+      const requestBody = JSON.stringify({
+        systemInstruction: { parts: [{ text: systemInstruction }] },
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: userText },
+              { inlineData: { mimeType, data: base64Data } },
+            ],
           },
-        }),
+        ],
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: 0.2,
+        },
       });
-      if (!res.ok) {
-        const body = await res.text();
-        throw new Error(`Gemini ${res.status}: ${body.slice(0, 300)}`);
+
+      let json:
+        | { candidates?: { content?: { parts?: { text?: string }[] } }[] }
+        | null = null;
+      let lastStatus = 0;
+      for (const model of models) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(geminiKey)}`;
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: requestBody,
+        });
+        if (res.ok) {
+          json = (await res.json()) as typeof json;
+          break;
+        }
+        lastStatus = res.status;
+        // Only fall through to the next model on a quota/rate-limit error.
+        // Any other error (bad key, bad request) is real — surface it now.
+        if (res.status !== 429) {
+          const body = await res.text();
+          throw new Error(`Gemini ${res.status}: ${body.slice(0, 300)}`);
+        }
       }
-      const json = (await res.json()) as {
-        candidates?: { content?: { parts?: { text?: string }[] } }[];
-      };
+      if (!json) {
+        if (lastStatus === 429) {
+          throw new Error(
+            "Voyce AI has reached today's free limit. Please try again in a little while — your photo and details are safe, nothing was lost.",
+          );
+        }
+        throw new Error(`Gemini ${lastStatus || "error"}: no response`);
+      }
       content = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
     } else {
       // Legacy path: Lovable's AI gateway (OpenAI-shaped API). Kept as fallback.
