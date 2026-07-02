@@ -10,6 +10,8 @@ import sampleBird from "@/assets/sample-bird.jpg";
 import { analyzeImage, type Assessment } from "@/lib/analyze.functions";
 import { ProcessingPipeline } from "@/components/voyce/ProcessingPipeline";
 import { readPhotoMeta, type PhotoMeta } from "@/lib/exif";
+import { ReportDetails } from "@/components/voyce/ReportDetails";
+import type { ReportDetails as ReportDetailsData } from "@/components/voyce/ReportDetails";
 import { RescueReport } from "@/components/voyce/RescueReport";
 import { StatusTimeline } from "@/components/voyce/StatusTimeline";
 import { DemoGate } from "@/components/voyce/DemoGate";
@@ -47,7 +49,7 @@ const SAMPLES = [
   { src: sampleBird, label: "Bird beak" },
 ];
 
-type Stage = "mission" | "shelter" | "capture" | "processing" | "report" | "share" | "timeline" | "gate" | "outcome";
+type Stage = "mission" | "shelter" | "capture" | "processing" | "report" | "details" | "share" | "timeline" | "gate" | "outcome";
 
 function isLikelyMobile() {
   if (typeof navigator === "undefined") return false;
@@ -118,6 +120,7 @@ function Home() {
   const [captureMeta, setCaptureMeta] = useState<PhotoMeta | null>(null);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [acsAnimal, setAcsAnimal] = useState<AcsAnimal | null>(null);
+  const [, setReportDetails] = useState<ReportDetailsData | null>(null);
   const [aiPending, setAiPending] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
@@ -158,6 +161,7 @@ function Home() {
     setCaptureMeta(null);
     setAssessment(null);
     setAcsAnimal(null);
+    setReportDetails(null);
     setAiError(null);
   };
 
@@ -206,7 +210,21 @@ function Home() {
         image={captured}
         data={assessment}
         mission={mission}
-        onContinue={() => setStage("share")}
+        onContinue={() => setStage("details")}
+      />
+    );
+  }
+
+  if (stage === "details" && assessment && captured) {
+    return (
+      <ReportDetails
+        image={captured}
+        data={assessment}
+        mission={mission}
+        onContinue={(d) => {
+          setReportDetails(d);
+          setStage("share");
+        }}
       />
     );
   }
