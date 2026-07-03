@@ -196,7 +196,9 @@ export function RescueReport({
   const isWildlife = mission === "wildlife";
 
   // Resolve ribbon / title-color / callout / mega-CTA / helpers.
-  const ribbonLabel = isMonitoringFallback ? MONITORING_LAYOUT.ribbonLabel : m.ribbonLabel;
+  const ribbonLabel = data.status === "Safe"
+    ? "✓ SAFE · NO ACTION NEEDED"
+    : isMonitoringFallback ? MONITORING_LAYOUT.ribbonLabel : m.ribbonLabel;
   const ribbonGradient = isMonitoringFallback ? MONITORING_LAYOUT.ribbonGradient : m.ribbonGradient;
   const ribbonText = isMonitoringFallback ? MONITORING_LAYOUT.ribbonText : m.ribbonText;
   const titleColor = isMonitoringFallback ? MONITORING_LAYOUT.titleColor : m.titleColor;
@@ -700,7 +702,9 @@ function bigTitle(
   const species = (data.species || "animal").toUpperCase();
   const breed = data.breed && !/unknown|mixed/i.test(data.breed) ? data.breed.toUpperCase() : "";
   if (monitoring) {
-    return breed ? `HEALTHY ${breed} · RESTING AT HOME` : `HEALTHY ${species} · RESTING AT HOME`;
+    const who = breed || species;
+    if (data.status === "Safe") return `SAFE ${who} · AT HOME`;
+    return `HEALTHY ${who} · RESTING AT HOME`;
   }
   const strayPrefix = data.is_likely_pet ? "" : "STRAY ";
   switch (mission) {

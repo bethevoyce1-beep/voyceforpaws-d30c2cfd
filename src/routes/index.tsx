@@ -232,6 +232,13 @@ function Home() {
         aiError={aiError}
         assessment={assessment}
         onComplete={() => assessment && setStage("report")}
+        onRetry={() => {
+          setCaptured(null);
+          setCaptureMeta(null);
+          setAssessment(null);
+          setAiError(null);
+          setStage("capture");
+        }}
       />
     );
   }

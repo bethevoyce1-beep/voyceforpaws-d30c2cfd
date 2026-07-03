@@ -13,7 +13,7 @@ export type SettingType =
 
 export type Assessment = {
   title: string;
-  status: "Urgent" | "Monitoring" | "Stable" | "Healthy";
+  status: "Urgent" | "Monitoring" | "Stable" | "Healthy" | "Safe";
   status_reason: string;
   species: string;
   breed: string;
@@ -31,6 +31,7 @@ export type Assessment = {
     clinical: string;
   };
   is_likely_pet: boolean;
+  animal_present?: boolean; // false when the photo contains NO animal (food, people, scenery)
   setting_type: SettingType;
   surface: string;
   surrounding_objects: string[];
@@ -53,7 +54,11 @@ export type Assessment = {
 };
 
 
-const SYSTEM = `You are Voyce, an AI that looks at a photo of an animal and produces an advisory rescue report. You are NOT a veterinarian. Output strict JSON only, matching the schema. Be cinematic and specific about what you actually see in the image (surfaces, lighting, posture, objects). NEVER contradict yourself: if status is "Healthy" or "Monitoring", next_steps must not say "seek medical attention" or treat it as urgent. If you see a collar, indoor scene, bedding, or grooming, set is_likely_pet=true and prefer status "Monitoring". If no real symptoms, noticed must be [].
+const SYSTEM = `You are Voyce, an AI that looks at a photo of an animal and produces an advisory rescue report. You are NOT a veterinarian. Output strict JSON only, matching the schema.
+
+NO-ANIMAL CHECK — DO THIS FIRST. Voyce is only for animals. If the image contains NO animal at all — only people, food, plates, drinks, objects, buildings, or scenery — set "animal_present": false and "species": "none", and do NOT invent an animal, a status, or a health reading. A human in the frame is NOT an animal; only report an actual animal (dog, cat, bird, wildlife, etc.). If a real animal is present, set "animal_present": true and continue normally.
+
+Be cinematic and specific about what you actually see in the image (surfaces, lighting, posture, objects). NEVER contradict yourself: if status is "Healthy" or "Monitoring", next_steps must not say "seek medical attention" or treat it as urgent. If you see a collar, indoor scene, bedding, or grooming, set is_likely_pet=true and prefer status "Monitoring". If no real symptoms, noticed must be [].
 
 Paint the scene in detail — surfaces (couch, floor, pavement, kennel), surrounding objects (furniture, cars, fences, trash), lighting/time (daylight, fluorescent, dusk, rainy), and SAFETY-RELEVANT details a rescuer needs to know before approaching. If indoor pet at home with no hazards, say so explicitly. If outdoor with traffic risk, flag it. If commercial/industrial setting, note the hazards. Honesty over alarm.
 
@@ -94,10 +99,11 @@ differentials[]: 2-4 differential possibilities a vet would consider given what'
 
 
 const SCHEMA_HINT = `{
+  "animal_present": true,
   "title": "short cinematic title, e.g. 'Tabby resting on a sunlit couch'",
-  "status": "Urgent | Monitoring | Stable | Healthy",
+  "status": "Urgent | Monitoring | Stable | Healthy | Safe",
   "status_reason": "one short clause, e.g. 'Likely a pet at home'",
-  "species": "dog | cat | bird | other",
+  "species": "dog | cat | bird | other | none (if no animal)",
   "breed": "best guess or 'mixed / unknown'",
   "age": "puppy/kitten | young | adult | senior | unknown",
   "weight": "estimate range, e.g. '4-5 kg'",
@@ -227,6 +233,25 @@ export function validateAssessment(
     if (!a.status_reason || /urgent|injur|distress|rescue/i.test(a.status_reason)) {
       a.status_reason =
         "No visible injury or sickness in the photo — not an emergency.";
+    }
+  }
+
+  // Outcome-specific status. An owned pet at home with no health concerns is
+  // "Safe" (settled, no one needs to watch it) — distinct from "Monitoring",
+  // which fits a healthy STRAY that could still use eyes on it.
+  const noSigns =
+    !a.health_signs.injured && !a.health_signs.sick &&
+    !a.health_signs.lethargic && !a.health_signs.dehydrated;
+  if (
+    (a.status === "Monitoring" || a.status === "Healthy") &&
+    noSigns &&
+    a.is_likely_pet &&
+    a.setting_type === "Home (Indoor)"
+  ) {
+    a.status = "Safe";
+    a.visible_condition = "Healthy";
+    if (!a.status_reason || /monitor|no visible/i.test(a.status_reason)) {
+      a.status_reason = "Looks like an owned pet at home — safe, no action needed.";
     }
   }
 
@@ -421,6 +446,31 @@ export const analyzeImage = createServerFn({ method: "POST" })
     } catch {
       throw new Error("AI returned non-JSON content");
     }
+
+    // No-animal guard — Voyce is only for animals. If the AI reports no animal
+    // (flag or its own wording), stop here with a clear, retryable message
+    // instead of fabricating a "healthy pet" card for food/people/scenery.
+    const _txt = [
+      parsed.first_look,
+      parsed.status_reason,
+      parsed.vet_notes && parsed.vet_notes.clinical,
+      parsed.location_scene,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    const _noAnimal =
+      parsed.animal_present === false ||
+      (typeof parsed.species === "string" && parsed.species.trim().toLowerCase() === "none") ||
+      /no animal (is )?(present|detected|visible)|does not (contain|show|feature) (an |any )?animal|primarily (features|shows|depicts) (a )?(human|person|people|food|dining|meal)|no (visible )?animal (in|present)/.test(
+        _txt,
+      );
+    if (_noAnimal) {
+      throw new Error(
+        "NO_ANIMAL: We couldn't find an animal in that photo. Please upload a clear photo of the animal you'd like to report.",
+      );
+    }
+
     const witnessed = data.context.witnessed;
     const result = validateAssessment(parsed, {
       witnessedEmergency: witnessed.length > 0,

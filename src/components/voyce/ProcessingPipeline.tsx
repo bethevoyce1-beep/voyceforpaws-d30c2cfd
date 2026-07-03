@@ -54,6 +54,7 @@ type Props = {
   aiError: string | null;
   assessment: Assessment | null;
   onComplete: () => void;
+  onRetry?: () => void;
 };
 
 const GOLD = "#FFD24A";
@@ -63,7 +64,7 @@ const GREEN = "oklch(0.6 0.17 145)";
 // Step durations in ms (steps 2 and 4 are the wow moments)
 const STEP_MS = [1000, 2500, 1000, 3000, 1000, 1000, 1000];
 
-export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment, onComplete }: Props) {
+export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment, onComplete, onRetry }: Props) {
   const [elapsed, setElapsed] = useState(0);
   const [step, setStep] = useState(0); // 0..6 active; 7 = all done
   const [frozen, setFrozen] = useState(false);
@@ -269,11 +270,34 @@ export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment
           })}
         </ol>
 
-        {aiError && (
-          <div className="mt-4 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {aiError}
-          </div>
-        )}
+        {aiError && (() => {
+          const noAnimal = aiError.startsWith("NO_ANIMAL:");
+          const text = noAnimal ? aiError.replace(/^NO_ANIMAL:\s*/, "") : aiError;
+          return (
+            <div
+              className={`mt-4 rounded-xl border px-4 py-4 text-sm ${
+                noAnimal
+                  ? "border-[#C9871A]/40 bg-[#FFF7E6] text-[#7a5a12]"
+                  : "border-destructive/40 bg-destructive/10 text-destructive"
+              }`}
+            >
+              {noAnimal && (
+                <div className="mb-1 text-[15px] font-bold">🐾 No animal found in this photo</div>
+              )}
+              <p className="leading-relaxed">{text}</p>
+              {onRetry && (
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  className="mt-3 w-full rounded-xl py-3 text-[14px] font-bold uppercase tracking-wide shadow-sm transition active:scale-[0.99]"
+                  style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${DEEP_GOLD} 100%)`, color: "#3A2A07" }}
+                >
+                  📷 Try another photo
+                </button>
+              )}
+            </div>
+          );
+        })()}
 
         <div className="mt-auto pt-8 text-center text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
           AI is advisory — not a diagnosis
