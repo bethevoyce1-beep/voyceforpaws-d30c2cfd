@@ -129,7 +129,10 @@ const SCHEMA_HINT = `{
 
 const INDOOR_SETTINGS: SettingType[] = ["Home (Indoor)", "Shelter/Kennel"];
 
-export function validateAssessment(a: Assessment): Assessment {
+export function validateAssessment(
+  a: Assessment,
+  opts: { witnessedEmergency?: boolean } = {},
+): Assessment {
   const benign = a.status === "Healthy" || a.status === "Monitoring";
   const urgentLanguage = a.next_steps.some((s) =>
     /seek (urgent|immediate|emergency) (medical|veterinary)|medical attention|rush to vet|emergency/i.test(
@@ -209,7 +212,15 @@ export function validateAssessment(a: Assessment): Assessment {
   // alone are too easily mis-read for a calmly resting or sleeping healthy pet,
   // so on their own they must not force an emergency reading.
   const hasHealthSign = a.health_signs.injured || a.health_signs.sick;
-  if ((a.status === "Urgent" || a.status === "Stable") && !hasHealthSign) {
+  // A witnessed emergency (hit by car, trapped, abuse) is a legitimate reason to
+  // stay elevated even with no visible injury — the reporter saw it happen, and
+  // the photo can't show internal harm or ongoing danger. Only the pure photo
+  // "as-is" case (no visible signs AND nothing witnessed) gets downgraded.
+  if (
+    (a.status === "Urgent" || a.status === "Stable") &&
+    !hasHealthSign &&
+    !opts.witnessedEmergency
+  ) {
     a.status = "Monitoring";
     a.visible_condition = "Healthy";
     a.noticed = [];
@@ -242,7 +253,12 @@ export const analyzeImage = createServerFn({ method: "POST" })
     const o = input as {
       imageDataUrl?: string;
       mission?: string;
-      context?: { animalType?: string; situation?: string; notes?: string };
+      context?: {
+        animalType?: string;
+        situation?: string;
+        witnessed?: string[];
+        notes?: string;
+      };
     };
     if (!o?.imageDataUrl || !o.imageDataUrl.startsWith("data:image/")) {
       throw new Error("imageDataUrl required");
@@ -252,6 +268,12 @@ export const analyzeImage = createServerFn({ method: "POST" })
     const context = {
       animalType: typeof c.animalType === "string" ? c.animalType.slice(0, 60) : "",
       situation: typeof c.situation === "string" ? c.situation.slice(0, 80) : "",
+      witnessed: Array.isArray(c.witnessed)
+        ? c.witnessed
+            .filter((w): w is string => typeof w === "string")
+            .slice(0, 5)
+            .map((w) => w.slice(0, 60))
+        : [],
       notes: typeof c.notes === "string" ? c.notes.slice(0, 500) : "",
     };
     return { imageDataUrl: o.imageDataUrl, mission, context };
@@ -287,6 +309,10 @@ export const analyzeImage = createServerFn({ method: "POST" })
     const ctx = data.context;
     const reporterLines: string[] = [];
     if (ctx.animalType) reporterLines.push(`Animal type the reporter selected: ${ctx.animalType}`);
+    if (ctx.witnessed && ctx.witnessed.length)
+      reporterLines.push(
+        `REPORTER WITNESSED — the photo may NOT show this, but the person on scene saw it happen: ${ctx.witnessed.join("; ")}. This is real, serious context that the image cannot reveal (e.g. internal injury, ongoing danger). Reflect it in status_reason and next_steps, and do NOT lower urgency just because the harm isn't visible in the photo.`,
+      );
     if (ctx.notes) reporterLines.push(`Reporter notes: ${ctx.notes}`);
     // The reporter's urgency/situation category is deliberately NOT sent to the AI.
     // The health assessment must reflect the animal AS-IS from the photo, never
@@ -395,8 +421,22 @@ export const analyzeImage = createServerFn({ method: "POST" })
     } catch {
       throw new Error("AI returned non-JSON content");
     }
+    const witnessed = data.context.witnessed;
+    const result = validateAssessment(parsed, {
+      witnessedEmergency: witnessed.length > 0,
+    });
+    if (witnessed.length > 0) {
+      // Surface the reporter-witnessed context on the card — the photo can't show it.
+      const flag = `⚠️ Reporter witnessed (not visible in photo): ${witnessed.join(", ")}.`;
+      if (
+        Array.isArray(result.next_steps) &&
+        !result.next_steps.some((s) => /witnessed/i.test(s))
+      ) {
+        result.next_steps = [flag, ...result.next_steps];
+      }
+    }
     return {
-      ...validateAssessment(parsed),
+      ...result,
       reportedAt: new Date().toISOString(),
     };
   });

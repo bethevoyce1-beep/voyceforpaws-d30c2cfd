@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Voyce for Paws — Report a stray in seconds</title>
+<meta name="description" content="Spot a stray or injured animal? Voyce for Paws lets you report it in seconds. Our AI reads the animal as it is, pinpoints the location, and alerts nearby rescuers — free, no sign-up." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --gold:#F7A823; --deep:#C9871A; --coral:#FF7A59; --ink:#211a09; --ink2:#6b6250;
+    --cream:#FFFBF2; --card:#ffffff; --line:#f0e7d4;
+    --grad:linear-gradient(135deg,#FFCE4A 0%,#F7A823 55%,#F08A2C 100%);
+    --head:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+    --body:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:var(--body);color:var(--ink);background:var(--cream);line-height:1.6;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,h4{font-family:var(--head);line-height:1.12;letter-spacing:-.02em;color:var(--ink)}
+  img{display:block;max-width:100%}
+  a{color:inherit}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+  .btn{display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-family:var(--head);font-weight:700;border-radius:100px;padding:14px 28px;font-size:15px;transition:transform .12s ease,box-shadow .12s ease;cursor:pointer}
+  .btn:hover{transform:translateY(-2px)}
+  .btn-grad{background:var(--grad);color:#3a2a07;box-shadow:0 12px 28px rgba(247,138,44,.36)}
+  .btn-dark{background:var(--ink);color:#fff;box-shadow:0 12px 28px rgba(33,26,9,.28)}
+  .btn-out{border:1.5px solid rgba(58,42,7,.35);color:#3a2a07;background:transparent}
+  .btn-ghost{border:1.5px solid rgba(255,255,255,.7);color:#fff;background:rgba(255,255,255,.1);backdrop-filter:blur(6px)}
+  /* NAV */
+  header{position:sticky;top:0;z-index:50;background:rgba(255,251,242,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:74px;gap:20px}
+  .brand{display:flex;align-items:center;gap:11px;text-decoration:none}
+  .brand .mark{width:42px;height:42px;border-radius:13px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:21px;box-shadow:0 6px 16px rgba(247,138,44,.3)}
+  .brand .n{font-family:var(--head);font-weight:800;font-size:20px}
+  .brand .n .y{color:var(--deep)}
+  nav.menu{display:flex;gap:24px;align-items:center}
+  nav.menu a{text-decoration:none;font-size:14px;font-weight:600;color:var(--ink2)}
+  nav.menu a:hover{color:var(--ink)}
+  @media(max-width:900px){nav.menu a:not(.btn){display:none}}
+  /* HERO */
+  .hero{position:relative;overflow:hidden;background:radial-gradient(1200px 500px at 80% -10%,#fff2cf 0%,var(--cream) 60%)}
+  .hero .wrap{display:flex;gap:48px;align-items:center;flex-wrap:wrap;padding:64px 24px 72px}
+  .hero .col{flex:1;min-width:320px}
+  .chip{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);color:var(--deep);font-weight:700;font-size:12.5px;padding:8px 16px;border-radius:100px;box-shadow:0 6px 16px rgba(200,135,26,.1)}
+  .hero h1{font-size:clamp(40px,6.4vw,66px);font-weight:800;line-height:1.02;margin:20px 0 0}
+  .hero h1 .em{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .hero p.lead{margin-top:20px;font-size:18px;color:var(--ink2);max-width:480px}
+  .hero .cta{display:flex;gap:14px;flex-wrap:wrap;margin-top:30px}
+  .hero .trust{margin-top:22px;font-size:13.5px;color:var(--ink2);display:flex;gap:18px;flex-wrap:wrap}
+  .hero .trust b{color:var(--ink)}
+  /* phone mockup */
+  .phone{flex:0 0 320px;max-width:320px;margin:0 auto;position:relative}
+  .phone .frame{background:#211a09;border-radius:40px;padding:12px;box-shadow:0 40px 80px rgba(120,80,10,.3)}
+  .phone .screen{background:var(--cream);border-radius:30px;overflow:hidden}
+  .phone .shot{background:#fff}
+  .phone .shImg{height:150px;background:url('https://static.wixstatic.com/media/11062b_55e976feb9ef42ae87ff8eef2269e582~mv2.jpg') center/cover;position:relative}
+  .phone .badge{position:absolute;top:10px;right:10px;background:#16a34a;color:#fff;font-family:var(--head);font-weight:700;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;border-radius:100px}
+  .phone .sBody{padding:15px 16px 18px}
+  .phone .sBody .k{font-family:var(--head);font-weight:800;font-size:15px}
+  .phone .sBody .loc{color:#8a7a52;font-size:11.5px;margin-top:2px}
+  .phone .sBody .row{display:flex;gap:6px;margin:10px 0}
+  .phone .tag{background:#eafaf0;color:#16794f;font-weight:700;font-size:9.5px;padding:4px 8px;border-radius:6px}
+  .phone .tag.b{background:#fff4d6;color:#9a6a12}
+  .phone .txt{font-size:11.5px;color:#5a5140;line-height:1.5}
+  .phone .cta2{margin-top:12px;background:var(--grad);color:#3a2a07;text-align:center;font-family:var(--head);font-weight:700;font-size:12px;padding:9px;border-radius:10px}
+  .float{position:absolute;background:#fff;border-radius:14px;box-shadow:0 14px 34px rgba(120,80,10,.18);padding:10px 13px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px}
+  .float .d{width:26px;height:26px;border-radius:8px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:14px}
+  .float.a{top:20px;left:-26px} .float.b{bottom:34px;right:-24px}
+  @media(max-width:560px){.float{display:none}}
+  /* SECTION */
+  section{padding:76px 0}
+  .eyebrow{display:inline-block;background:#fff4d6;color:var(--deep);font-family:var(--head);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:11.5px;padding:7px 15px;border-radius:100px}
+  .center{text-align:center}
+  .h2{font-size:clamp(30px,4.6vw,44px);margin:16px 0 10px;font-weight:800}
+  .sub2{max-width:600px;margin:0 auto 46px;color:var(--ink2);font-size:16.5px}
+  /* STEPS */
+  .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;counter-reset:s}
+  @media(max-width:900px){.steps{grid-template-columns:1fr 1fr}}
+  @media(max-width:520px){.steps{grid-template-columns:1fr}}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:28px 22px;position:relative;transition:transform .16s ease,box-shadow .16s ease}
+  .step:hover{transform:translateY(-5px);box-shadow:0 20px 44px rgba(60,45,15,.1)}
+  .step .num{width:44px;height:44px;border-radius:13px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-family:var(--head);font-weight:800;color:#3a2a07;font-size:19px;margin-bottom:16px}
+  .step h3{font-size:18px;margin-bottom:7px;font-weight:700}
+  .step p{font-size:14px;color:var(--ink2)}
+  /* FEATURES */
+  .feat{background:#fff}
+  .fgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  @media(max-width:900px){.fgrid{grid-template-columns:1fr 1fr}}
+  @media(max-width:520px){.fgrid{grid-template-columns:1fr}}
+  .fcard{background:var(--cream);border:1px solid var(--line);border-radius:20px;padding:26px}
+  .fcard .ic{width:52px;height:52px;border-radius:15px;background:#fff4d6;display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:14px}
+  .fcard h3{font-size:18px;margin-bottom:7px;font-weight:700}
+  .fcard p{font-size:14px;color:var(--ink2)}
+  /* AS-IS highlight */
+  .asis{background:linear-gradient(135deg,#fff2df,#ffe6d6)}
+  .asis .wrap{display:flex;gap:44px;align-items:center;flex-wrap:wrap}
+  .asis .t{flex:1;min-width:280px}
+  .asis h2{font-size:clamp(28px,4vw,40px);margin:14px 0 12px;font-weight:800}
+  .asis p{color:#6a5240;font-size:16.5px;margin-bottom:10px}
+  .asis .quote{flex:0 0 320px;max-width:340px;background:#fff;border-radius:20px;padding:24px;box-shadow:0 18px 44px rgba(150,90,40,.18)}
+  .asis .quote .big{font-family:var(--head);font-weight:800;font-size:20px;color:var(--ink)}
+  .asis .quote p{color:var(--ink2);font-size:14px;margin-top:8px}
+  /* NETWORK */
+  .net .row{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;text-align:center}
+  @media(max-width:720px){.net .row{grid-template-columns:1fr}}
+  .net .it .ic{font-size:34px;margin-bottom:10px}
+  .net .it h4{font-size:18px;margin-bottom:6px;font-weight:700}
+  .net .it p{font-size:14px;color:var(--ink2)}
+  /* CTA */
+  .ctaband{background:var(--grad);text-align:center;color:#3a2a07}
+  .ctaband h2{color:#3a2a07;font-size:clamp(30px,4.6vw,46px);font-weight:800}
+  .ctaband p{max-width:520px;margin:14px auto 28px;font-size:17.5px;color:#5a4306}
+  /* FOOTER */
+  footer{background:#1c1708;color:#cfc6b2;padding:52px 0 26px;font-size:14px}
+  footer .top{display:flex;justify-content:space-between;flex-wrap:wrap;gap:26px;align-items:flex-start}
+  footer .about{max-width:320px}
+  footer .brand .mark{background:var(--grad)}
+  footer .about p{margin-top:12px;color:#a49a82;font-size:13.5px}
+  footer .links{display:flex;gap:50px;flex-wrap:wrap}
+  footer h5{color:#fff;font-family:var(--head);font-size:14px;margin-bottom:10px;font-weight:700}
+  footer a{color:#cfc6b2;text-decoration:none;display:block;padding:3px 0;font-size:13.5px}
+  footer a:hover{color:var(--gold)}
+  .foot-bottom{border-top:1px solid #2e2814;margin-top:34px;padding-top:18px;color:#8a815f;font-size:12.5px;text-align:center}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="#top"><span class="mark">🐾</span><span class="n">Voyce <span class="y">for</span> Paws</span></a>
+    <nav class="menu">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#network">The Network</a>
+      <a href="#about">About</a>
+      <a class="btn btn-grad" href="https://app.voyceforpaws.org" target="_blank" rel="noopener">🐾 Report a stray</a>
+    </nav>
+  </div>
+</header>
+
+<a id="top"></a>
+<section class="hero">
+  <div class="wrap">
+    <div class="col">
+      <span class="chip">⏱ Every second counts</span>
+      <h1>Spot a stray?<br><span class="em">Report it in seconds.</span></h1>
+      <p class="lead">Take a photo and Voyce for Paws does the rest — our AI reads the animal <b>as it is</b>, pinpoints the location, and alerts nearby rescuers. Free, no sign-up, works right on your phone.</p>
+      <div class="cta">
+        <a class="btn btn-grad" href="https://app.voyceforpaws.org" target="_blank" rel="noopener">🐾 Report a stray now</a>
+        <a class="btn btn-out" href="#how">See how it works</a>
+      </div>
+      <div class="trust">
+        <span>✓ <b>Free</b> forever</span>
+        <span>✓ <b>No login</b> needed</span>
+        <span>✓ Works on <b>any phone</b></span>
+      </div>
+    </div>
+    <div class="phone">
+      <div class="float a"><span class="d">📍</span> Location pinned</div>
+      <div class="float b"><span class="d">📣</span> Alerting rescuers</div>
+      <div class="frame">
+        <div class="screen">
+          <div class="shot">
+            <div class="shImg"><span class="badge">✓ Monitoring</span></div>
+            <div class="sBody">
+              <div class="k">Stray Dog — needs help</div>
+              <div class="loc">📍 Copley Township · just now</div>
+              <div class="row"><span class="tag">Healthy</span><span class="tag b">Alert &amp; responsive</span></div>
+              <div class="txt"><b>Health assessment:</b> No visible injury or sickness in the photo — not an emergency. Recommend monitoring &amp; care.</div>
+              <div class="cta2">Share to rescue network →</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap center">
+    <span class="eyebrow">The Rescue Journey</span>
+    <h2 class="h2">Help is four taps away</h2>
+    <p class="sub2">You don’t need to be an expert. If you can take a photo, you can help an animal get rescued.</p>
+    <div class="steps" style="text-align:left">
+      <div class="step"><div class="num">1</div><h3>Snap a photo</h3><p>Take or upload a picture of the stray or injured animal you’ve found.</p></div>
+      <div class="step"><div class="num">2</div><h3>AI reads it as-is</h3><p>Our AI builds an honest rescue profile and health assessment — exactly what it sees.</p></div>
+      <div class="step"><div class="num">3</div><h3>Location pinned</h3><p>The spot is detected automatically, with a map and directions for responders.</p></div>
+      <div class="step"><div class="num">4</div><h3>Network alerted</h3><p>A shareable rescue card reaches nearby rescuers, fosters, and animal lovers.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="features" class="feat">
+  <div class="wrap center">
+    <span class="eyebrow">Features</span>
+    <h2 class="h2">Built for real rescues</h2>
+    <p class="sub2">Everything you need to turn a moment of noticing into real help.</p>
+    <div class="fgrid" style="text-align:left">
+      <div class="fcard"><div class="ic">🧠</div><h3>Honest AI assessment</h3><p>Reads the animal exactly as it is — never invents an emergency. A healthy pet is reported healthy.</p></div>
+      <div class="fcard"><div class="ic">📍</div><h3>Location &amp; directions</h3><p>Auto-detects where the animal is, with an in-app map plus one tap to Directions, Satellite, or Street View.</p></div>
+      <div class="fcard"><div class="ic">🪪</div><h3>Shareable rescue card</h3><p>A clean, ready-to-share card with the animal’s profile, status, and location for the network.</p></div>
+      <div class="fcard"><div class="ic">📣</div><h3>Instant network alert</h3><p>Reaches nearby rescuers, fosters, vets, and volunteers who can actually help.</p></div>
+      <div class="fcard"><div class="ic">📱</div><h3>No app to install</h3><p>Runs right in your phone’s browser. Take a photo or upload one — that’s it.</p></div>
+      <div class="fcard"><div class="ic">💛</div><h3>Free &amp; nonprofit</h3><p>A program of Be The Voyce, a 501(c)(3). Always free for anyone who wants to help.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="asis">
+  <div class="wrap">
+    <div class="t">
+      <span class="eyebrow">Truth, not panic</span>
+      <h2>We report every animal <em>as it is</em>.</h2>
+      <p>Some tools cry “urgent” on every report. Voyce for Paws doesn’t. Our AI describes exactly what it sees — so responders can trust the card and prioritize the animals who truly need help first.</p>
+      <p>A healthy stray is reported healthy. An injured one gets the alarm it deserves. That honesty is what makes the network work.</p>
+    </div>
+    <div class="quote">
+      <div class="big">“No visible injury or sickness in the photo — not an emergency.”</div>
+      <p>— A real Voyce for Paws health assessment. Honest by design.</p>
+    </div>
+  </div>
+</section>
+
+<section id="network" class="net">
+  <div class="wrap center">
+    <span class="eyebrow">The Network</span>
+    <h2 class="h2">One report, many helpers</h2>
+    <p class="sub2">Voyce for Paws connects the people who notice with the people who can act.</p>
+    <div class="row">
+      <div class="it"><div class="ic">👀</div><h4>You spot</h4><p>Anyone who sees a stray can report it in seconds — no experience needed.</p></div>
+      <div class="it"><div class="ic">🚑</div><h4>Rescuers respond</h4><p>Nearby rescuers, fosters, and vets get the card and can step in fast.</p></div>
+      <div class="it"><div class="ic">🏠</div><h4>Animals get home</h4><p>Care, fostering, and adoption — every report is a chance at a better ending.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="ctaband">
+  <div class="wrap center">
+    <h2>Be the reason a stray gets help</h2>
+    <p>The next animal in need could be on your street. It takes one photo.</p>
+    <a class="btn btn-dark" href="https://app.voyceforpaws.org" target="_blank" rel="noopener">🐾 Report a stray now</a>
+  </div>
+</section>
+
+<footer id="about">
+  <div class="wrap">
+    <div class="top">
+      <div class="about">
+        <a class="brand" href="#top"><span class="mark">🐾</span><span class="n" style="color:#fff;font-family:var(--head);font-weight:800;font-size:19px">Voyce <span style="color:var(--gold)">for</span> Paws</span></a>
+        <p>Voyce for Paws is a program of <b style="color:#e7dcc4">Be The Voyce Inc.</b>, a 501(c)(3) nonprofit — using technology to give a voice to the voiceless.</p>
+      </div>
+      <div class="links">
+        <div>
+          <h5>App</h5>
+          <a href="https://app.voyceforpaws.org" target="_blank" rel="noopener">Report a stray</a>
+          <a href="#how">How it works</a>
+          <a href="#features">Features</a>
+          <a href="#network">The Network</a>
+        </div>
+        <div>
+          <h5>Be The Voyce</h5>
+          <a href="https://bethevoyce.org" target="_blank" rel="noopener">Our nonprofit</a>
+          <a href="LINKTREE_URL" target="_blank" rel="noopener">Donate</a>
+          <a href="LINKTREE_URL" target="_blank" rel="noopener">Volunteer / Foster</a>
+          <a href="mailto:bethevoyce1@gmail.com">Contact</a>
+        </div>
+      </div>
+    </div>
+    <div class="foot-bottom">© 2026 Voyce for Paws · A program of Be The Voyce Inc. · bethevoyce1@gmail.com</div>
+  </div>
+</footer>
+
+</body>
+</html>

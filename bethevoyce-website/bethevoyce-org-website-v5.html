@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Be The Voyce Inc. — A Voice for the Voiceless</title>
+<meta name="description" content="Be The Voyce creates innovative programs and technology that connect people and animals with the help they need — building stronger communities where everyone has a chance to thrive." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --gold:#F7A823; --coral:#FF7A59; --ink:#1b1723; --ink2:#655f70;
+    --cream:#FFFAF2; --card:#ffffff; --line:#f0e8db;
+    --orange:#F08A2C; --pink:#EC5A86; --green:#38A56A; --purple:#7A5CD0;
+    --grad:linear-gradient(135deg,#F7A823 0%,#FF7A59 100%);
+    --head:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+    --body:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:var(--body);color:var(--ink);background:var(--cream);line-height:1.6;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,h4{font-family:var(--head);line-height:1.12;color:var(--ink);letter-spacing:-.02em}
+  img{display:block;max-width:100%}
+  a{color:inherit}
+  .wrap{max-width:1140px;margin:0 auto;padding:0 24px}
+  .btn{display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-family:var(--head);font-weight:700;border-radius:100px;padding:13px 26px;font-size:14.5px;transition:transform .12s ease,box-shadow .12s ease;cursor:pointer}
+  .btn:hover{transform:translateY(-2px)}
+  .btn-grad{background:var(--grad);color:#fff;box-shadow:0 10px 24px rgba(247,120,60,.34)}
+  .btn-out{border:1.5px solid rgba(255,255,255,.75);color:#fff;background:rgba(255,255,255,.08);backdrop-filter:blur(6px)}
+  .btn-dark{background:var(--ink);color:#fff;box-shadow:0 10px 24px rgba(27,23,35,.28)}
+  .btn-soft{background:#fff;color:var(--ink);box-shadow:0 8px 20px rgba(27,23,35,.1)}
+  /* NAV */
+  header{position:sticky;top:0;z-index:50;background:rgba(255,250,242,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:76px;gap:20px}
+  .brand{display:flex;align-items:center;gap:11px;text-decoration:none}
+  .brand .mark{width:44px;height:44px;border-radius:13px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 6px 16px rgba(247,120,60,.3)}
+  .brand .bt{line-height:1.05}
+  .brand .bt .n{font-family:var(--head);font-weight:800;font-size:21px}
+  .brand .bt .n .y{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .brand .bt .s{font-size:9px;letter-spacing:.2em;color:var(--ink2);text-transform:uppercase;font-weight:600}
+  nav.menu{display:flex;gap:24px;align-items:center}
+  nav.menu a{text-decoration:none;font-size:14px;font-weight:600;color:var(--ink2)}
+  nav.menu a:hover{color:var(--ink)}
+  @media(max-width:940px){nav.menu a:not(.btn){display:none}}
+  /* HERO */
+  .hero{position:relative;min-height:620px;display:flex;align-items:center;color:#fff;overflow:hidden}
+  .hero .bgstrip{position:absolute;inset:0;display:flex;z-index:0}
+  .hero .bgstrip span{flex:1;background-size:cover;background-position:center}
+  .hero .ov{position:absolute;inset:0;background:linear-gradient(105deg,rgba(23,18,30,.94) 0%,rgba(23,18,30,.8) 40%,rgba(23,18,30,.2) 72%,rgba(120,60,40,.35) 100%);z-index:1}
+  .hero .wrap{position:relative;z-index:2;width:100%;padding:84px 24px}
+  .hero .inner{max-width:600px}
+  .hero .chip{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);padding:8px 16px;border-radius:100px;font-size:12.5px;font-weight:600;letter-spacing:.04em;backdrop-filter:blur(6px)}
+  .hero h1{color:#fff;font-size:clamp(42px,7vw,74px);line-height:1.0;margin:22px 0 0;font-weight:800}
+  .hero .sub{margin-top:18px;font-family:var(--head);font-size:clamp(18px,2.6vw,24px);font-weight:700}
+  .hero .sub .g1{color:var(--gold)} .hero .sub .g2{color:var(--coral)} .hero .sub .g3{color:#fff}
+  .hero p.lead{margin-top:18px;font-size:16.5px;color:#ece7f0;max-width:480px}
+  .hero .cta{display:flex;gap:14px;flex-wrap:wrap;margin-top:30px}
+  .hero .pills{display:flex;gap:10px;flex-wrap:wrap;margin-top:34px}
+  .hero .pills .p{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);padding:9px 15px;border-radius:100px;font-size:13px;font-weight:600;backdrop-filter:blur(6px)}
+  /* SECTION */
+  section{padding:80px 0}
+  .eyebrow{display:inline-block;background:#fdeede;color:var(--orange);font-family:var(--head);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:11.5px;padding:7px 15px;border-radius:100px}
+  .center{text-align:center}
+  .h2{font-size:clamp(30px,4.6vw,46px);margin:16px 0 10px;font-weight:800}
+  .sub2{max-width:600px;margin:0 auto 46px;color:var(--ink2);font-size:16.5px}
+  /* PROGRAMS */
+  .progs{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+  @media(max-width:940px){.progs{grid-template-columns:1fr 1fr}}
+  @media(max-width:560px){.progs{grid-template-columns:1fr}}
+  .prog{background:var(--card);border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:0 14px 40px rgba(60,45,15,.06);transition:transform .18s ease,box-shadow .18s ease}
+  .prog:hover{transform:translateY(-6px);box-shadow:0 24px 50px rgba(60,45,15,.13)}
+  .prog .imgwrap{position:relative;height:158px}
+  .prog .imgwrap img{width:100%;height:100%;object-fit:cover}
+  .prog .badge{position:absolute;bottom:-20px;left:20px;width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:21px;color:#fff;box-shadow:0 8px 18px rgba(0,0,0,.22)}
+  .prog .body{padding:32px 20px 24px}
+  .prog h3{font-size:18px;margin-bottom:8px;font-weight:700}
+  .prog p{font-size:13.5px;color:var(--ink2)}
+  .prog .more{display:inline-block;margin-top:14px;font-family:var(--head);font-weight:700;font-size:13.5px;text-decoration:none}
+  .c-orange{background:var(--orange)} .t-orange{color:var(--orange)}
+  .c-pink{background:var(--pink)} .t-pink{color:var(--pink)}
+  .c-green{background:var(--green)} .t-green{color:var(--green)}
+  .c-purple{background:var(--purple)} .t-purple{color:var(--purple)}
+  /* APP */
+  .app{background:linear-gradient(135deg,#fff2df,#ffe6d6);border-radius:0}
+  .appflex{display:flex;gap:50px;align-items:center;flex-wrap:wrap}
+  .appflex .txt{flex:1;min-width:290px}
+  .appflex h2{font-size:clamp(30px,4vw,42px);margin:16px 0 14px;font-weight:800}
+  .appflex p{color:#6a5240;font-size:16.5px;margin-bottom:8px}
+  .appsteps{list-style:none;margin:16px 0 26px}
+  .appsteps li{padding:6px 0 6px 30px;position:relative;font-size:15px;color:var(--ink)}
+  .appsteps li::before{content:"🐾";position:absolute;left:0}
+  .appcard{flex:0 0 320px;max-width:320px;background:#fff;border-radius:24px;padding:24px;box-shadow:0 24px 60px rgba(150,90,40,.24)}
+  .appcard .pill{display:inline-block;background:var(--grad);color:#fff;font-family:var(--head);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:6px 12px;border-radius:100px}
+  .appcard h4{font-size:20px;margin:14px 0 4px;font-weight:700}
+  .appcard .muted{color:#8a8378;font-size:13px}
+  .appcard .line{height:1px;background:var(--line);margin:13px 0}
+  /* WHY */
+  .why{position:relative;color:#fff;overflow:hidden}
+  .why .bg{position:absolute;inset:0;background:url('https://static.wixstatic.com/media/11062b_9b2140362f364b2baf7c5798af3a2fa2~mv2.jpg') center/cover;z-index:0}
+  .why .ov{position:absolute;inset:0;background:linear-gradient(90deg,rgba(23,18,30,.95),rgba(23,18,30,.55));z-index:1}
+  .why .wrap{position:relative;z-index:2}
+  .why .inner{max-width:540px}
+  .why .eyebrow{background:rgba(255,255,255,.14);color:#fff}
+  .why h2{color:#fff;font-size:clamp(28px,4.4vw,40px);margin:16px 0 18px;font-weight:800}
+  .why p{color:#e6dff0;font-size:16.5px;margin-bottom:14px}
+  /* IMPACT */
+  .impact{background:#fff}
+  .impact .row{display:grid;grid-template-columns:repeat(5,1fr);gap:20px}
+  @media(max-width:940px){.impact .row{grid-template-columns:1fr 1fr 1fr}}
+  @media(max-width:560px){.impact .row{grid-template-columns:1fr 1fr}}
+  .impact .it{background:var(--cream);border:1px solid var(--line);border-radius:20px;padding:26px 18px;text-align:center;transition:transform .16s ease}
+  .impact .it:hover{transform:translateY(-4px)}
+  .impact .it .ic{width:56px;height:56px;margin:0 auto 14px;border-radius:16px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:26px}
+  .impact .it h4{font-size:15px;margin-bottom:6px;font-weight:700}
+  .impact .it p{font-size:12.5px;color:var(--ink2)}
+  /* GET INVOLVED */
+  .involve .row{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  @media(max-width:940px){.involve .row{grid-template-columns:1fr 1fr}}
+  @media(max-width:560px){.involve .row{grid-template-columns:1fr 1fr}}
+  .invtile{background:#fff;border:1px solid var(--line);border-radius:20px;padding:26px 18px;text-align:center;text-decoration:none;transition:transform .16s ease,box-shadow .16s ease;box-shadow:0 8px 22px rgba(60,45,15,.05)}
+  .invtile:hover{transform:translateY(-5px);box-shadow:0 18px 40px rgba(60,45,15,.12)}
+  .invtile .ic{width:52px;height:52px;margin:0 auto 12px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff}
+  .invtile h4{font-size:15.5px;margin-bottom:5px;font-weight:700}
+  .invtile p{font-size:12.5px;color:var(--ink2)}
+  /* CTA band */
+  .ctaband{background:var(--grad);text-align:center;color:#fff}
+  .ctaband h2{color:#fff;font-size:clamp(30px,4.4vw,44px);font-weight:800}
+  .ctaband p{max-width:540px;margin:14px auto 28px;font-size:17px;color:#fff3ec}
+  /* FOOTER */
+  footer{background:#171420;color:#c7c1d2;padding:60px 0 28px;font-size:14px}
+  footer .top{display:flex;justify-content:space-between;flex-wrap:wrap;gap:32px}
+  footer .about{max-width:290px}
+  footer .brand .mark{background:var(--grad)}
+  footer .about p{margin-top:14px;color:#9a93a8;font-size:13.5px}
+  footer h5{color:#fff;font-family:var(--head);font-size:15px;margin-bottom:12px;font-weight:700}
+  footer a{color:#c7c1d2;text-decoration:none;display:block;padding:3px 0;font-size:13.5px}
+  footer a:hover{color:var(--gold)}
+  .subscribe input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid #37323f;background:#211d2a;color:#fff;font-size:13.5px;font-family:var(--body)}
+  .subscribe button{width:100%;margin-top:8px;background:var(--grad);color:#fff;border:none;padding:12px;border-radius:12px;font-weight:700;font-family:var(--head);cursor:pointer}
+  .socials{display:flex;gap:10px;margin-top:16px}
+  .socials a{width:36px;height:36px;border-radius:12px;background:#241f2e;display:flex;align-items:center;justify-content:center;font-size:15px}
+  .foot-bottom{border-top:1px solid #2a2535;margin-top:38px;padding-top:20px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;color:#847d92;font-size:12.5px}
+  .note{background:#fffef8;border:1px dashed var(--orange);border-radius:10px;padding:6px 11px;color:#a5661a;font-size:12px;display:inline-block;margin-top:12px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="#top">
+      <span class="mark">🐾</span>
+      <span class="bt"><span class="n">Be The Vo<span class="y">y</span>ce</span><span class="s">A voice for the voiceless</span></span>
+    </a>
+    <nav class="menu">
+      <a href="#about">About</a>
+      <a href="#programs">Programs</a>
+      <a href="#app">Voyce for Paws</a>
+      <a href="#give">Get Involved</a>
+      <a href="mailto:bethevoyce1@gmail.com">Contact</a>
+      <a class="btn btn-grad" href="LINKTREE_URL" target="_blank" rel="noopener">♥ Donate</a>
+    </nav>
+  </div>
+</header>
+
+<a id="top"></a>
+<section class="hero">
+  <div class="bgstrip">
+    <span style="background-image:url('https://static.wixstatic.com/media/11062b_0044cd0db8814389882d4dffe2cc4c14~mv2.jpg')"></span>
+    <span style="background-image:url('https://static.wixstatic.com/media/11062b_55e976feb9ef42ae87ff8eef2269e582~mv2.jpg')"></span>
+    <span style="background-image:url('https://static.wixstatic.com/media/11062b_9b2140362f364b2baf7c5798af3a2fa2~mv2.jpg')"></span>
+  </div>
+  <div class="ov"></div>
+  <div class="wrap">
+    <div class="inner">
+      <span class="chip">✨ A 501(c)(3) nonprofit</span>
+      <h1>A voice for<br>the voiceless.</h1>
+      <div class="sub"><span class="g1">Technology.</span> <span class="g2">Compassion.</span> <span class="g3">Community.</span></div>
+      <p class="lead">We build innovative programs and technology that connect people and animals with the help they need — creating stronger communities where everyone has a chance to thrive.</p>
+      <div class="cta">
+        <a class="btn btn-grad" href="#programs">Explore Our Programs</a>
+        <a class="btn btn-out" href="#give">Support Our Mission</a>
+      </div>
+      <div class="pills">
+        <span class="p">🐾 Animals</span>
+        <span class="p">🍼 Families</span>
+        <span class="p">🎓 Youth</span>
+        <span class="p">💻 Technology for good</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="programs">
+  <div class="wrap center">
+    <span class="eyebrow">Our Programs</span>
+    <h2 class="h2">Solutions for People, Animals &amp; Communities</h2>
+    <p class="sub2">Four programs, one promise — connecting compassion with the people, animals, and families who need it.</p>
+    <div class="progs" style="text-align:left">
+      <div class="prog">
+        <div class="imgwrap"><img src="https://static.wixstatic.com/media/11062b_55e976feb9ef42ae87ff8eef2269e582~mv2.jpg" alt="Voyce for Paws"><span class="badge c-orange">🐾</span></div>
+        <div class="body"><h3>Voyce for Paws</h3><p>AI-powered technology connecting animals in need with people who may be able to help.</p><a class="more t-orange" href="#app">Learn More →</a></div>
+      </div>
+      <div class="prog">
+        <div class="imgwrap"><img src="https://static.wixstatic.com/media/11062b_0044cd0db8814389882d4dffe2cc4c14~mv2.jpg" alt="Strength in Tiny Packages"><span class="badge c-pink">💗</span></div>
+        <div class="body"><h3>Strength in Tiny Packages</h3><p>Supporting NICU and postpartum families through care packages, meals, and community support.</p><a class="more t-pink" href="#give">Learn More →</a></div>
+      </div>
+      <div class="prog">
+        <div class="imgwrap"><img src="https://static.wixstatic.com/media/11062b_9b2140362f364b2baf7c5798af3a2fa2~mv2.jpg" alt="Youth Programs"><span class="badge c-green">🎓</span></div>
+        <div class="body"><h3>Youth Programs</h3><p>Empowering foster and underserved youth through sports, mentorship, and life-changing opportunities.</p><a class="more t-green" href="#give">Learn More →</a></div>
+      </div>
+      <div class="prog">
+        <div class="imgwrap"><img src="https://static.wixstatic.com/media/11062b_9b2140362f364b2baf7c5798af3a2fa2~mv2.jpg" alt="Community Initiatives"><span class="badge c-purple">👥</span></div>
+        <div class="body"><h3>Community Initiatives</h3><p>Responding wherever help is needed through community partnerships and compassionate action.</p><a class="more t-purple" href="#give">Learn More →</a></div>
+      </div>
+    </div>
+    <div><span class="note">Swap in your own photos + adjust any program wording</span></div>
+  </div>
+</section>
+
+<section id="app" class="app">
+  <div class="wrap appflex">
+    <div class="txt">
+      <span class="eyebrow">Our Technology</span>
+      <h2>Voyce for Paws — the app</h2>
+      <p>See a stray or injured animal? Snap a photo and our AI reads the animal <b>as it is</b> — building a rescue card, finding the location, and alerting nearby helpers.</p>
+      <ul class="appsteps">
+        <li>Take or upload a photo</li>
+        <li>AI builds a rescue profile &amp; health assessment</li>
+        <li>Location detected with a map &amp; directions</li>
+        <li>Shared to rescuers &amp; fosters nearby</li>
+      </ul>
+      <a class="btn btn-dark" href="https://app.voyceforpaws.org" target="_blank" rel="noopener">Launch Voyce for Paws →</a>
+    </div>
+    <div class="appcard">
+      <span class="pill">🐾 Just Reported</span>
+      <h4>Stray Dog — needs help</h4>
+      <div class="muted">📍 Copley Township · just now</div>
+      <div class="line"></div>
+      <div class="muted"><b style="color:var(--ink)">Health:</b> Alert &amp; responsive, no visible injury.</div>
+      <div class="line"></div>
+      <div class="muted">Shared to rescuers &amp; fosters nearby.</div>
+    </div>
+  </div>
+</section>
+
+<section class="why">
+  <div class="bg"></div>
+  <div class="ov"></div>
+  <div class="wrap">
+    <div class="inner">
+      <span class="eyebrow">Why We Exist</span>
+      <h2>Connection is the missing link.</h2>
+      <p>Every day, people want to help. Every day, animals need help. Every day, families need support. The challenge isn’t compassion — it’s connection.</p>
+      <p>Be The Voyce exists to bring communities together through innovative programs, technology, and partnerships that make helping easier and more effective.</p>
+    </div>
+  </div>
+</section>
+
+<section id="impact" class="impact">
+  <div class="wrap center">
+    <span class="eyebrow">Our Impact</span>
+    <h2 class="h2">What We’re Building Together</h2>
+    <p class="sub2">The connections, care, and technology we’re growing every day.</p>
+    <div class="row">
+      <div class="it"><div class="ic">🔗</div><h4>Community Rescue Networks</h4><p>Stronger, faster connections that save lives.</p></div>
+      <div class="it"><div class="ic">🤲</div><h4>Family Support Programs</h4><p>Care and resources for families in critical moments.</p></div>
+      <div class="it"><div class="ic">🎓</div><h4>Youth Opportunities</h4><p>Building confidence, leadership and brighter futures.</p></div>
+      <div class="it"><div class="ic">💻</div><h4>Technology for Good</h4><p>Innovative tools that solve real-world problems.</p></div>
+      <div class="it"><div class="ic">🤝</div><h4>Partnerships for Impact</h4><p>Working together to create lasting change.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="give" class="involve">
+  <div class="wrap center">
+    <span class="eyebrow">Get Involved</span>
+    <h2 class="h2">Be Part of the Change</h2>
+    <p class="sub2">There are so many ways to make a difference. Find the one that’s right for you.</p>
+    <div class="row">
+      <a class="invtile" href="LINKTREE_URL" target="_blank" rel="noopener"><div class="ic c-orange">👥</div><h4>Volunteer</h4><p>Give your time and make a difference.</p></a>
+      <a class="invtile" href="LINKTREE_URL" target="_blank" rel="noopener"><div class="ic c-pink">♥</div><h4>Donate</h4><p>Your support helps us change lives.</p></a>
+      <a class="invtile" href="LINKTREE_URL" target="_blank" rel="noopener"><div class="ic c-green">🏠</div><h4>Foster</h4><p>Open your home to an animal in need.</p></a>
+      <a class="invtile" href="LINKTREE_URL" target="_blank" rel="noopener"><div class="ic c-orange">🐾</div><h4>Adopt</h4><p>Give a rescued animal a forever home.</p></a>
+      <a class="invtile" href="LINKTREE_URL" target="_blank" rel="noopener"><div class="ic c-purple">🤝</div><h4>Partner</h4><p>Partner with us to expand our impact.</p></a>
+      <a class="invtile" href="LINKTREE_URL" target="_blank" rel="noopener"><div class="ic c-green">⭐</div><h4>Sponsor</h4><p>Help us build programs and opportunities.</p></a>
+      <a class="invtile" href="LINKTREE_URL" target="_blank" rel="noopener"><div class="ic c-pink">🌟</div><h4>Join the Community</h4><p>Stay connected and be the first to help.</p></a>
+      <a class="invtile" href="https://app.voyceforpaws.org" target="_blank" rel="noopener"><div class="ic c-orange">📣</div><h4>Report a Stray</h4><p>Use our free rescue tool.</p></a>
+    </div>
+  </div>
+</section>
+
+<section class="ctaband">
+  <div class="wrap center">
+    <h2>Every second counts for the voiceless</h2>
+    <p>Your support reaches one more animal, one more family, one more moment that matters.</p>
+    <a class="btn btn-soft" href="LINKTREE_URL" target="_blank" rel="noopener">♥ Donate today</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="top">
+      <div class="about">
+        <a class="brand" href="#top">
+          <span class="mark">🐾</span>
+          <span class="bt"><span class="n" style="color:#fff;font-family:var(--head);font-weight:800;font-size:20px">Be The Voyce</span><br><span class="s" style="font-size:9px;letter-spacing:.2em;color:#9a93a8;text-transform:uppercase;font-weight:600">A voice for the voiceless</span></span>
+        </a>
+        <p>Be The Voyce is a 501(c)(3) nonprofit organization dedicated to building innovative solutions and stronger communities for people and animals.</p>
+        <div class="socials"><a href="#">f</a><a href="#">◎</a><a href="#">𝕏</a><a href="#">▶</a></div>
+        <span class="note" style="background:transparent;border-color:#37323f;color:#9a93a8">Add your real social links</span>
+      </div>
+      <div>
+        <h5>Explore</h5>
+        <a href="#about">About Us</a>
+        <a href="#programs">Our Programs</a>
+        <a href="#impact">Impact</a>
+        <a href="mailto:bethevoyce1@gmail.com">Contact</a>
+      </div>
+      <div>
+        <h5>Get Involved</h5>
+        <a href="LINKTREE_URL" target="_blank" rel="noopener">Volunteer</a>
+        <a href="LINKTREE_URL" target="_blank" rel="noopener">Donate</a>
+        <a href="LINKTREE_URL" target="_blank" rel="noopener">Foster &amp; Adopt</a>
+        <a href="LINKTREE_URL" target="_blank" rel="noopener">Partner &amp; Sponsor</a>
+      </div>
+      <div>
+        <h5>Programs</h5>
+        <a href="#app">Voyce for Paws</a>
+        <a href="#programs">Strength in Tiny Packages</a>
+        <a href="#programs">Youth Programs</a>
+        <a href="#programs">Community Initiatives</a>
+      </div>
+      <div class="subscribe" style="max-width:230px">
+        <h5>Stay Connected</h5>
+        <p style="color:#9a93a8;font-size:13px;margin-bottom:10px">Get updates on our programs, events, and ways to help.</p>
+        <input type="email" placeholder="Your email address" />
+        <button type="button">♥ Subscribe</button>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Be The Voyce Inc. All rights reserved.</span>
+      <span>bethevoyce1@gmail.com</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

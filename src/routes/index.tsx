@@ -154,6 +154,7 @@ function Home() {
             context: {
               animalType: details.animalType,
               situation: details.situation,
+              witnessed: details.witnessed,
               notes: details.notes,
             },
           },

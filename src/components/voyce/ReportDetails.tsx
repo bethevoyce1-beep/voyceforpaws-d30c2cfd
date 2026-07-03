@@ -7,6 +7,7 @@ import { BrandHeader } from "@/components/voyce/BrandHeader";
 export type ReportDetails = {
   animalType: string;
   situation: string;
+  witnessed: string[];
   notes: string;
   email: string;
   phone: string;
@@ -23,6 +24,14 @@ const SITUATIONS = [
   "Found pet",
   "At-risk shelter",
   "Needs spay/vaccine",
+];
+
+// Things a photo CANNOT reveal — only the person on the scene knows these.
+// Multi-select: pick any, all, or none.
+const WITNESSED = [
+  "Hit by a car",
+  "Trapped / in danger",
+  "Abuse / cruelty witnessed",
 ];
 
 // Pre-select "what's happening" from the mission the reporter came in through.
@@ -52,14 +61,21 @@ export function ReportDetails({
 }) {
   const [animalType, setAnimalType] = useState<string>("");
   const [situation, setSituation] = useState<string>(() => defaultSituation(mission));
+  const [witnessed, setWitnessed] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+
+  const toggleWitnessed = (o: string) =>
+    setWitnessed((prev) =>
+      prev.includes(o) ? prev.filter((x) => x !== o) : [...prev, o],
+    );
 
   const submit = () => {
     onContinue({
       animalType,
       situation,
+      witnessed,
       notes: notes.trim(),
       email: email.trim(),
       phone: phone.trim(),
@@ -87,6 +103,14 @@ export function ReportDetails({
 
         <Section label="What's happening?">
           <Chips options={SITUATIONS} value={situation} onChange={setSituation} />
+        </Section>
+
+        <Section label="Did you see any of these? (the photo can't tell us)">
+          <MultiChips options={WITNESSED} values={witnessed} onToggle={toggleWitnessed} />
+          <p className="mt-2 text-[11.5px] leading-snug text-muted-foreground">
+            Pick any that apply — or none. These tell responders about things a photo
+            can't show, like a car accident or abuse you witnessed.
+          </p>
         </Section>
 
         <Section label="Anything else? (optional)">
@@ -176,6 +200,41 @@ function Chips({
             }`}
             style={active ? { background: GOLD } : undefined}
           >
+            {o}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// Multi-select variant — reporter can pick several (or none).
+function MultiChips({
+  options,
+  values,
+  onToggle,
+}: {
+  options: string[];
+  values: string[];
+  onToggle: (v: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((o) => {
+        const active = values.includes(o);
+        return (
+          <button
+            key={o}
+            type="button"
+            onClick={() => onToggle(o)}
+            className={`rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition active:scale-[0.97] ${
+              active
+                ? "text-[#3A2A07] shadow-sm"
+                : "border border-border bg-card text-foreground/80 hover:border-[#C9871A]"
+            }`}
+            style={active ? { background: GOLD } : undefined}
+          >
+            {active ? "✓ " : ""}
             {o}
           </button>
         );
