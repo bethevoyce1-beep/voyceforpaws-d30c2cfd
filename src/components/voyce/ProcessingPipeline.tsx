@@ -183,7 +183,7 @@ export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment
               The Rescue Journey
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Every second counts — help is on the way
+              Your one photo can help this rescue happen faster
             </p>
           </div>
           <div className="flex flex-col items-end">
