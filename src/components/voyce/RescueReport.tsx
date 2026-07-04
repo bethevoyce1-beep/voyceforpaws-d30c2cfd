@@ -141,6 +141,7 @@ export function RescueReport({
   onDone?: () => void;
 }) {
   const [tab, setTab] = useState<"story" | "vet">("story");
+  const [showVet, setShowVet] = useState(false);
   const [shareConfirm, setShareConfirm] = useState(false);
   const [pendingShare, setPendingShare] = useState<SharePlatform | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -523,26 +524,12 @@ export function RescueReport({
           )}
 
 
-          {/* Tabs */}
+          {/* Rescue Profile (always) + Health Assessment behind a link */}
           <div className="mx-5 mt-5">
-            <div className="inline-flex rounded-full border border-border bg-background/70 p-1">
-              {(["story", "vet"] as const).map((k) => (
-                <button
-                  key={k}
-                  onClick={() => setTab(k)}
-                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
-                    tab === k
-                      ? "bg-[oklch(0.88_0.16_85)] text-[oklch(0.25_0.04_60)] shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {k === "story" ? "🐾 Rescue Profile" : "🩺 Health Assessment"}
-                </button>
-              ))}
+            <div className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#8A5A0E]">
+              🐾 Rescue Profile
             </div>
-
-            {tab === "story" ? (
-              <div className="mt-4 space-y-4">
+            <div className="mt-3 space-y-4">
                 <Section title="✨ Voyce's First Look">{data.first_look}</Section>
                 <Section title="Behavior">{data.behavior}</Section>
                 <WhereFound data={data} />
@@ -583,7 +570,15 @@ export function RescueReport({
                   </ul>
                 </Section>
               </div>
-            ) : (
+              <button
+                type="button"
+                onClick={() => setShowVet((v) => !v)}
+                className="mt-4 flex w-full items-center justify-between rounded-xl border border-border bg-background/60 px-4 py-3 text-[13.5px] font-semibold text-[#8A5A0E] transition hover:bg-background active:scale-[0.99]"
+              >
+                <span>🩺 {showVet ? "Hide health assessment" : "View full health assessment"}</span>
+                <span aria-hidden>{showVet ? "▲" : "→"}</span>
+              </button>
+              {showVet && (
               <div className="mt-4 space-y-4">
                 <AIHealthDisclaimer />
                 <VisibleConditionPill condition={condition} />
