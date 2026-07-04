@@ -14,6 +14,7 @@ import { ReportDetails } from "@/components/voyce/ReportDetails";
 import type { ReportDetails as ReportDetailsData } from "@/components/voyce/ReportDetails";
 import { BackNavContext } from "@/components/voyce/BrandHeader";
 import { RescueReport } from "@/components/voyce/RescueReport";
+import { NetworkAlerting } from "@/components/voyce/NetworkAlerting";
 import { StatusTimeline } from "@/components/voyce/StatusTimeline";
 import { DemoGate } from "@/components/voyce/DemoGate";
 import { Outcome } from "@/components/voyce/Outcome";
@@ -50,7 +51,7 @@ const SAMPLES = [
   { src: sampleBird, label: "Bird beak" },
 ];
 
-type Stage = "mission" | "shelter" | "capture" | "processing" | "report" | "details" | "share" | "timeline" | "gate" | "outcome";
+type Stage = "mission" | "shelter" | "capture" | "processing" | "report" | "details" | "alerting" | "share" | "timeline" | "gate" | "outcome";
 
 function isLikelyMobile() {
   if (typeof navigator === "undefined") return false;
@@ -179,7 +180,7 @@ function Home() {
   // Reporter finished the "Tell us about them" form → build the final card.
   const startReport = useCallback((details: ReportDetailsData) => {
     setReportDetails(details);
-    setStage("report");
+    setStage("alerting");
   }, []);
 
   const reset = () => {
@@ -202,6 +203,7 @@ function Home() {
     capture: "mission",
     processing: "capture",
     details: "capture",
+    alerting: "details",
     report: "details",
     share: "report",
     timeline: "share",
@@ -293,6 +295,10 @@ function Home() {
         }}
       />
     );
+  }
+
+  if (stage === "alerting") {
+    return withBack(<NetworkAlerting onComplete={() => setStage("report")} />);
   }
 
   if (stage === "report" && assessment && captured) {
