@@ -201,10 +201,17 @@ function Home() {
     report: "details",
     share: "report",
     timeline: "share",
+    gate: "timeline",
+    outcome: "gate",
   };
   const goBack = () => {
     const prev = backTargets[stage];
-    if (prev) setStage(prev);
+    if (prev) {
+      setStage(prev);
+      return;
+    }
+    // Root screen — step back out of the flow to wherever the user came from.
+    if (typeof window !== "undefined") window.history.back();
   };
   // Wrap a screen so the header shows a back arrow to the previous step.
   const withBack = (el: React.ReactNode) => (
@@ -212,13 +219,13 @@ function Home() {
   );
 
   if (stage === "mission") {
-    return (
+    return withBack(
       <MissionPicker
         onPick={(id) => {
           setMission(id);
           setStage(id === "at-risk-shelter" ? "shelter" : "capture");
         }}
-      />
+      />,
     );
   }
 
@@ -303,10 +310,10 @@ function Home() {
     return withBack(<StatusTimeline onContinue={() => setStage("gate")} />);
   }
   if (stage === "gate") {
-    return <DemoGate onDone={() => setStage("outcome")} />;
+    return withBack(<DemoGate onDone={() => setStage("outcome")} />);
   }
   if (stage === "outcome") {
-    return <Outcome onRestart={reset} />;
+    return withBack(<Outcome onRestart={reset} />);
   }
 
   return (
