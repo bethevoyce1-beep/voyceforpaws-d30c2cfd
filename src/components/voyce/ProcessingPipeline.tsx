@@ -272,7 +272,29 @@ export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment
 
         {aiError && (() => {
           const noAnimal = aiError.startsWith("NO_ANIMAL:");
-          const text = noAnimal ? aiError.replace(/^NO_ANIMAL:\s*/, "") : aiError;
+          // Message is either "NO_ANIMAL:<subject>|<text>" (new) or
+          // "NO_ANIMAL: <text>" (older) - handle both so nothing breaks.
+          let subject = "";
+          let text = aiError;
+          if (noAnimal) {
+            const rest = aiError.replace(/^NO_ANIMAL:\s*/, "");
+            const bar = rest.indexOf("|");
+            if (bar >= 0) {
+              subject = rest.slice(0, bar).trim().toLowerCase();
+              text = rest.slice(bar + 1).trim();
+            } else {
+              text = rest;
+            }
+          }
+          const SUBJECT_UI = {
+            person:  { icon: "🧑", headline: "That's a person, not an animal" },
+            food:    { icon: "🍽️", headline: "That's food, not an animal" },
+            vehicle: { icon: "🚗", headline: "That's a vehicle, not an animal" },
+            plant:   { icon: "🪴", headline: "That's a plant, not an animal" },
+            object:  { icon: "📦", headline: "That's an object, not an animal" },
+            scenery: { icon: "🏞️", headline: "No animal in this scene" },
+          };
+          const ui = SUBJECT_UI[subject] || { icon: "🐾", headline: "No animal found in this photo" };
           return (
             <div
               className={`mt-4 rounded-xl border px-4 py-4 text-sm ${
@@ -282,7 +304,7 @@ export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment
               }`}
             >
               {noAnimal && (
-                <div className="mb-1 text-[15px] font-bold">🐾 No animal found in this photo</div>
+                <div className="mb-1 text-[15px] font-bold">{ui.icon} {ui.headline}</div>
               )}
               <p className="leading-relaxed">{text}</p>
               {onRetry && (

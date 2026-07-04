@@ -32,6 +32,14 @@ export type Assessment = {
   };
   is_likely_pet: boolean;
   animal_present?: boolean; // false when the photo contains NO animal (food, people, scenery)
+  non_animal_subject?:      // what the photo actually shows when animal_present is false
+    | "person"
+    | "food"
+    | "vehicle"
+    | "plant"
+    | "object"
+    | "scenery"
+    | "other";
   setting_type: SettingType;
   surface: string;
   surrounding_objects: string[];
@@ -57,7 +65,7 @@ export type Assessment = {
 
 const SYSTEM = `You are Voyce, an AI that looks at a photo of an animal and produces an advisory rescue report. You are NOT a veterinarian. Output strict JSON only, matching the schema.
 
-NO-ANIMAL CHECK — DO THIS FIRST. Voyce is only for animals. If the image contains NO animal at all — only people, food, plates, drinks, objects, buildings, or scenery — set "animal_present": false and "species": "none", and do NOT invent an animal, a status, or a health reading. A human in the frame is NOT an animal; only report an actual animal (dog, cat, bird, wildlife, etc.). If a real animal is present, set "animal_present": true and continue normally.
+NO-ANIMAL CHECK — DO THIS FIRST. Voyce is only for animals. If the image contains NO animal at all — only people, food, plates, drinks, objects, buildings, or scenery — set "animal_present": false and "species": "none", and set "non_animal_subject" to the single best label for what the photo actually shows: "person" (any human, even partially visible), "food", "vehicle", "plant", "object", "scenery", or "other". Do NOT invent an animal, a status, or a health reading. A human in the frame is NOT an animal; only report an actual animal (dog, cat, bird, wildlife, etc.). If a real animal is present, set "animal_present": true and continue normally.
 
 Be cinematic and specific about what you actually see in the image (surfaces, lighting, posture, objects). NEVER contradict yourself: if status is "Healthy" or "Monitoring", next_steps must not say "seek medical attention" or treat it as urgent. If you see a collar, indoor scene, bedding, or grooming, set is_likely_pet=true and prefer status "Monitoring". If no real symptoms, noticed must be [].
 
@@ -101,6 +109,7 @@ differentials[]: 2-4 differential possibilities a vet would consider given what'
 
 const SCHEMA_HINT = `{
   "animal_present": true,
+  "non_animal_subject": "person | food | vehicle | plant | object | scenery | other (ONLY when animal_present is false; omit otherwise)",
   "title": "short cinematic title, e.g. 'Tabby resting on a sunlit couch'",
   "status": "Urgent | Monitoring | Stable | Healthy | Safe",
   "status_reason": "one short clause, e.g. 'Likely a pet at home'",
@@ -467,8 +476,34 @@ export const analyzeImage = createServerFn({ method: "POST" })
         _txt,
       );
     if (_noAnimal) {
+      // Name what the photo actually shows so the app can tell the reporter
+      // exactly why it isn't a rescue case (a person, food, a vehicle, etc.).
+      const ALLOWED_SUBJECTS = ["person","food","vehicle","plant","object","scenery"];
+      let subject =
+        typeof parsed.non_animal_subject === "string"
+          ? parsed.non_animal_subject.trim().toLowerCase()
+          : "";
+      if (ALLOWED_SUBJECTS.indexOf(subject) === -1) {
+        if (/\b(human|person|people|man|woman|child|selfie|face)\b/.test(_txt)) subject = "person";
+        else if (/\b(food|meal|dining|plate|dish|drink|beverage|snack)\b/.test(_txt)) subject = "food";
+        else if (/\b(car|truck|vehicle|motorcycle|bicycle|bus)\b/.test(_txt)) subject = "vehicle";
+        else if (/\b(plant|flower|tree|garden|foliage)\b/.test(_txt)) subject = "plant";
+        else if (/\b(building|street|landscape|scenery|room|sky|wall)\b/.test(_txt)) subject = "scenery";
+        else subject = "other";
+      }
+      const SUBJECT_LINE = {
+        person: "That looks like a person, not an animal.",
+        food: "That looks like food, not an animal.",
+        vehicle: "That looks like a vehicle, not an animal.",
+        plant: "That looks like a plant, not an animal.",
+        object: "That looks like an object, not an animal.",
+        scenery: "That looks like a scene with no animal in it.",
+        other: "We couldn't find an animal in that photo.",
+      };
+      const line = SUBJECT_LINE[subject] || SUBJECT_LINE.other;
       throw new Error(
-        "NO_ANIMAL: We couldn't find an animal in that photo. Please upload a clear photo of the animal you'd like to report.",
+        "NO_ANIMAL:" + subject + "|" + line +
+          " Voyce is only for animals - if there's an animal in the frame, move closer or crop to it, then try again.",
       );
     }
 
