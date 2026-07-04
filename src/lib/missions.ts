@@ -161,7 +161,7 @@ export const MISSIONS: Record<MissionId, Mission> = {
       { icon: "🤝", label: "Pledge for care" },
     ],
     ribbonLabel: "🔍 LOST · FOUND ALIVE",
-    ribbonGradient: "linear-gradient(135deg, #FFD24A 0%, #C9871A 100%)",
+    ribbonGradient: "linear-gradient(135deg, #FFDF3B 0%, #C9871A 100%)",
     ribbonText: "#3A2A07",
     titleColor: "#8A5A0E",
     ringBg: "#FCEFC9",
@@ -180,7 +180,7 @@ export const MISSIONS: Record<MissionId, Mission> = {
     },
     megaCta: {
       label: "🔔 ALERT NEIGHBORS",
-      gradient: "linear-gradient(135deg, #FFD24A 0%, #C9871A 100%)",
+      gradient: "linear-gradient(135deg, #FFDF3B 0%, #C9871A 100%)",
       textColor: "#3A2A07",
     },
     nearbyHelpers: "Neighbors, lost-pet groups, and local shelters in this area are being alerted.",

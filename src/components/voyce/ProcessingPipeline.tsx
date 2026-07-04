@@ -57,7 +57,7 @@ type Props = {
   onRetry?: () => void;
 };
 
-const GOLD = "#FFD24A";
+const GOLD = "#FFDF3B";
 const DEEP_GOLD = "#C9871A";
 const GREEN = "oklch(0.6 0.17 145)";
 
@@ -216,11 +216,11 @@ export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment
                 className="voyce-scan pointer-events-none absolute inset-x-0 h-1/3"
                 style={{
                   background:
-                    "linear-gradient(to bottom, transparent, rgba(255,210,74,0.45), transparent)",
+                    "linear-gradient(to bottom, transparent, rgba(255,223,59,0.45), transparent)",
                 }}
               />
             )}
-            <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-[color:rgba(255,210,74,0.55)]" />
+            <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-[color:rgba(255,223,59,0.55)]" />
             <div className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm backdrop-blur-md">
               <span aria-hidden>{aiPending ? "🔍" : "✓"}</span>
               <span>{aiPending ? "Reading the photo…" : "Photo read"}</span>
@@ -355,7 +355,7 @@ function StepRow({
         done
           ? "border-[oklch(0.85_0.15_140)]/40 bg-[oklch(0.96_0.05_140)]/50"
           : active
-            ? "border-[color:var(--voyce-gold,#FFD24A)] bg-[oklch(0.97_0.07_85)]/60 shadow-sm"
+            ? "border-[color:var(--voyce-gold,#FFDF3B)] bg-[oklch(0.97_0.07_85)]/60 shadow-sm"
             : "border-border bg-card/50 opacity-70"
       }`}
       style={

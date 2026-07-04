@@ -13,7 +13,7 @@ export type ReportDetails = {
   phone: string;
 };
 
-const GOLD = "#FFD24A";
+const GOLD = "#FFDF3B";
 const DEEP_GOLD = "#C9871A";
 
 const ANIMAL_TYPES = ["Dog", "Cat", "Puppy", "Kitten", "Other"];

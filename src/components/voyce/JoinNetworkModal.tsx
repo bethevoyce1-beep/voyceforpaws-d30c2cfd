@@ -111,7 +111,7 @@ export function JoinNetworkModal({
             </p>
             <button
               onClick={onClose}
-              className="mt-6 rounded-full bg-[#FFD24A] px-5 py-2.5 text-sm font-semibold text-[#3A2A07] shadow"
+              className="mt-6 rounded-full bg-[#FFDF3B] px-5 py-2.5 text-sm font-semibold text-[#3A2A07] shadow"
             >
               Done
             </button>
@@ -136,7 +136,7 @@ export function JoinNetworkModal({
                     onClick={() => toggle(r.id)}
                     className={`flex w-full items-center justify-between gap-3 rounded-2xl border-2 px-3.5 py-2.5 text-left transition ${
                       on
-                        ? "border-[#FFD24A] bg-[#FFF7D6]"
+                        ? "border-[#FFDF3B] bg-[#FFF7D6]"
                         : "border-[#EAE6DE] bg-white hover:bg-[#FAF8F5]"
                     }`}
                   >
@@ -152,7 +152,7 @@ export function JoinNetworkModal({
                     <span
                       className={`grid h-5 w-5 place-content-center rounded border-2 text-[11px] font-bold ${
                         on
-                          ? "border-[#C9871A] bg-[#FFD24A] text-[#3A2A07]"
+                          ? "border-[#C9871A] bg-[#FFDF3B] text-[#3A2A07]"
                           : "border-[#D9D2C2] bg-white text-transparent"
                       }`}
                     >
@@ -226,7 +226,7 @@ export function JoinNetworkModal({
             <button
               onClick={submit}
               disabled={submitting}
-              className="mt-5 w-full rounded-2xl border-2 border-[#FFD24A] bg-black px-5 py-3 text-[14px] font-bold uppercase tracking-wide text-white shadow-lg transition hover:brightness-110 active:scale-[0.99] disabled:opacity-70"
+              className="mt-5 w-full rounded-2xl border-2 border-[#FFDF3B] bg-black px-5 py-3 text-[14px] font-bold uppercase tracking-wide text-white shadow-lg transition hover:brightness-110 active:scale-[0.99] disabled:opacity-70"
             >
               {submitting ? "Joining…" : "Join the Network →"}
             </button>

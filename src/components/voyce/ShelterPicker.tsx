@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { listAcsAnimals, type AcsAnimal, type AcsListResult } from "@/lib/acs.functions";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
 
-const GOLD = "#FFD24A";
+const GOLD = "#FFDF3B";
 const GOLD_DEEP = "#C9871A";
 const PAPER = "#FAF7F1";
 const INK = "#1A1611";

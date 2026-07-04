@@ -54,7 +54,7 @@ const RIBBONS: Record<RibbonKey, RibbonStyle> = {
   },
   care_needed: {
     label: "💛 CARE NEEDED",
-    gradient: "linear-gradient(135deg, #FFD24A 0%, #C9871A 100%)",
+    gradient: "linear-gradient(135deg, #FFDF3B 0%, #C9871A 100%)",
     textOnRibbon: "#3A2A07",
     titleColor: "#8A5A0E",
     subtitle: "Could use a closer look soon",
@@ -588,7 +588,7 @@ export function RescueReport({
                     type="button"
                     onClick={() => setAcceptedSituation(voyceSituation)}
                     className="mt-2 rounded-full px-3 py-1 text-[12px] font-bold"
-                    style={{ background: "#FFD24A", color: "#3A2A07" }}
+                    style={{ background: "#FFDF3B", color: "#3A2A07" }}
                   >
                     Use this
                   </button>
@@ -963,7 +963,7 @@ function WhereFound({ data }: { data: Assessment }) {
 function ResponderBriefing({ data, calm }: { data: Assessment; calm: boolean }) {
   if (calm) {
     return (
-      <div className="rounded-2xl border-2 border-[#FFD24A]/60 bg-[#FFFBEC] px-4 py-3.5">
+      <div className="rounded-2xl border-2 border-[#FFDF3B]/60 bg-[#FFFBEC] px-4 py-3.5">
         <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A5A0E]">
           For the responder
         </div>
@@ -1096,7 +1096,7 @@ function ShareConfirmDialog({
           <button
             type="button"
             onClick={onConfirm}
-            className="rounded-full bg-gradient-to-b from-[#FFD24A] to-[#C9871A] px-4 py-2 text-sm font-semibold text-[#3A2A07] shadow-sm transition hover:brightness-105 active:scale-[0.98]"
+            className="rounded-full bg-gradient-to-b from-[#FFDF3B] to-[#C9871A] px-4 py-2 text-sm font-semibold text-[#3A2A07] shadow-sm transition hover:brightness-105 active:scale-[0.98]"
           >
             Share anyway
           </button>

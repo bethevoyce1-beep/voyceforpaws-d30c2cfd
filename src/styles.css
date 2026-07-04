@@ -65,7 +65,7 @@
 
 :root {
   --radius: 0.875rem;
-  /* Voyce brand: cream #FAF8F5, gold #FFD24A, deep gold #C9871A */
+  /* Voyce brand: cream #FAF8F5, gold #FFDF3B, deep gold #C9871A */
   --background: oklch(0.977 0.005 85);
   --foreground: oklch(0.22 0.02 60);
   --card: oklch(1 0 0);
@@ -180,7 +180,7 @@
   border-radius: 50%;
   background: #FFDE2E;
   box-shadow:
-    0 0 6px rgba(255, 216, 77, 0.95),
+    0 0 6px rgba(255, 223, 59, 0.95),
     0 0 12px rgba(255, 222, 46, 0.55);
   animation: voyceLogoDot 1.6s ease-in-out infinite;
 }
@@ -190,7 +190,7 @@
     transform: scale(1.25);
     opacity: 1;
     box-shadow:
-      0 0 12px rgba(255, 216, 77, 0.95),
+      0 0 12px rgba(255, 223, 59, 0.95),
       0 0 22px rgba(255, 222, 46, 0.55);
   }
 }

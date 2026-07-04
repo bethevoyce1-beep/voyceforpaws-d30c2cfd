@@ -573,7 +573,7 @@ export function ShareCard({
 
             {/* Location */}
             <p className="mt-1 flex items-center gap-1.5 text-[13.5px] font-medium text-[#374151]">
-              <span style={{ color: "#FFD24A" }}>📍</span>
+              <span style={{ color: "#FFDF3B" }}>📍</span>
               <span>Near {street} · {city}</span>
             </p>
 
@@ -700,7 +700,7 @@ export function ShareCard({
             {/* Row 3: More */}
             <button
               onClick={() => setShareMoreOpen(true)}
-              className="mt-2 w-full rounded-xl border-[1.5px] border-[#FFD24A] bg-black py-2.5 text-[12px] font-bold tracking-wide text-[#FFD24A] transition active:scale-[0.99]"
+              className="mt-2 w-full rounded-xl border-[1.5px] border-[#FFDF3B] bg-black py-2.5 text-[12px] font-bold tracking-wide text-[#FFDF3B] transition active:scale-[0.99]"
             >
               ⋯  More share options
             </button>
@@ -731,7 +731,7 @@ export function ShareCard({
         <div
           className="mt-4 rounded-2xl px-5 py-5 text-center shadow-[0_10px_30px_-15px_rgba(217,119,6,0.55)]"
           style={{
-            background: "linear-gradient(135deg, #FFD24A 0%, #F59E0B 100%)",
+            background: "linear-gradient(135deg, #FFDF3B 0%, #F59E0B 100%)",
             color: "#3A2A07",
           }}
         >
@@ -743,7 +743,7 @@ export function ShareCard({
           </p>
           <button
             onClick={() => openModal()}
-            className="mt-3 w-full rounded-full bg-black px-5 py-3 text-[12.5px] font-extrabold uppercase tracking-wider text-[#FFD24A] transition active:scale-[0.99]"
+            className="mt-3 w-full rounded-full bg-black px-5 py-3 text-[12.5px] font-extrabold uppercase tracking-wider text-[#FFDF3B] transition active:scale-[0.99]"
           >
             Join the Network →
           </button>

@@ -23,7 +23,7 @@ const ACS = {
 } as const;
 
 // ----- color tokens (Voyce gold + ACS red) -----
-const GOLD = "#FFD24A";
+const GOLD = "#FFDF3B";
 const GOLD_DEEP = "#C9871A";
 const GOLD_INK = "#3A2A07";
 const RED1 = "#DC2626";
@@ -507,7 +507,7 @@ export function AcsShareCard({
           </div>
           <button
             onClick={() => setShareMoreOpen(true)}
-            className="mx-5 mt-2 mb-5 block w-[calc(100%-2.5rem)] rounded-xl border-[1.5px] border-[#FFD24A] bg-black py-2.5 text-[12px] font-bold tracking-wide text-[#FFD24A] transition active:scale-[0.99]"
+            className="mx-5 mt-2 mb-5 block w-[calc(100%-2.5rem)] rounded-xl border-[1.5px] border-[#FFDF3B] bg-black py-2.5 text-[12px] font-bold tracking-wide text-[#FFDF3B] transition active:scale-[0.99]"
           >
             ⋯  More share options
           </button>
@@ -701,7 +701,7 @@ function AddMediaModal({
             </p>
             <button
               onClick={onClose}
-              className="mt-4 rounded-full bg-[#FFD24A] px-5 py-2.5 text-sm font-bold text-[#3A2A07]"
+              className="mt-4 rounded-full bg-[#FFDF3B] px-5 py-2.5 text-sm font-bold text-[#3A2A07]"
             >
               Done
             </button>
@@ -769,7 +769,7 @@ function AddMediaModal({
             <button
               onClick={submit}
               disabled={busy}
-              className="mt-4 w-full rounded-2xl border-2 border-[#FFD24A] bg-black px-5 py-3 text-[13px] font-bold uppercase tracking-wide text-white shadow-lg transition active:scale-[0.99] disabled:opacity-70"
+              className="mt-4 w-full rounded-2xl border-2 border-[#FFDF3B] bg-black px-5 py-3 text-[13px] font-bold uppercase tracking-wide text-white shadow-lg transition active:scale-[0.99] disabled:opacity-70"
             >
               {busy ? "Saving…" : "Save with credit"}
             </button>

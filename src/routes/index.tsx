@@ -617,7 +617,7 @@ function CaptureScreen({
                   onClick={handleTakePhoto}
                   className="flex flex-col items-center justify-center gap-1.5 rounded-2xl py-4 text-[13.5px] font-bold shadow-sm transition active:scale-[0.98] hover:brightness-105"
                   style={{
-                    background: "linear-gradient(135deg, #FFD24A 0%, #C9871A 100%)",
+                    background: "linear-gradient(135deg, #FFDF3B 0%, #C9871A 100%)",
                     color: "#3A2A07",
                   }}
                 >
@@ -735,7 +735,7 @@ function CaptureScreen({
               >
                 <div
                   className="relative h-16 w-16 overflow-hidden rounded-full shadow-inner"
-                  style={{ background: "linear-gradient(135deg, #FFD24A 0%, #C9871A 100%)" }}
+                  style={{ background: "linear-gradient(135deg, #FFDF3B 0%, #C9871A 100%)" }}
                 >
                   <div
                     className="absolute inset-0 rounded-full"
