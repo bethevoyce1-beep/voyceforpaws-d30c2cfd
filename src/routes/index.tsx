@@ -295,6 +295,7 @@ function Home() {
         animalIndex={idx}
         onSelectAnimal={setAnimalIndex}
         onContinue={() => setStage("share")}
+        onDone={() => setStage("timeline")}
       />
     );
   }

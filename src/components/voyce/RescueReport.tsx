@@ -127,6 +127,7 @@ export function RescueReport({
   animalIndex = 0,
   onSelectAnimal,
   onContinue,
+  onDone,
 }: {
   image: string;
   data: Assessment;
@@ -137,12 +138,14 @@ export function RescueReport({
   animalIndex?: number;
   onSelectAnimal?: (i: number) => void;
   onContinue: () => void;
+  onDone?: () => void;
 }) {
   const [tab, setTab] = useState<"story" | "vet">("story");
   const [shareConfirm, setShareConfirm] = useState(false);
   const [pendingShare, setPendingShare] = useState<SharePlatform | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [sentModal, setSentModal] = useState<null | "online" | "offline">(null);
   const m = MISSIONS[mission];
   const urgency = useMemo(() => getUrgency(data, mission), [data, mission]);
   const condition = useMemo(() => getCondition(data), [data]);
@@ -167,7 +170,10 @@ export function RescueReport({
   // ("Couldn't verify you're human"). Spam protection still runs at JoinNetworkModal
   // and other real submit points where it's actually useful.
   const handleSubmitReport = () => {
-    onContinue();
+    // Auto-notify the network. Manual sharing is optional — and the fallback
+    // when the reporter is offline and we can't reach the network.
+    const online = typeof navigator === "undefined" ? true : navigator.onLine;
+    setSentModal(online ? "online" : "offline");
   };
 
   const performShare = (platform: SharePlatform) => {
@@ -693,7 +699,7 @@ export function RescueReport({
             disabled={submitting}
             className="rounded-full bg-gradient-to-b from-[oklch(0.90_0.16_85)] to-[oklch(0.78_0.15_70)] px-6 py-2.5 text-sm font-semibold text-[oklch(0.25_0.04_60)] shadow-md transition hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {submitting ? "Verifying…" : "Continue →"}
+            {submitting ? "Verifying…" : "Send to rescuers"}
           </button>
         </div>
       </div>
@@ -712,6 +718,19 @@ export function RescueReport({
           }}
         />
 
+      )}
+      {sentModal && (
+        <ReportSentDialog
+          offline={sentModal === "offline"}
+          onShare={() => {
+            setSentModal(null);
+            onContinue();
+          }}
+          onDone={() => {
+            setSentModal(null);
+            (onDone ?? onContinue)();
+          }}
+        />
       )}
     </div>
   );
@@ -1077,6 +1096,66 @@ function AIHealthDisclaimer() {
         Always verify with a licensed veterinarian before any medical, rescue, or transport
         decision. Voyce is not liable for outcomes from acting on this AI assessment.
       </p>
+    </div>
+  );
+}
+
+function ReportSentDialog({
+  offline,
+  onShare,
+  onDone,
+}: {
+  offline: boolean;
+  onShare: () => void;
+  onDone: () => void;
+}) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="voyce-sent-title"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 sm:items-center sm:pb-10"
+      onClick={onDone}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-sm rounded-3xl border border-border bg-card p-6 text-center shadow-2xl"
+      >
+        <div
+          className="mx-auto flex h-14 w-14 items-center justify-center rounded-full"
+          style={{ background: offline ? "#FBEFD6" : "#E7F6EC" }}
+        >
+          <span className="text-3xl" aria-hidden>{offline ? "📡" : "✅"}</span>
+        </div>
+        <h3
+          id="voyce-sent-title"
+          className="mt-4 font-serif text-xl font-semibold tracking-tight"
+        >
+          {offline ? "You're offline" : "Report Sent to Rescuers!"}
+        </h3>
+        <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">
+          {offline
+            ? "We couldn't auto-notify the network. Share manually to reach people nearby — we'll send it automatically once you're back online."
+            : "Nearby rescuers and NGOs have been notified. Your report is being processed — you'll see it on your home screen shortly."}
+        </p>
+        <div className="mt-5 flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={offline ? onShare : onDone}
+            className="w-full rounded-full py-3 text-[15px] font-bold transition active:scale-[0.99]"
+            style={{ background: "#FFDF3B", color: "#3A2A07" }}
+          >
+            {offline ? "Share now" : "OK"}
+          </button>
+          <button
+            type="button"
+            onClick={offline ? onDone : onShare}
+            className="w-full rounded-full border border-border bg-background py-2.5 text-[13.5px] font-medium text-foreground transition hover:bg-muted"
+          >
+            {offline ? "I'll try later" : "Share to spread the word"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
