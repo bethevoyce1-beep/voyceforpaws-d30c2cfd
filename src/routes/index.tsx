@@ -198,6 +198,8 @@ function Home() {
   // arrow in the shared header (via BackNavContext) on screens that don't
   // already have their own back control.
   const backTargets: Partial<Record<Stage, Stage>> = {
+    shelter: "mission",
+    capture: "mission",
     processing: "capture",
     details: "capture",
     report: "details",
@@ -208,26 +210,41 @@ function Home() {
   };
   const goBack = () => {
     const prev = backTargets[stage];
-    if (prev) {
-      setStage(prev);
-      return;
-    }
-    // Root screen — step back out of the flow to wherever the user came from.
-    if (typeof window !== "undefined") window.history.back();
+    if (prev) setStage(prev);
+    // On the home screen there's nowhere further back — stay put.
   };
-  // Wrap a screen so the header shows a back arrow to the previous step.
+  const canGoBack = !!backTargets[stage];
+  // Wrap a screen so it shows the header back arrow AND a bottom Back pill.
   const withBack = (el: React.ReactNode) => (
-    <BackNavContext.Provider value={goBack}>{el}</BackNavContext.Provider>
+    <BackNavContext.Provider value={goBack}>
+      {el}
+      {canGoBack && <BackFab onClick={goBack} />}
+    </BackNavContext.Provider>
   );
 
+  // Make the phone/browser Back button step back through the app instead of
+  // jumping out to the first page: keep a throwaway history entry armed and,
+  // when it's popped, re-arm it and do an in-app back.
+  const goBackRef = useRef(goBack);
+  goBackRef.current = goBack;
+  useEffect(() => {
+    window.history.pushState(null, "");
+    const onPop = () => {
+      window.history.pushState(null, "");
+      goBackRef.current();
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
   if (stage === "mission") {
-    return withBack(
+    return (
       <MissionPicker
         onPick={(id) => {
           setMission(id);
           setStage(id === "at-risk-shelter" ? "shelter" : "capture");
         }}
-      />,
+      />
     );
   }
 
@@ -336,6 +353,20 @@ function Home() {
   );
 }
 
+
+function BackFab({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Go back"
+      className="fixed bottom-4 left-4 z-40 flex items-center gap-1.5 rounded-full border border-border bg-card/95 px-4 py-2 text-[13px] font-semibold text-foreground shadow-lg backdrop-blur transition active:scale-95"
+      style={{ marginBottom: "env(safe-area-inset-bottom)" }}
+    >
+      <span aria-hidden>←</span> Back
+    </button>
+  );
+}
 
 function CaptureScreen({
   onAnalyze,

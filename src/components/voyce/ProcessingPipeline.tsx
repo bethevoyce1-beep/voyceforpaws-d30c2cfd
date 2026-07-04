@@ -63,7 +63,7 @@ const DEEP_GOLD = "#C9871A";
 const GREEN = "oklch(0.6 0.17 145)";
 
 // Step durations in ms (steps 2 and 4 are the wow moments)
-const STEP_MS = [1000, 2500, 1000, 3000, 1000, 1000, 1000];
+const STEP_MS = [1000, 2500, 1000, 3000, 1000];
 
 export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment, onComplete, onRetry, onLocate }: Props) {
   const [elapsed, setElapsed] = useState(0);
@@ -121,7 +121,7 @@ export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment
   // Advance steps on a timer. Step 4 (index 3) waits for AI; final step waits for AI too.
   const timerRef = useRef<number | null>(null);
   useEffect(() => {
-    if (step >= 7) return;
+    if (step >= 5) return;
     // Gate AI step: don't advance past step index 3 until AI is done
     if (step === 3 && aiPending) return;
     timerRef.current = window.setTimeout(() => setStep((s) => s + 1), STEP_MS[step]);
@@ -132,7 +132,7 @@ export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment
 
   // Complete handoff
   useEffect(() => {
-    if (step >= 7 && !aiPending && !aiError) {
+    if (step >= 5 && !aiPending && !aiError) {
       setFrozen(true);
       const t = setTimeout(onComplete, 900);
       return () => clearTimeout(t);
@@ -141,7 +141,7 @@ export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment
 
   const mm = Math.floor(elapsed / 60);
   const ss = Math.floor(elapsed % 60).toString().padStart(2, "0");
-  const progressPct = Math.min(100, (Math.min(step, 7) / 7) * 100);
+  const progressPct = Math.min(100, (Math.min(step, 5) / 5) * 100);
 
   const steps = useMemo(
     () => [
@@ -163,15 +163,7 @@ export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment
       },
       {
         title: "🪪 Creating rescue card",
-        sub: "Rescue Profile + Health Assessment, side by side.",
-      },
-      {
-        title: "📢 Alerting the network",
-        sub: "Reaching rescuers, fosters, vets, shelters, and animal lovers nearby.",
-      },
-      {
-        title: "❤️ Voyce answers",
-        sub: "Your rescue card is ready. You'll be notified when someone responds.",
+        sub: "Reading the photo into a Rescue Profile + Health Assessment.",
       },
     ],
     [],
@@ -255,7 +247,7 @@ export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment
           />
         </div>
         <div className="mt-1.5 text-right text-[11px] font-medium text-muted-foreground tabular-nums">
-          {Math.min(step, 7)}/7
+          {Math.min(step, 5)}/5
         </div>
 
         {/* Steps */}

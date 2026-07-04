@@ -83,7 +83,7 @@ export function ReportDetails({
   onContinue: (details: ReportDetails) => void;
 }) {
   const [animalType, setAnimalType] = useState<string>(() => initialAnimalType(assessment));
-  const [situation, setSituation] = useState<string>(() => initialSituation(mission, assessment));
+  const [situation, setSituation] = useState<string>(""); // reporter picks; only animal type is pre-filled from the AI
   const [witnessed, setWitnessed] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
 
