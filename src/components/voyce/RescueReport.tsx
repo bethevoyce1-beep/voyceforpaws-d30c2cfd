@@ -116,12 +116,14 @@ export function RescueReport({
   data,
   mission,
   location,
+  situation,
   onContinue,
 }: {
   image: string;
   data: Assessment;
   mission: MissionId;
   location?: { lat: number; lon: number; label: string } | null;
+  situation?: string;
   onContinue: () => void;
 }) {
   const [tab, setTab] = useState<"story" | "vet">("story");
@@ -129,7 +131,6 @@ export function RescueReport({
   const [pendingShare, setPendingShare] = useState<SharePlatform | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [acceptedSituation, setAcceptedSituation] = useState<string | null>(null);
   const m = MISSIONS[mission];
   const urgency = useMemo(() => getUrgency(data, mission), [data, mission]);
   const condition = useMemo(() => getCondition(data), [data]);
@@ -231,15 +232,9 @@ export function RescueReport({
               ? "Prevention / Care"
               : "Stray";
 
-  // Voyce's own read of the situation from the photo — surfaced only when the AI
-  // is reasonably confident, as a one-tap suggestion the reporter can accept.
-  const voyceSituation =
-    data.situation_confidence === "high" && data.suggested_situation
-      ? data.suggested_situation
-      : null;
-  const effectiveType = acceptedSituation ?? reportType;
-  const showVoyceSituation =
-    !!voyceSituation && !acceptedSituation && voyceSituation !== reportType;
+  // The reporter confirmed the situation in the "Tell us about them" form
+  // (pre-filled from Voyce's read), so the card shows that directly.
+  const effectiveType = situation || reportType;
   // One Google Maps link, shared by the View Map pill and the Navigate action.
   const mapsUrl = location
     ? `https://www.google.com/maps/search/?api=1&query=${location.lat},${location.lon}`
@@ -600,34 +595,6 @@ export function RescueReport({
             )}
 
           </div>
-
-          {showVoyceSituation && (
-            <div className="mx-5 mt-4 rounded-2xl border px-4 py-3" style={{ borderColor: "#ECD9A6", background: "#FBF3DF" }}>
-              <div className="flex items-start gap-2.5">
-                <span className="text-[15px]" aria-hidden>🔎</span>
-                <div className="flex-1">
-                  <p className="text-[13px] leading-snug" style={{ color: "#7a6320" }}>
-                    Voyce read this as <span className="font-bold">{voyceSituation}</span>.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setAcceptedSituation(voyceSituation)}
-                    className="mt-2 rounded-full px-3 py-1 text-[12px] font-bold"
-                    style={{ background: "#FFDF3B", color: "#3A2A07" }}
-                  >
-                    Use this
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-          {acceptedSituation && (
-            <div className="mx-5 mt-4 rounded-2xl border px-4 py-2.5" style={{ borderColor: "#CDE7D3", background: "#EDF7EF" }}>
-              <p className="text-[12.5px]" style={{ color: "#2f6b3d" }}>
-                ✓ Updated to <span className="font-bold">{acceptedSituation}</span>.
-              </p>
-            </div>
-          )}
 
           {/* 13 — Report details (gray footer block) */}
           <div className="mx-5 mt-5 rounded-2xl bg-muted/40 px-4 py-3.5">

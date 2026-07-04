@@ -122,47 +122,21 @@ function Home() {
   const [location, setLocation] = useState<{ lat: number; lon: number; label: string } | null>(null);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [acsAnimal, setAcsAnimal] = useState<AcsAnimal | null>(null);
-  const [, setReportDetails] = useState<ReportDetailsData | null>(null);
+  const [reportDetails, setReportDetails] = useState<ReportDetailsData | null>(null);
   const [aiPending, setAiPending] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
-  // Photo captured/selected → go collect the reporter's details BEFORE analyzing,
-  // so the AI can build the card with that on-scene context.
-  const handleCaptured = useCallback(
-    async (src: string, meta?: PhotoMeta | null) => {
-      const dataUrl = await toDataUrl(src);
-      setCaptured(dataUrl);
-      setCaptureMeta(meta ?? null);
-      setStage("details");
-    },
-    [],
-  );
-
-  // Reporter finished the "Tell us about them" form → now analyze the photo,
-  // passing their answers to the AI as context.
-  const startAnalysis = useCallback(
-    async (details: ReportDetailsData) => {
-      if (!captured) return;
-      setReportDetails(details);
+  // Analyze the photo as soon as it's captured — the AI goes first, then the
+  // reporter refines details afterward ("what did Voyce miss?").
+  const runAnalysis = useCallback(
+    async (dataUrl: string, meta: PhotoMeta | null) => {
       setAiPending(true);
       setAiError(null);
       setAssessment(null);
-      setStage("processing");
       try {
         const result = await analyzeImage({
-          data: {
-            imageDataUrl: captured,
-            mission,
-            context: {
-              animalType: details.animalType,
-              situation: details.situation,
-              witnessed: details.witnessed,
-              notes: details.notes,
-            },
-          },
+          data: { imageDataUrl: dataUrl, mission, context: {} },
         });
-        // Simple per-device case number (VFP-0001, VFP-0002…). No backend needed
-        // for testing; swap for a real saved Supabase ID later.
         const caseId = (() => {
           try {
             const n = (parseInt(localStorage.getItem("voyce_case_seq") || "0", 10) || 0) + 1;
@@ -172,11 +146,9 @@ function Home() {
             return "VFP-" + String(Date.now()).slice(-4);
           }
         })();
-        // If the uploaded photo carried its own capture time, stamp the report
-        // as of when the animal was actually seen — not when it was uploaded.
         setAssessment(
-          captureMeta?.takenAt
-            ? { ...result, caseId, reportedAt: new Date(captureMeta.takenAt).toISOString() }
+          meta?.takenAt
+            ? { ...result, caseId, reportedAt: new Date(meta.takenAt).toISOString() }
             : { ...result, caseId },
         );
       } catch (e) {
@@ -187,8 +159,27 @@ function Home() {
         setAiPending(false);
       }
     },
-    [captured, mission, captureMeta],
+    [mission],
   );
+
+  // Photo captured/selected → analyze immediately, then collect the reporter's
+  // corrections in the "Tell us about them" form.
+  const handleCaptured = useCallback(
+    async (src: string, meta?: PhotoMeta | null) => {
+      const dataUrl = await toDataUrl(src);
+      setCaptured(dataUrl);
+      setCaptureMeta(meta ?? null);
+      setStage("processing");
+      void runAnalysis(dataUrl, meta ?? null);
+    },
+    [runAnalysis],
+  );
+
+  // Reporter finished the "Tell us about them" form → build the final card.
+  const startReport = useCallback((details: ReportDetailsData) => {
+    setReportDetails(details);
+    setStage("report");
+  }, []);
 
   const reset = () => {
     setStage("mission");
@@ -205,8 +196,8 @@ function Home() {
   // arrow in the shared header (via BackNavContext) on screens that don't
   // already have their own back control.
   const backTargets: Partial<Record<Stage, Stage>> = {
+    processing: "capture",
     details: "capture",
-    processing: "details",
     report: "details",
     share: "report",
     timeline: "share",
@@ -246,12 +237,13 @@ function Home() {
     );
   }
 
-  if (stage === "details" && captured) {
+  if (stage === "details" && captured && assessment) {
     return withBack(
       <ReportDetails
         image={captured}
         mission={mission}
-        onContinue={(d) => startAnalysis(d)}
+        assessment={assessment}
+        onContinue={startReport}
       />
     );
   }
@@ -265,7 +257,7 @@ function Home() {
         aiPending={aiPending}
         aiError={aiError}
         assessment={assessment}
-        onComplete={() => assessment && setStage("report")}
+        onComplete={() => assessment && setStage("details")}
         onRetry={() => {
           setCaptured(null);
           setCaptureMeta(null);
@@ -284,6 +276,7 @@ function Home() {
         data={assessment}
         mission={mission}
         location={location}
+        situation={reportDetails?.situation}
         onContinue={() => setStage("share")}
       />
     );

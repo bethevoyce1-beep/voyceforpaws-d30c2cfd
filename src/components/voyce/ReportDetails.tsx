@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import type { MissionId } from "@/lib/missions";
+import type { Assessment } from "@/lib/analyze.functions";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
 
 // Reporter-supplied details, collected after the AI card so the reporter can
@@ -21,6 +22,7 @@ const SITUATION_GROUPS: { header: string; options: string[] }[] = [
   { header: "Injured / sick", options: ["Injured or hit by a car", "Sick or in distress"] },
   { header: "Lost & found", options: ["Lost pet", "Found pet", "Abandoned puppies or kittens"] },
   { header: "Ongoing care", options: ["Stray, needs care", "Needs spay or vaccine", "At-risk shelter"] },
+  { header: "Just testing", options: ["Just testing on my own pet"] },
 ];
 
 // Things a photo CANNOT reveal — only the person on the scene knows these.
@@ -47,21 +49,43 @@ function defaultSituation(mission: MissionId): string {
   }
 }
 
+const ALL_SITUATIONS = SITUATION_GROUPS.flatMap((g) => g.options);
+
+// Pre-fill the animal type from what the AI read in the photo.
+function initialAnimalType(a?: Assessment | null): string {
+  if (!a) return "";
+  const age = (a.age || "").toLowerCase();
+  if (age.includes("puppy")) return "Puppy";
+  if (age.includes("kitten")) return "Kitten";
+  const sp = (a.species || "").toLowerCase();
+  if (sp === "dog") return "Dog";
+  if (sp === "cat") return "Cat";
+  return a.animal_present === false ? "" : "Other";
+}
+
+// Pre-select the situation from Voyce's read when it matches a pill, else the
+// mission default.
+function initialSituation(mission: MissionId, a?: Assessment | null): string {
+  const s = a?.suggested_situation;
+  if (s && ALL_SITUATIONS.includes(s)) return s;
+  return defaultSituation(mission);
+}
+
 export function ReportDetails({
   image,
   mission,
+  assessment,
   onContinue,
 }: {
   image: string;
   mission: MissionId;
+  assessment?: Assessment | null;
   onContinue: (details: ReportDetails) => void;
 }) {
-  const [animalType, setAnimalType] = useState<string>("");
-  const [situation, setSituation] = useState<string>(() => defaultSituation(mission));
+  const [animalType, setAnimalType] = useState<string>(() => initialAnimalType(assessment));
+  const [situation, setSituation] = useState<string>(() => initialSituation(mission, assessment));
   const [witnessed, setWitnessed] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
 
   const toggleWitnessed = (o: string) =>
     setWitnessed((prev) =>
@@ -74,8 +98,8 @@ export function ReportDetails({
       situation,
       witnessed,
       notes: notes.trim(),
-      email: email.trim(),
-      phone: phone.trim(),
+      email: "",
+      phone: "",
     });
   };
 
@@ -85,8 +109,8 @@ export function ReportDetails({
       <div className="mx-auto w-full max-w-md px-5 pt-4">
         <h1 className="font-serif text-[24px] font-bold tracking-tight">Tell us about them</h1>
         <p className="mt-1 text-[13.5px] leading-relaxed text-muted-foreground">
-          Tell Voyce a little about the animal first — this helps the AI build a more
-          accurate rescue card and reach the right responders.
+          Voyce already read the photo — check what it picked up and fix anything it
+          missed before the card goes out.
         </p>
 
         {/* Photo */}
@@ -129,28 +153,6 @@ export function ReportDetails({
           />
         </Section>
 
-        <Section label="How can we reach you? (optional)">
-          <input
-            type="email"
-            inputMode="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@email.com"
-            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-[14px] outline-none focus:border-[#C9871A]"
-          />
-          <input
-            type="tel"
-            inputMode="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="Phone or text (faster on the street)"
-            className="mt-2 w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-[14px] outline-none focus:border-[#C9871A]"
-          />
-          <p className="mt-1.5 text-[11.5px] leading-snug text-muted-foreground">
-            Shared only with responders who can help — never shown publicly.
-          </p>
-        </Section>
-
         <button
           type="button"
           onClick={submit}
@@ -163,7 +165,7 @@ export function ReportDetails({
           ✨ Build the rescue card
         </button>
         <p className="mt-3 text-center text-[11.5px] leading-relaxed text-muted-foreground">
-          Voyce AI will read the photo with these details and generate the card next.
+          We'll finalize the rescue card with your corrections.
         </p>
       </div>
     </div>
