@@ -663,7 +663,7 @@ export function RescueReport({
             >
               <div className="flex items-center gap-2 text-[14px] font-semibold">
                 <span>👥</span>
-                <span>Nearby helpers will be notified</span>
+                <span>Closest helpers alerted first</span>
               </div>
               <div className="mt-0.5 text-[12.5px] opacity-85">
                 {m.nearbyHelpers}
@@ -1136,7 +1136,7 @@ function ReportSentDialog({
         <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">
           {offline
             ? "We couldn't auto-notify the network. Share manually to reach people nearby — we'll send it automatically once you're back online."
-            : "Nearby rescuers and NGOs have been notified. Your report is being processed — you'll see it on your home screen shortly."}
+            : "The closest rescuers and NGOs get it first — the alert ripples outward until this animal is helped. Your report is being processed — you'll see it on your home screen shortly."}
         </p>
         <div className="mt-5 flex flex-col gap-2">
           <button

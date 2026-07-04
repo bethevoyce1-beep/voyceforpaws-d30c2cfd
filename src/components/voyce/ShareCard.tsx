@@ -223,7 +223,7 @@ function variantFor(mission: MissionId, data: Assessment): Variant {
         ],
         helpersBg: "#FEF2F2", helpersText: "#991B1B",
         helpersBody:
-          "Nearby helpers will be notified — rescues, volunteers & fosters in this area will be alerted the moment Voyce launches alerts.",
+          "Closest rescues, volunteers & fosters get it first, rippling outward until they're helped — live the moment Voyce launches alerts.",
         ctaRole: "Rescuer",
       };
     case "AT-RISK": {
@@ -256,7 +256,7 @@ function variantFor(mission: MissionId, data: Assessment): Variant {
         ],
         helpersBg: "#FFFBEB", helpersText: "#92400E",
         helpersBody:
-          "Shelter partners & rescuers will be notified — rescues, fosters & adopters in this area will see her when Voyce launches alerts.",
+          "Closest shelter partners & rescuers get it first, rippling outward — rescues, fosters & adopters will see her when Voyce launches alerts.",
         ctaRole: "Foster",
       };
     }
@@ -292,7 +292,7 @@ function variantFor(mission: MissionId, data: Assessment): Variant {
         ],
         helpersBg: "#EFF6FF", helpersText: "#1E40AF",
         helpersBody:
-          "Lost pet network will be notified — nearby lost pet alerts & owners will see her when Voyce launches alerts.",
+          "Closest lost-pet groups & owners get it first, rippling outward — they'll see her when Voyce launches alerts.",
         ctaRole: "Animal Lover",
       };
     case "PREVENTION":
@@ -346,7 +346,7 @@ function variantFor(mission: MissionId, data: Assessment): Variant {
         ],
         helpersBg: "#ECFEFF", helpersText: "#155E75",
         helpersBody:
-          "Rehabbers will be notified — licensed rehabbers in this area will see this case when Voyce launches alerts.",
+          "Closest licensed rehabbers get it first, rippling outward — they'll see this case when Voyce launches alerts.",
         ctaRole: "Rehabber",
       };
   }

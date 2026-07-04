@@ -93,7 +93,7 @@ export const MISSIONS: Record<MissionId, Mission> = {
       gradient: "linear-gradient(135deg, #FF6B35 0%, #D14848 100%)",
       textColor: "#FFFFFF",
     },
-    nearbyHelpers: "Rescues, volunteers & fosters in this area are being alerted.",
+    nearbyHelpers: "Closest rescues, volunteers & fosters get it first — the alert ripples outward until they're helped.",
   },
   "at-risk-shelter": {
     id: "at-risk-shelter",
@@ -136,7 +136,7 @@ export const MISSIONS: Record<MissionId, Mission> = {
       textColor: "#FFFFFF",
     },
     nearbyHelpers:
-      "The whole network is being alerted — rescuers, fosters, adopters, pledgers, transporters, vets, and animal lovers in the area.",
+      "Closest first, then rippling outward — rescuers, fosters, adopters, pledgers, transporters, vets & animal lovers alerted until this animal is safe.",
     showCountdown: true,
     extraDetails: [
       { label: "Shelter", value: "Riverside County AC" },
@@ -183,7 +183,7 @@ export const MISSIONS: Record<MissionId, Mission> = {
       gradient: "linear-gradient(135deg, #FFDF3B 0%, #C9871A 100%)",
       textColor: "#3A2A07",
     },
-    nearbyHelpers: "Neighbors, lost-pet groups, and local shelters in this area are being alerted.",
+    nearbyHelpers: "Closest neighbors, lost-pet groups & shelters get it first — rippling outward until they're home.",
   },
   prevention: {
     id: "prevention",
@@ -224,7 +224,7 @@ export const MISSIONS: Record<MissionId, Mission> = {
       gradient: "linear-gradient(135deg, #4ADE80 0%, #1F9D57 100%)",
       textColor: "#0F3A22",
     },
-    nearbyHelpers: "TNR volunteers, clinics, and rescue partners in this area are being notified.",
+    nearbyHelpers: "Closest TNR volunteers, clinics & rescue partners get it first — rippling outward until they're cared for.",
   },
   wildlife: {
     id: "wildlife",
@@ -264,7 +264,7 @@ export const MISSIONS: Record<MissionId, Mission> = {
       gradient: "linear-gradient(135deg, #9DB7FF 0%, #4A8FB5 100%)",
       textColor: "#FFFFFF",
     },
-    nearbyHelpers: "Licensed wildlife rehabbers and animal control in this area are being routed this report.",
+    nearbyHelpers: "Closest licensed rehabbers & animal control get it first — rippling outward until this animal is in expert hands.",
     showTopWarning: {
       title: "🚨 DO NOT HANDLE",
       body: "Wild animals can be dangerous to people AND to themselves if approached. Voyce routes only to licensed rehabbers.",
