@@ -240,6 +240,10 @@ export function RescueReport({
   const effectiveType = acceptedSituation ?? reportType;
   const showVoyceSituation =
     !!voyceSituation && !acceptedSituation && voyceSituation !== reportType;
+  // One Google Maps link, shared by the View Map pill and the Navigate action.
+  const mapsUrl = location
+    ? `https://www.google.com/maps/search/?api=1&query=${location.lat},${location.lon}`
+    : null;
 
   return (
     <div className="min-h-[100dvh] bg-background pb-32">
@@ -360,9 +364,9 @@ export function RescueReport({
                 <span>📍</span>
                 <span>{locationLine(data)}</span>
               </span>
-              {location && (
+              {mapsUrl && (
                 <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${location.lat},${location.lon}`}
+                  href={mapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 rounded-full border-[1.5px] px-3 py-1 text-[12.5px] font-bold no-underline transition active:scale-[0.97]"
@@ -421,7 +425,13 @@ export function RescueReport({
               {ACTIONS.map((a) => (
                 <button
                   key={a.label}
-                  onClick={a.label === "Share" ? () => setShareConfirm(true) : undefined}
+                  onClick={
+                    a.label === "Share"
+                      ? () => setShareConfirm(true)
+                      : a.label === "Navigate" && mapsUrl
+                        ? () => window.open(mapsUrl, "_blank", "noopener,noreferrer")
+                        : undefined
+                  }
                   className="flex flex-col items-center gap-1 rounded-xl border border-border bg-background/60 px-2 py-2.5 text-[11px] font-medium text-foreground/85 transition hover:bg-background hover:shadow-sm active:scale-[0.98]"
                 >
                   <span className="text-base leading-none">{a.icon}</span>
