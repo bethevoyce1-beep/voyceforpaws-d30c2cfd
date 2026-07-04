@@ -127,6 +127,7 @@ export function RescueReport({
   const [pendingShare, setPendingShare] = useState<SharePlatform | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [acceptedSituation, setAcceptedSituation] = useState<string | null>(null);
   const m = MISSIONS[mission];
   const urgency = useMemo(() => getUrgency(data, mission), [data, mission]);
   const condition = useMemo(() => getCondition(data), [data]);
@@ -227,6 +228,16 @@ export function RescueReport({
             : mission === "prevention"
               ? "Prevention / Care"
               : "Stray";
+
+  // Voyce's own read of the situation from the photo — surfaced only when the AI
+  // is reasonably confident, as a one-tap suggestion the reporter can accept.
+  const voyceSituation =
+    data.situation_confidence === "high" && data.suggested_situation
+      ? data.suggested_situation
+      : null;
+  const effectiveType = acceptedSituation ?? reportType;
+  const showVoyceSituation =
+    !!voyceSituation && !acceptedSituation && voyceSituation !== reportType;
 
   return (
     <div className="min-h-[100dvh] bg-background pb-32">
@@ -565,6 +576,34 @@ export function RescueReport({
 
           </div>
 
+          {showVoyceSituation && (
+            <div className="mx-5 mt-4 rounded-2xl border px-4 py-3" style={{ borderColor: "#ECD9A6", background: "#FBF3DF" }}>
+              <div className="flex items-start gap-2.5">
+                <span className="text-[15px]" aria-hidden>🔎</span>
+                <div className="flex-1">
+                  <p className="text-[13px] leading-snug" style={{ color: "#7a6320" }}>
+                    Voyce read this as <span className="font-bold">{voyceSituation}</span>.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setAcceptedSituation(voyceSituation)}
+                    className="mt-2 rounded-full px-3 py-1 text-[12px] font-bold"
+                    style={{ background: "#FFD24A", color: "#3A2A07" }}
+                  >
+                    Use this
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {acceptedSituation && (
+            <div className="mx-5 mt-4 rounded-2xl border px-4 py-2.5" style={{ borderColor: "#CDE7D3", background: "#EDF7EF" }}>
+              <p className="text-[12.5px]" style={{ color: "#2f6b3d" }}>
+                ✓ Updated to <span className="font-bold">{acceptedSituation}</span>.
+              </p>
+            </div>
+          )}
+
           {/* 13 — Report details (gray footer block) */}
           <div className="mx-5 mt-5 rounded-2xl bg-muted/40 px-4 py-3.5">
             <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
@@ -574,7 +613,7 @@ export function RescueReport({
               {data.caseId && <ReportRow label="Case #" value={data.caseId} />}
               <ReportRow label="Reported by" value="Reporter (no account)" />
               <ReportRow label="Reported at" value={stamp} />
-              <ReportRow label="Type" value={reportType} />
+              <ReportRow label="Type" value={effectiveType} />
               <ReportRow label="Visibility" value="Public" />
               {!isMonitoringFallback &&
                 m.extraDetails?.map((d) => (

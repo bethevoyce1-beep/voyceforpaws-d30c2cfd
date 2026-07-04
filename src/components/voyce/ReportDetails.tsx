@@ -17,13 +17,10 @@ const GOLD = "#FFD24A";
 const DEEP_GOLD = "#C9871A";
 
 const ANIMAL_TYPES = ["Dog", "Cat", "Puppy", "Kitten", "Other"];
-const SITUATIONS = [
-  "Injured / Sick",
-  "Stray / Needs care",
-  "Lost pet",
-  "Found pet",
-  "At-risk shelter",
-  "Needs spay/vaccine",
+const SITUATION_GROUPS: { header: string; options: string[] }[] = [
+  { header: "Injured / sick", options: ["Injured or hit by a car", "Sick or in distress"] },
+  { header: "Lost & found", options: ["Lost pet", "Found pet", "Abandoned puppies or kittens"] },
+  { header: "Ongoing care", options: ["Stray, needs care", "Needs spay or vaccine", "At-risk shelter"] },
 ];
 
 // Things a photo CANNOT reveal — only the person on the scene knows these.
@@ -38,15 +35,15 @@ const WITNESSED = [
 function defaultSituation(mission: MissionId): string {
   switch (mission) {
     case "injured":
-      return "Injured / Sick";
+      return "Injured or hit by a car";
     case "at-risk-shelter":
       return "At-risk shelter";
     case "lost-found":
       return "Lost pet";
     case "prevention":
-      return "Needs spay/vaccine";
+      return "Needs spay or vaccine";
     default:
-      return "Stray / Needs care";
+      return "Stray, needs care";
   }
 }
 
@@ -102,7 +99,16 @@ export function ReportDetails({
         </Section>
 
         <Section label="What's happening?">
-          <Chips options={SITUATIONS} value={situation} onChange={setSituation} />
+          <div className="space-y-3">
+            {SITUATION_GROUPS.map((g) => (
+              <div key={g.header}>
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground/45">
+                  {g.header}
+                </p>
+                <Chips options={g.options} value={situation} onChange={setSituation} />
+              </div>
+            ))}
+          </div>
         </Section>
 
         <Section label="Did you see any of these? (the photo can't tell us)">

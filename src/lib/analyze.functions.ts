@@ -60,6 +60,8 @@ export type Assessment = {
   differentials?: string[];      // differential possibilities
   reportedAt?: string;           // ISO timestamp set when the AI assessment completes
   caseId?: string;               // human-facing case reference, e.g. "VFP-0042"
+  suggested_situation?: string;  // best-fit reporter-situation label read from the photo
+  situation_confidence?: "high" | "medium" | "low"; // how sure Voyce is about it
 };
 
 
@@ -104,7 +106,9 @@ Set visible_condition to "Healthy", "Concerning", or "Critical" based on the vis
 
 symptoms[]: every visible health sign as a short clinical-phrased line (e.g. "Mucopurulent ocular discharge, OD", "Right hindlimb non-weight-bearing lameness", "BCS 3/9 — underweight").
 clinical_actions[]: concrete clinician-oriented next steps (e.g. "Full physical exam", "Right hindlimb radiograph", "SC fluids 30 mL/kg", "FeLV/FIV snap test"). 3-5 items max.
-differentials[]: 2-4 differential possibilities a vet would consider given what's visible (e.g. "URI (feline herpesvirus / calicivirus)", "Soft-tissue trauma vs fracture", "Dehydration secondary to GI loss"). Omit or empty array if nothing concerning is visible.`;
+differentials[]: 2-4 differential possibilities a vet would consider given what's visible (e.g. "URI (feline herpesvirus / calicivirus)", "Soft-tissue trauma vs fracture", "Dehydration secondary to GI loss"). Omit or empty array if nothing concerning is visible.
+
+SITUATION READ. Pick the single best-fit "suggested_situation" for what the photo shows, choosing ONLY from this exact list: "Injured or hit by a car", "Sick or in distress", "Lost pet", "Found pet", "Abandoned puppies or kittens", "Stray, needs care", "Needs spay or vaccine", "At-risk shelter". Set "situation_confidence" to "high" ONLY when the photo clearly supports it (e.g. visible injury for "Injured or hit by a car", grooming/collar for "Lost pet", multiple neonates for "Abandoned puppies or kittens"); otherwise use "medium" or "low". When unsure, prefer "low" — never guess "high".`;
 
 
 const SCHEMA_HINT = `{
@@ -113,6 +117,8 @@ const SCHEMA_HINT = `{
   "title": "short cinematic title, e.g. 'Tabby resting on a sunlit couch'",
   "status": "Urgent | Monitoring | Stable | Healthy | Safe",
   "status_reason": "one short clause, e.g. 'Likely a pet at home'",
+  "suggested_situation": "best-fit label from: Injured or hit by a car | Sick or in distress | Lost pet | Found pet | Abandoned puppies or kittens | Stray, needs care | Needs spay or vaccine | At-risk shelter",
+  "situation_confidence": "high | medium | low (high only when the photo clearly supports it)",
   "species": "dog | cat | bird | other | none (if no animal)",
   "breed": "best guess or 'mixed / unknown'",
   "age": "puppy/kitten | young | adult | senior | unknown",
