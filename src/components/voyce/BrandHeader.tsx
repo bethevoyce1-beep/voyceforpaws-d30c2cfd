@@ -1,11 +1,31 @@
 /**
  * Voyce for Paws brand header — mark + wordmark + AI disclosure.
  * Appears at the top of every screen for consistent brand identity.
+ *
+ * A screen can surface a back button by wrapping itself in
+ * <BackNavContext.Provider value={goBack}> — the header then shows a ← arrow.
  */
+import { createContext, useContext } from "react";
+
+export const BackNavContext = createContext<(() => void) | null>(null);
+
 export function BrandHeader() {
+  const onBack = useContext(BackNavContext);
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-[#EAE6DE] bg-white/95 px-4 py-3 backdrop-blur-md">
       <div className="flex items-center gap-2.5">
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label="Go back"
+            className="-ml-1 mr-0.5 flex h-8 w-8 items-center justify-center rounded-full text-[#0B0B0C] transition hover:bg-black/5 active:scale-95"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+        )}
         <span className="voyce-brand-mark" aria-hidden>
           <svg width="17" height="17" viewBox="0 0 100 100" fill="currentColor">
             <path d="M50,91 C33,91 24,80 24,68 C24,56 33,49 50,49 C67,49 76,56 76,68 C76,80 67,91 50,91 Z" />

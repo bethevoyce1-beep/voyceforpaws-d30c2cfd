@@ -12,6 +12,7 @@ import { ProcessingPipeline } from "@/components/voyce/ProcessingPipeline";
 import { readPhotoMeta, type PhotoMeta } from "@/lib/exif";
 import { ReportDetails } from "@/components/voyce/ReportDetails";
 import type { ReportDetails as ReportDetailsData } from "@/components/voyce/ReportDetails";
+import { BackNavContext } from "@/components/voyce/BrandHeader";
 import { RescueReport } from "@/components/voyce/RescueReport";
 import { StatusTimeline } from "@/components/voyce/StatusTimeline";
 import { DemoGate } from "@/components/voyce/DemoGate";
@@ -159,12 +160,23 @@ function Home() {
             },
           },
         });
+        // Simple per-device case number (VFP-0001, VFP-0002…). No backend needed
+        // for testing; swap for a real saved Supabase ID later.
+        const caseId = (() => {
+          try {
+            const n = (parseInt(localStorage.getItem("voyce_case_seq") || "0", 10) || 0) + 1;
+            localStorage.setItem("voyce_case_seq", String(n));
+            return "VFP-" + String(n).padStart(4, "0");
+          } catch {
+            return "VFP-" + String(Date.now()).slice(-4);
+          }
+        })();
         // If the uploaded photo carried its own capture time, stamp the report
         // as of when the animal was actually seen — not when it was uploaded.
         setAssessment(
           captureMeta?.takenAt
-            ? { ...result, reportedAt: new Date(captureMeta.takenAt).toISOString() }
-            : result,
+            ? { ...result, caseId, reportedAt: new Date(captureMeta.takenAt).toISOString() }
+            : { ...result, caseId },
         );
       } catch (e) {
         const msg = e instanceof Error ? e.message : "AI analysis failed.";
@@ -186,6 +198,25 @@ function Home() {
     setReportDetails(null);
     setAiError(null);
   };
+
+  // Back navigation — each step knows the step to return to. Surfaced as a ←
+  // arrow in the shared header (via BackNavContext) on screens that don't
+  // already have their own back control.
+  const backTargets: Partial<Record<Stage, Stage>> = {
+    details: "capture",
+    processing: "details",
+    report: "details",
+    share: "report",
+    timeline: "share",
+  };
+  const goBack = () => {
+    const prev = backTargets[stage];
+    if (prev) setStage(prev);
+  };
+  // Wrap a screen so the header shows a back arrow to the previous step.
+  const withBack = (el: React.ReactNode) => (
+    <BackNavContext.Provider value={goBack}>{el}</BackNavContext.Provider>
+  );
 
   if (stage === "mission") {
     return (
@@ -214,7 +245,7 @@ function Home() {
   }
 
   if (stage === "details" && captured) {
-    return (
+    return withBack(
       <ReportDetails
         image={captured}
         mission={mission}
@@ -224,7 +255,7 @@ function Home() {
   }
 
   if (stage === "processing") {
-    return (
+    return withBack(
       <ProcessingPipeline
         image={captured}
         meta={captureMeta}
@@ -244,7 +275,7 @@ function Home() {
   }
 
   if (stage === "report" && assessment && captured) {
-    return (
+    return withBack(
       <RescueReport
         image={captured}
         data={assessment}
@@ -254,7 +285,7 @@ function Home() {
     );
   }
   if (stage === "share" && mission === "at-risk-shelter" && acsAnimal) {
-    return (
+    return withBack(
       <AcsShareCard
         animal={acsAnimal}
         onContinue={() => setStage("timeline")}
@@ -262,7 +293,7 @@ function Home() {
     );
   }
   if (stage === "share" && assessment && captured) {
-    return (
+    return withBack(
       <ShareCard
         image={captured}
         data={assessment}
@@ -272,7 +303,7 @@ function Home() {
     );
   }
   if (stage === "timeline") {
-    return <StatusTimeline onContinue={() => setStage("gate")} />;
+    return withBack(<StatusTimeline onContinue={() => setStage("gate")} />);
   }
   if (stage === "gate") {
     return <DemoGate onDone={() => setStage("outcome")} />;

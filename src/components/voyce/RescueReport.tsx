@@ -571,6 +571,7 @@ export function RescueReport({
               Report details
             </div>
             <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[13px]">
+              {data.caseId && <ReportRow label="Case #" value={data.caseId} />}
               <ReportRow label="Reported by" value="Reporter (no account)" />
               <ReportRow label="Reported at" value={stamp} />
               <ReportRow label="Type" value={reportType} />

@@ -51,6 +51,7 @@ export type Assessment = {
   clinical_actions?: string[];   // suggested clinical next actions (exam, X-ray, fluids)
   differentials?: string[];      // differential possibilities
   reportedAt?: string;           // ISO timestamp set when the AI assessment completes
+  caseId?: string;               // human-facing case reference, e.g. "VFP-0042"
 };
 
 
