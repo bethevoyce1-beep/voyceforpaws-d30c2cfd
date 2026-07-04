@@ -120,6 +120,7 @@ function Home() {
   const [captured, setCaptured] = useState<string | null>(null);
   const [captureMeta, setCaptureMeta] = useState<PhotoMeta | null>(null);
   const [location, setLocation] = useState<{ lat: number; lon: number; label: string } | null>(null);
+  const [animalIndex, setAnimalIndex] = useState(0);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [acsAnimal, setAcsAnimal] = useState<AcsAnimal | null>(null);
   const [reportDetails, setReportDetails] = useState<ReportDetailsData | null>(null);
@@ -186,6 +187,7 @@ function Home() {
     setCaptured(null);
     setCaptureMeta(null);
     setLocation(null);
+    setAnimalIndex(0);
     setAssessment(null);
     setAcsAnimal(null);
     setReportDetails(null);
@@ -277,13 +279,21 @@ function Home() {
   }
 
   if (stage === "report" && assessment && captured) {
+    const animalsList = (assessment.animals && assessment.animals.length > 1
+      ? assessment.animals
+      : [assessment]
+    ).map((a) => ({ ...a, caseId: a.caseId ?? assessment.caseId }));
+    const idx = Math.min(animalIndex, animalsList.length - 1);
     return withBack(
       <RescueReport
         image={captured}
-        data={assessment}
+        data={animalsList[idx]}
         mission={mission}
         location={location}
         situation={reportDetails?.situation}
+        animals={animalsList}
+        animalIndex={idx}
+        onSelectAnimal={setAnimalIndex}
         onContinue={() => setStage("share")}
       />
     );

@@ -62,6 +62,7 @@ export type Assessment = {
   caseId?: string;               // human-facing case reference, e.g. "VFP-0042"
   suggested_situation?: string;  // best-fit reporter-situation label read from the photo
   situation_confidence?: "high" | "medium" | "low"; // how sure Voyce is about it
+  animals?: Assessment[];        // one complete assessment per animal when 2+ are present
 };
 
 
@@ -108,12 +109,15 @@ symptoms[]: every visible health sign as a short clinical-phrased line (e.g. "Mu
 clinical_actions[]: concrete clinician-oriented next steps (e.g. "Full physical exam", "Right hindlimb radiograph", "SC fluids 30 mL/kg", "FeLV/FIV snap test"). 3-5 items max.
 differentials[]: 2-4 differential possibilities a vet would consider given what's visible (e.g. "URI (feline herpesvirus / calicivirus)", "Soft-tissue trauma vs fracture", "Dehydration secondary to GI loss"). Omit or empty array if nothing concerning is visible.
 
-SITUATION READ. Pick the single best-fit "suggested_situation" for what the photo shows, choosing ONLY from this exact list: "Injured or hit by a car", "Sick or in distress", "Lost pet", "Found pet", "Abandoned puppies or kittens", "Stray, needs care", "Needs spay or vaccine", "At-risk shelter". Set "situation_confidence" to "high" ONLY when the photo clearly supports it (e.g. visible injury for "Injured or hit by a car", grooming/collar for "Lost pet", multiple neonates for "Abandoned puppies or kittens"); otherwise use "medium" or "low". When unsure, prefer "low" — never guess "high".`;
+SITUATION READ. Pick the single best-fit "suggested_situation" for what the photo shows, choosing ONLY from this exact list: "Injured or hit by a car", "Sick or in distress", "Lost pet", "Found pet", "Abandoned puppies or kittens", "Stray, needs care", "Needs spay or vaccine", "At-risk shelter". Set "situation_confidence" to "high" ONLY when the photo clearly supports it (e.g. visible injury for "Injured or hit by a car", grooming/collar for "Lost pet", multiple neonates for "Abandoned puppies or kittens"); otherwise use "medium" or "low". When unsure, prefer "low" — never guess "high".
+
+MULTIPLE ANIMALS. If TWO OR MORE distinct animals are clearly present in the frame, ALSO return an "animals" array with ONE complete object per animal (each using this full schema: its own title, species, breed, age, weight, status, first_look, health_signs, symptoms, next_steps, and so on). Assess each animal INDEPENDENTLY — they may differ in species, age, condition, and urgency. Order them most-urgent first. The top-level fields describe the single most urgent (or most prominent) animal. If only ONE animal is present, OMIT the "animals" field entirely.`;
 
 
 const SCHEMA_HINT = `{
   "animal_present": true,
   "non_animal_subject": "person | food | vehicle | plant | object | scenery | other (ONLY when animal_present is false; omit otherwise)",
+  "animals": "OPTIONAL array of complete per-animal objects (same shape) — include ONLY when 2+ animals are present; omit for a single animal",
   "title": "short cinematic title, e.g. 'Tabby resting on a sunlit couch'",
   "status": "Urgent | Monitoring | Stable | Healthy | Safe",
   "status_reason": "one short clause, e.g. 'Likely a pet at home'",
@@ -527,9 +531,36 @@ export const analyzeImage = createServerFn({ method: "POST" })
         result.next_steps = [flag, ...result.next_steps];
       }
     }
+    const reportedAt = new Date().toISOString();
+    // Multi-animal: validate each detected animal and give it the shared scene
+    // context so every per-animal card has location + environment. Only 2+.
+    let animals: Assessment[] | undefined;
+    if (Array.isArray(parsed.animals) && parsed.animals.length > 1) {
+      const scene = {
+        location_scene: result.location_scene,
+        environment_text: result.environment_text,
+        setting_type: result.setting_type,
+        surface: result.surface,
+        surrounding_objects: result.surrounding_objects,
+        lighting_conditions: result.lighting_conditions,
+        safety_flags: result.safety_flags,
+      };
+      animals = parsed.animals.map((one) => {
+        const merged = { ...scene, ...one, reportedAt } as Assessment;
+        try {
+          return {
+            ...validateAssessment(merged, { witnessedEmergency: witnessed.length > 0 }),
+            reportedAt,
+          };
+        } catch {
+          return merged;
+        }
+      });
+    }
     return {
       ...result,
-      reportedAt: new Date().toISOString(),
+      reportedAt,
+      ...(animals ? { animals } : {}),
     };
   });
 

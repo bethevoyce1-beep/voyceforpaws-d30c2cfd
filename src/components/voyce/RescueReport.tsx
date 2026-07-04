@@ -111,12 +111,21 @@ function formatStamp(iso: string): string {
   });
 }
 
+// Label for the per-animal selector, e.g. "Dog 1", "Cat 2".
+function animalLabel(a: Assessment, i: number): string {
+  const sp = a.species && a.species !== "none" ? a.species : "Animal";
+  return `${sp.charAt(0).toUpperCase()}${sp.slice(1)} ${i + 1}`;
+}
+
 export function RescueReport({
   image,
   data,
   mission,
   location,
   situation,
+  animals,
+  animalIndex = 0,
+  onSelectAnimal,
   onContinue,
 }: {
   image: string;
@@ -124,6 +133,9 @@ export function RescueReport({
   mission: MissionId;
   location?: { lat: number; lon: number; label: string } | null;
   situation?: string;
+  animals?: Assessment[];
+  animalIndex?: number;
+  onSelectAnimal?: (i: number) => void;
   onContinue: () => void;
 }) {
   const [tab, setTab] = useState<"story" | "vet">("story");
@@ -244,6 +256,29 @@ export function RescueReport({
     <div className="min-h-[100dvh] bg-background pb-32">
       <BrandHeader />
       <AIDisclosureBanner />
+
+      {animals && animals.length > 1 && (
+        <div className="mx-auto flex w-full max-w-2xl flex-wrap items-center gap-2 px-5 pt-3">
+          <span className="text-[12px] font-semibold text-muted-foreground">
+            {animals.length} animals · view each:
+          </span>
+          {animals.map((a, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onSelectAnimal?.(i)}
+              className="rounded-full border-[1.5px] px-3 py-1 text-[12.5px] font-bold transition active:scale-[0.97]"
+              style={
+                i === animalIndex
+                  ? { background: "#FFDF3B", borderColor: "#FFDF3B", color: "#3A2A07" }
+                  : { borderColor: "#E6DED0", color: "#8A5A0E", background: "transparent" }
+              }
+            >
+              {animalLabel(a, i)}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="mx-auto w-full max-w-2xl px-5 pt-4">
 
