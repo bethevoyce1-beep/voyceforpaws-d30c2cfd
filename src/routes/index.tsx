@@ -119,6 +119,7 @@ function Home() {
   const [mission, setMission] = useState<MissionId>("injured");
   const [captured, setCaptured] = useState<string | null>(null);
   const [captureMeta, setCaptureMeta] = useState<PhotoMeta | null>(null);
+  const [location, setLocation] = useState<{ lat: number; lon: number; label: string } | null>(null);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [acsAnimal, setAcsAnimal] = useState<AcsAnimal | null>(null);
   const [, setReportDetails] = useState<ReportDetailsData | null>(null);
@@ -193,6 +194,7 @@ function Home() {
     setStage("mission");
     setCaptured(null);
     setCaptureMeta(null);
+    setLocation(null);
     setAssessment(null);
     setAcsAnimal(null);
     setReportDetails(null);
@@ -259,6 +261,7 @@ function Home() {
       <ProcessingPipeline
         image={captured}
         meta={captureMeta}
+        onLocate={setLocation}
         aiPending={aiPending}
         aiError={aiError}
         assessment={assessment}
@@ -280,6 +283,7 @@ function Home() {
         image={captured}
         data={assessment}
         mission={mission}
+        location={location}
         onContinue={() => setStage("share")}
       />
     );

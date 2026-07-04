@@ -115,11 +115,13 @@ export function RescueReport({
   image,
   data,
   mission,
+  location,
   onContinue,
 }: {
   image: string;
   data: Assessment;
   mission: MissionId;
+  location?: { lat: number; lon: number; label: string } | null;
   onContinue: () => void;
 }) {
   const [tab, setTab] = useState<"story" | "vet">("story");
@@ -353,9 +355,22 @@ export function RescueReport({
             <AnimalProfileLine data={data} condition={condition} />
 
             {/* 6 — Location */}
-            <div className="mt-3 flex items-center gap-1.5 text-[15px] font-semibold text-foreground">
-              <span>📍</span>
-              <span>{locationLine(data)}</span>
+            <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-[15px] font-semibold text-foreground">
+              <span className="flex items-center gap-1.5">
+                <span>📍</span>
+                <span>{locationLine(data)}</span>
+              </span>
+              {location && (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${location.lat},${location.lon}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 rounded-full border-[1.5px] px-3 py-1 text-[12.5px] font-bold no-underline transition active:scale-[0.97]"
+                  style={{ borderColor: "#FFDF3B", color: "#8A5A0E", background: "#FFF9E6" }}
+                >
+                  <span aria-hidden>🗺️</span> View Map
+                </a>
+              )}
             </div>
 
             {/* 7 — Description */}

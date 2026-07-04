@@ -55,6 +55,7 @@ type Props = {
   assessment: Assessment | null;
   onComplete: () => void;
   onRetry?: () => void;
+  onLocate?: (loc: { lat: number; lon: number; label: string }) => void;
 };
 
 const GOLD = "#FFDF3B";
@@ -64,7 +65,7 @@ const GREEN = "oklch(0.6 0.17 145)";
 // Step durations in ms (steps 2 and 4 are the wow moments)
 const STEP_MS = [1000, 2500, 1000, 3000, 1000, 1000, 1000];
 
-export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment, onComplete, onRetry }: Props) {
+export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment, onComplete, onRetry, onLocate }: Props) {
   const [elapsed, setElapsed] = useState(0);
   const [step, setStep] = useState(0); // 0..6 active; 7 = all done
   const [frozen, setFrozen] = useState(false);
@@ -108,6 +109,14 @@ export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment
       { enableHighAccuracy: true, timeout: 4000, maximumAge: 60000 },
     );
   }, [meta]);
+
+  // Report the resolved location up so the rescue card can offer a "View Map"
+  // link to the animal's GPS. Skip the (0,0) "unknown" fallback.
+  useEffect(() => {
+    if (geo && (geo.lat !== 0 || geo.lon !== 0)) {
+      onLocate?.({ lat: geo.lat, lon: geo.lon, label: geo.label });
+    }
+  }, [geo, onLocate]);
 
   // Advance steps on a timer. Step 4 (index 3) waits for AI; final step waits for AI too.
   const timerRef = useRef<number | null>(null);
