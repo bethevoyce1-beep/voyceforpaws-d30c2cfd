@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import pawLogo from "@/assets/voyce-paw.png";
 import { MISSION_LIST, type MissionId } from "@/lib/missions";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
@@ -78,7 +79,23 @@ function MissionIcon({ id, color }: { id: MissionId; color: string }) {
   }
 }
 
+// Quick-capture mode (July 5, 2026): opening the app with ?go=1 or ?quick=1 —
+// e.g. from a phone home-screen shortcut — skips this picker ONCE per page
+// load and jumps straight to the camera. Two taps total: open, shoot. Voyce's
+// AI reads the situation from the photo and pre-fills it in the details form.
+// The flag resets on a full page reload; in-app Back still shows the picker.
+let quickAutoPicked = false;
+
 export function MissionPicker({ onPick }: { onPick: (id: MissionId) => void }) {
+  useEffect(() => {
+    if (quickAutoPicked || typeof window === "undefined") return;
+    const q = new URLSearchParams(window.location.search);
+    if (q.has("go") || q.has("quick")) {
+      quickAutoPicked = true;
+      onPick("injured");
+    }
+  }, [onPick]);
+
   return (
     <div className="min-h-[100dvh] bg-background pb-12">
       <BrandHeader />
