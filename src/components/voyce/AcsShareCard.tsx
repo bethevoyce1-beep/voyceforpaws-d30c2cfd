@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
 import { JoinNetworkModal } from "@/components/voyce/JoinNetworkModal";
-import { supabase } from "@/integrations/supabase/client";
+import { addAnimalMedia } from "@/lib/media.functions";
 import type { AcsAnimal } from "@/lib/acs.functions";
 import type { NetworkRole } from "@/lib/signups.functions";
 
@@ -659,14 +659,17 @@ function AddMediaModal({
     }
     setBusy(true);
     try {
-      const { error } = await supabase.from("acs_animal_media").insert({
-        animal_id: animalId,
-        source,
-        url: url.trim(),
-        credit: credit.trim() || null,
-        note: note.trim() || null,
+      // July 5, 2026: media inserts now go through the server (anonymous
+      // client inserts were removed by the security migration).
+      await addAnimalMedia({
+        data: {
+          animalId,
+          source,
+          url: url.trim(),
+          credit: credit.trim() || undefined,
+          note: note.trim() || undefined,
+        },
       });
-      if (error) throw error;
       setDone(true);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Couldn't save. Try again.");
@@ -771,11 +774,4 @@ function AddMediaModal({
               disabled={busy}
               className="mt-4 w-full rounded-2xl border-2 border-[#FFDF3B] bg-black px-5 py-3 text-[13px] font-bold uppercase tracking-wide text-white shadow-lg transition active:scale-[0.99] disabled:opacity-70"
             >
-              {busy ? "Saving…" : "Save with credit"}
-            </button>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
+              {busy ? "Saving…" : "Save
