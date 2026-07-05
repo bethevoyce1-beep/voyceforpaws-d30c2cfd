@@ -8,6 +8,7 @@ import sampleCatNose from "@/assets/sample-cat-nose.jpg";
 import sampleDogSkin from "@/assets/sample-dog-skin.jpg";
 import sampleBird from "@/assets/sample-bird.jpg";
 import { analyzeImage, type Assessment } from "@/lib/analyze.functions";
+import { dhashFromDataUrl } from "@/lib/imageHash";
 import { ProcessingPipeline } from "@/components/voyce/ProcessingPipeline";
 import { readPhotoMeta, type PhotoMeta } from "@/lib/exif";
 import { ReportDetails } from "@/components/voyce/ReportDetails";
@@ -52,6 +53,10 @@ const SAMPLES = [
 ];
 
 type Stage = "mission" | "shelter" | "capture" | "processing" | "report" | "details" | "alerting" | "share" | "timeline" | "gate" | "outcome";
+
+// Anti-scam Tier 2 (July 5, 2026): when the app loaded, for the server's
+// time-on-page check — reports fired in under 10 seconds are a bot signal.
+const appLoadedAt = Date.now();
 
 function isLikelyMobile() {
   if (typeof navigator === "undefined") return false;
@@ -131,13 +136,18 @@ function Home() {
   // Analyze the photo as soon as it's captured — the AI goes first, then the
   // reporter refines details afterward ("what did Voyce miss?").
   const runAnalysis = useCallback(
-    async (dataUrl: string, meta: PhotoMeta | null) => {
+    async (dataUrl: string, meta: PhotoMeta | null, isSample = false) => {
       setAiPending(true);
       setAiError(null);
       setAssessment(null);
       try {
+        // Anti-scam Tier 2 (July 5, 2026): real captures carry a perceptual
+        // hash (30-day dedup) and time-on-page. Sample photos are exempt —
+        // they're the demo flow and repeat by design.
+        const photoHash = isSample ? undefined : (await dhashFromDataUrl(dataUrl)) ?? undefined;
+        const elapsedMs = isSample ? undefined : Date.now() - appLoadedAt;
         const result = await analyzeImage({
-          data: { imageDataUrl: dataUrl, mission, context: {} },
+          data: { imageDataUrl: dataUrl, mission, context: {}, photoHash, elapsedMs },
         });
         const caseId = (() => {
           try {
@@ -168,11 +178,14 @@ function Home() {
   // corrections in the "Tell us about them" form.
   const handleCaptured = useCallback(
     async (src: string, meta?: PhotoMeta | null) => {
+      // Sample photos are bundled assets (not data: URLs) — the demo flow is
+      // exempt from the anti-scam hash/timing checks.
+      const isSample = !src.startsWith("data:");
       const dataUrl = await toDataUrl(src);
       setCaptured(dataUrl);
       setCaptureMeta(meta ?? null);
       setStage("processing");
-      void runAnalysis(dataUrl, meta ?? null);
+      void runAnalysis(dataUrl, meta ?? null, isSample);
     },
     [runAnalysis],
   );

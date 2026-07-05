@@ -63,6 +63,10 @@ export type Assessment = {
   suggested_situation?: string;  // best-fit reporter-situation label read from the photo
   situation_confidence?: "high" | "medium" | "low"; // how sure Voyce is about it
   animals?: Assessment[];        // one complete assessment per animal when 2+ are present
+  // Anti-scam Tier 2 (July 5, 2026): does this look like a fresh phone capture
+  // or a stock/internet image? "likely_stock" caps situation_confidence at low.
+  capture_authenticity?: "fresh_capture" | "uncertain" | "likely_stock";
+  authenticity_reason?: string;  // one short clause explaining the read
 };
 
 
@@ -113,6 +117,8 @@ differentials[]: 2-4 differential possibilities a vet would consider given what'
 
 SITUATION READ. Pick the single best-fit "suggested_situation" for what the photo shows, choosing ONLY from this exact list: "Injured or hit by a car", "Sick or in distress", "Lost pet", "Found pet", "Abandoned puppies or kittens", "Stray, needs care", "Needs spay or vaccine", "At-risk shelter". Set "situation_confidence" to "high" ONLY when the photo clearly supports it (e.g. visible injury for "Injured or hit by a car", grooming/collar for "Lost pet", multiple neonates for "Abandoned puppies or kittens"); otherwise use "medium" or "low". When unsure, prefer "low" — never guess "high".
 
+AUTHENTICITY CHECK — ANTI-SCAM. Judge whether this image is plausibly a FRESH PHONE CAPTURE versus a stock photo, screenshot, or image saved from the internet. Set "capture_authenticity" to: "fresh_capture" (looks like a real, casual phone photo — natural framing, ordinary lighting, real-world clutter), "likely_stock" (professional studio lighting, watermarks, posed composition, visible UI elements from a screenshot, borders, or obvious re-photograph of a screen), or "uncertain". Give a one-clause "authenticity_reason". Be conservative: most real reports ARE fresh captures — only flag "likely_stock" when clear signals are present. Never mention this check in user-facing text fields.
+
 MULTIPLE ANIMALS. If TWO OR MORE distinct animals are clearly present in the frame, ALSO return an "animals" array with ONE complete object per animal (each using this full schema: its own title, species, breed, age, weight, status, first_look, health_signs, symptoms, next_steps, and so on). Assess each animal INDEPENDENTLY — they may differ in species, age, condition, and urgency. Order them most-urgent first. The top-level fields describe the single most urgent (or most prominent) animal. If only ONE animal is present, OMIT the "animals" field entirely.`;
 
 
@@ -125,6 +131,8 @@ const SCHEMA_HINT = `{
   "status_reason": "one short clause, e.g. 'Likely a pet at home'",
   "suggested_situation": "best-fit label from: Injured or hit by a car | Sick or in distress | Lost pet | Found pet | Abandoned puppies or kittens | Stray, needs care | Needs spay or vaccine | At-risk shelter",
   "situation_confidence": "high | medium | low (high only when the photo clearly supports it)",
+  "capture_authenticity": "fresh_capture | uncertain | likely_stock",
+  "authenticity_reason": "one short clause, e.g. 'casual framing and natural lighting' or 'studio backdrop with watermark'",
   "species": "dog | cat | bird | other | none (if no animal)",
   "breed": "best guess or 'mixed / unknown'",
   "age": "puppy/kitten | young | adult | senior | unknown",
@@ -285,6 +293,14 @@ export function validateAssessment(
     }
   }
 
+  // Anti-scam Tier 2 (July 5, 2026): a photo the AI reads as likely stock /
+  // saved-from-internet can never carry a confident situation read. The report
+  // still generates (false positives happen), but downstream ranking and the
+  // details form treat it as low-confidence.
+  if (a.capture_authenticity === "likely_stock") {
+    a.situation_confidence = "low";
+  }
+
   // Outcome-specific status. An owned pet at home with no health concerns is
   // "Safe" (settled, no one needs to watch it) — distinct from "Monitoring",
   // which fits a healthy STRAY that could still use eyes on it.
@@ -327,6 +343,11 @@ export const analyzeImage = createServerFn({ method: "POST" })
     const o = input as {
       imageDataUrl?: string;
       mission?: string;
+      // Anti-scam Tier 2 (July 5, 2026): ms since the app loaded (bot signal
+      // when tiny) and a 64-bit perceptual hash of the photo (dedup). Both
+      // optional — samples and older clients simply don't send them.
+      elapsedMs?: number;
+      photoHash?: string;
       context?: {
         animalType?: string;
         situation?: string;
@@ -350,9 +371,60 @@ export const analyzeImage = createServerFn({ method: "POST" })
         : [],
       notes: typeof c.notes === "string" ? c.notes.slice(0, 500) : "",
     };
-    return { imageDataUrl: o.imageDataUrl, mission, context };
+    const elapsedMs =
+      typeof o.elapsedMs === "number" && Number.isFinite(o.elapsedMs)
+        ? o.elapsedMs
+        : undefined;
+    const photoHash =
+      typeof o.photoHash === "string" && /^[0-9a-f]{16}$/.test(o.photoHash)
+        ? o.photoHash
+        : undefined;
+    return { imageDataUrl: o.imageDataUrl, mission, context, elapsedMs, photoHash };
   })
   .handler(async ({ data }): Promise<Assessment> => {
+    // ── Anti-scam Tier 2 (July 5, 2026) ──────────────────────────────────
+    // Time-on-page minimum: a real reporter needs time to open the camera and
+    // frame an animal. Reports fired in under 10 seconds are a bot signal.
+    if (
+      typeof data.elapsedMs === "number" &&
+      data.elapsedMs >= 0 &&
+      data.elapsedMs < 10_000
+    ) {
+      throw new Error(
+        "That was quick! Please take a moment with the animal, then try again in a few seconds.",
+      );
+    }
+
+    // Photo dedup: the client sends a perceptual hash (dHash) of the capture.
+    // The same photo resubmitted within a rolling 30 days is rejected. Fails
+    // OPEN — a database hiccup must never block a real rescue report.
+    if (data.photoHash) {
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        // Matches younger than 10 minutes don't count — a reporter retaking
+        // the same scene within one session must never be blocked. The target
+        // is the same photo resubmitted hours or days later.
+        const graceCutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        const { data: dupe } = await supabaseAdmin
+          .from("photo_hashes")
+          .select("id")
+          .eq("hash", data.photoHash)
+          .gte("created_at", since)
+          .lte("created_at", graceCutoff)
+          .limit(1)
+          .maybeSingle();
+        if (dupe) {
+          throw new Error(
+            "DUPLICATE_PHOTO|This exact photo was already reported recently. If the animal still needs help, please take a fresh photo at the scene.",
+          );
+        }
+      } catch (e) {
+        if (e instanceof Error && e.message.startsWith("DUPLICATE_PHOTO|")) throw e;
+        console.warn("[voyce] photo dedup check failed (continuing):", e);
+      }
+    }
+
     // June 30, 2026: Swapped from Lovable's AI gateway to Google Gemini directly.
     // Lovable's gateway required a paid Lovable subscription. Gemini has a free
     // tier (15 rpm / 1M tokens per day) that fits Voyce's pre-launch usage easily.
@@ -586,6 +658,20 @@ export const analyzeImage = createServerFn({ method: "POST" })
         }
       });
     }
+    // Record the photo hash only AFTER a successful assessment, so a failed
+    // attempt (network hiccup, no-animal photo) can always be retried.
+    // Fail-open: a logging problem never blocks the report itself.
+    if (data.photoHash) {
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        await supabaseAdmin
+          .from("photo_hashes")
+          .insert({ hash: data.photoHash, mission: data.mission });
+      } catch (e) {
+        console.warn("[voyce] photo hash store failed (continuing):", e);
+      }
+    }
+
     return {
       ...result,
       reportedAt,
