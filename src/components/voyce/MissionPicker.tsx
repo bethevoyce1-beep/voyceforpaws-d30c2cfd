@@ -79,21 +79,22 @@ function MissionIcon({ id, color }: { id: MissionId; color: string }) {
   }
 }
 
-// Quick-capture mode (July 5, 2026): opening the app with ?go=1 or ?quick=1 —
-// e.g. from a phone home-screen shortcut — skips this picker ONCE per page
-// load and jumps straight to the camera. Two taps total: open, shoot. Voyce's
-// AI reads the situation from the photo and pre-fills it in the details form.
-// The flag resets on a full page reload; in-app Back still shows the picker.
-let quickAutoPicked = false;
+// Camera-first (July 5, 2026): Voyce opens straight to the camera — the
+// landing page and social media explain the mission; the app's job is speed.
+// The AI reads the situation from the photo and pre-fills it in the details
+// form. This auto-advance runs ONCE per page load, so tapping Back from the
+// camera still shows this full picker (At-Risk Shelter browsing, Wildlife,
+// and the rest). ?full=1 keeps the picker on screen (for website links);
+// ?go=1 / ?quick=1 are still accepted and do the same as the default now.
+let autoAdvancedThisLoad = false;
 
 export function MissionPicker({ onPick }: { onPick: (id: MissionId) => void }) {
   useEffect(() => {
-    if (quickAutoPicked || typeof window === "undefined") return;
+    if (autoAdvancedThisLoad || typeof window === "undefined") return;
+    autoAdvancedThisLoad = true;
     const q = new URLSearchParams(window.location.search);
-    if (q.has("go") || q.has("quick")) {
-      quickAutoPicked = true;
-      onPick("injured");
-    }
+    if (q.has("full")) return; // explicit request to browse all options
+    onPick("injured");
   }, [onPick]);
 
   return (
