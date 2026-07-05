@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
-import { MISSIONS, MONITORING_LAYOUT, type MissionId } from "@/lib/missions";
+import { MISSIONS, MONITORING_LAYOUT, calmScene, animalWord, type MissionId } from "@/lib/missions";
 import { getUrgency } from "@/lib/urgency";
 import { getCondition, CONDITION_COLORS, type ConditionInfo } from "@/lib/condition";
 import { AIDisclosureBanner } from "@/components/voyce/AIDisclosureBanner";
@@ -225,7 +225,11 @@ export function RescueReport({
   const ribbonGradient = isMonitoringFallback ? MONITORING_LAYOUT.ribbonGradient : m.ribbonGradient;
   const ribbonText = isMonitoringFallback ? MONITORING_LAYOUT.ribbonText : m.ribbonText;
   const titleColor = isMonitoringFallback ? MONITORING_LAYOUT.titleColor : m.titleColor;
-  const titleSub = isMonitoringFallback ? MONITORING_LAYOUT.titleSub : m.titleSub;
+  // Scene-aware calm copy (July 5, 2026 fix): the subtitle, callout, and big
+  // title suffix describe where the animal actually is — ducks on a lake must
+  // never read "resting at home".
+  const scene = calmScene(data);
+  const titleSub = isMonitoringFallback ? scene.titleSub : m.titleSub;
   const ringBg = isMonitoringFallback ? MONITORING_LAYOUT.ringBg : m.ringBg;
 
   const ribbonKey: RibbonKey = isMonitoringFallback
@@ -437,10 +441,10 @@ export function RescueReport({
             </div>
           )}
 
-          {/* Calm callout for monitoring fallback */}
+          {/* Calm callout for monitoring fallback — scene-aware copy */}
           {isMonitoringFallback && (
             <div className="mx-5 mt-4 rounded-2xl border border-[#E8DCC2] bg-[#FAF8F5] px-4 py-3 text-[13.5px] text-[oklch(0.38_0.08_60)]">
-              {MONITORING_LAYOUT.calmCallout}
+              {scene.callout}
             </div>
           )}
 
@@ -783,9 +787,14 @@ function bigTitle(
   const species = (data.species || "animal").toUpperCase();
   const breed = data.breed && !/unknown|mixed/i.test(data.breed) ? data.breed.toUpperCase() : "";
   if (monitoring) {
-    const who = breed || species;
+    // Exactness fix (July 5, 2026): use the most specific animal word — a
+    // breed of "duck / unknown" must headline as DUCK, not fall back to BIRD.
+    const who = animalWord(data).toUpperCase();
+    // Scene-aware: the place comes from the AI's actual setting read — "ON THE
+    // WATER", "IN THE WILD", "AT THE PARK" — never a hardcoded "at home".
+    const place = calmScene(data).place;
     if (data.status === "Safe") return `SAFE ${who} · AT HOME`;
-    return `HEALTHY ${who} · RESTING AT HOME`;
+    return `HEALTHY ${who} · ${place}`;
   }
   const strayPrefix = data.is_likely_pet ? "" : "STRAY ";
   switch (mission) {
@@ -1003,14 +1012,18 @@ function WhereFound({ data }: { data: Assessment }) {
 
 function ResponderBriefing({ data, calm }: { data: Assessment; calm: boolean }) {
   if (calm) {
+    // Scene-aware (July 5, 2026 fix): previously hardcoded "Home (Indoor)" +
+    // "domestic pet" — wrong for wild ducks on a lake. Show the AI's actual
+    // setting read and a note that matches it.
+    const scene = calmScene(data);
     return (
       <div className="rounded-2xl border-2 border-[#FFDF3B]/60 bg-[#FFFBEC] px-4 py-3.5">
         <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A5A0E]">
           For the responder
         </div>
         <div className="mt-2 space-y-1 text-[14px] text-foreground/85">
-          <div><span className="mr-1">🏠</span> Setting: <span className="font-medium">Home (Indoor)</span></div>
-          <div><span className="mr-1">📋</span> No responder action needed — this looks like a domestic pet.</div>
+          <div><span className="mr-1">{scene.settingEmoji}</span> Setting: <span className="font-medium">{data.setting_type || "Unknown"}</span></div>
+          <div><span className="mr-1">📋</span> {scene.responderNote}</div>
         </div>
       </div>
     );

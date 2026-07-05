@@ -282,12 +282,194 @@ export const MISSION_LIST: Mission[] = [
 
 // Layout used as fallback when AI judges the animal is healthy/monitoring,
 // regardless of the mission the user picked. Anti-cry-wolf moment.
+// NOTE (July 5, 2026 fix): titleSub/calmCallout previously lived here as fixed
+// strings, so EVERY healthy animal — including wild ducks on a lake — was
+// labeled "owned pet at home". Copy is now scene-aware via calmScene() below.
 export const MONITORING_LAYOUT = {
   ribbonLabel: "✓ MONITORING · NO ACTION NEEDED",
   ribbonGradient: "linear-gradient(135deg, #4ADE80 0%, #1F9D57 100%)",
   ribbonText: "#0F3A22",
   titleColor: "#1F6B3D",
   ringBg: "#E7F5EC",
-  titleSub: "Looks like an owned pet at home",
-  calmCallout: "Heads up — likely a pet at home. If yours, no action needed.",
 };
+
+// ---------------------------------------------------------------------------
+// Scene-aware copy for the calm/monitoring layout.
+// The heading, subtitle, callout, and responder note must describe where the
+// animal ACTUALLY is (from the AI's setting read), never a hardcoded "at home".
+// ---------------------------------------------------------------------------
+
+export type CalmScene = {
+  /** Big-title suffix, e.g. "RESTING AT HOME", "ON THE WATER", "IN THE PARK" */
+  place: string;
+  /** Italic subtitle under the big title */
+  titleSub: string;
+  /** Calm callout box body */
+  callout: string;
+  /** Emoji for the responder-briefing Setting line */
+  settingEmoji: string;
+  /** Responder-briefing note */
+  responderNote: string;
+};
+
+/** Wild species that must never be described as a pet at home. */
+const WILD_SPECIES =
+  /\b(duck|geese|goose|swan|waterfowl|mallard|pigeon|dove|seagull|gull|heron|crane|crow|raven|hawk|owl|squirrel|raccoon|opossum|possum|deer|coyote|fox|rabbit|hare|turtle|frog|snake|lizard|bat)\b/i;
+
+/** Water scene cues in the AI's environment read. */
+const WATER_SCENE =
+  /\b(lake|river|pond|harbor|harbour|bay|creek|stream|canal|shoreline|waterfront|body of water|swimming|floating on)\b/i;
+
+export function isWildSpecies(a: {
+  species?: string;
+  breed?: string;
+  title?: string;
+}): boolean {
+  const text = `${a.species ?? ""} ${a.breed ?? ""} ${a.title ?? ""}`;
+  return WILD_SPECIES.test(text);
+}
+
+/**
+ * Most specific safe word for the animal, for headings (July 5, 2026 fix).
+ * The AI often returns breed like "duck / unknown" — the old code discarded
+ * the WHOLE breed when it contained "unknown", so ducks were headlined as
+ * "BIRD". Keep the meaningful first segment; fall back to species.
+ */
+export function animalWord(a: { species?: string; breed?: string }): string {
+  const first = (a.breed ?? "")
+    .split(/[/,·—]|\bor\b/)[0]
+    .trim();
+  if (first && !/^(unknown|mixed|none|n\/a|unclear)$/i.test(first)) return first;
+  return (a.species ?? "animal").trim() || "animal";
+}
+
+export function calmScene(a: {
+  setting_type?: string;
+  is_likely_pet?: boolean;
+  species?: string;
+  breed?: string;
+  title?: string;
+  environment_text?: string;
+  surface?: string;
+  location_scene?: string;
+}): CalmScene {
+  const env = `${a.environment_text ?? ""} ${a.surface ?? ""} ${a.location_scene ?? ""}`;
+  const wild = isWildSpecies(a) && !a.is_likely_pet;
+  const onWater = WATER_SCENE.test(env);
+
+  // Wild animal in a natural or public setting — the happiest non-rescue there is.
+  if (wild) {
+    if (onWater) {
+      return {
+        place: "ON THE WATER",
+        titleSub: "Wild waterfowl in their natural habitat",
+        callout:
+          "These look like wild waterfowl doing just fine. Enjoy from a distance — no action needed.",
+        settingEmoji: "🌊",
+        responderNote:
+          "No responder action needed — wild waterfowl in their natural habitat.",
+      };
+    }
+    return {
+      place: "IN THE WILD",
+      titleSub: "A wild animal in its natural habitat",
+      callout:
+        "This looks like a healthy wild animal where it belongs. Observe from a distance — no action needed.",
+      settingEmoji: "🌿",
+      responderNote:
+        "No responder action needed — healthy wild animal in its natural habitat.",
+    };
+  }
+
+  switch (a.setting_type) {
+    case "Home (Indoor)":
+      return {
+        place: "RESTING AT HOME",
+        titleSub: "Looks like an owned pet at home",
+        callout: "Heads up — likely a pet at home. If yours, no action needed.",
+        settingEmoji: "🏠",
+        responderNote:
+          "No responder action needed — this looks like a domestic pet.",
+      };
+    case "Backyard/Domestic Outdoor":
+      return {
+        place: "AT HOME OUTDOORS",
+        titleSub: "Looks like a pet in its own yard",
+        callout:
+          "Heads up — likely a pet in its own yard. If yours, no action needed.",
+        settingEmoji: "🏡",
+        responderNote:
+          "No responder action needed — this looks like a pet on its home turf.",
+      };
+    case "Public Space (Park/Plaza)":
+      return {
+        place: onWater ? "ON THE WATER" : "AT THE PARK",
+        titleSub: "Healthy and at ease in a public space",
+        callout:
+          "This animal looks healthy and undisturbed. Keep an eye out, but no action is needed right now.",
+        settingEmoji: onWater ? "🌊" : "🌳",
+        responderNote:
+          "No responder action needed — animal appears healthy in a public space.",
+      };
+    case "Wild/Undeveloped":
+      return {
+        place: "IN THE WILD",
+        titleSub: "Healthy in a natural setting",
+        callout:
+          "This animal looks healthy in a natural setting. Observe from a distance — no action needed.",
+        settingEmoji: "🌿",
+        responderNote:
+          "No responder action needed — healthy animal in a natural setting.",
+      };
+    case "Street/Sidewalk":
+      return {
+        place: "ON THE STREET",
+        titleSub: "No visible injury or distress",
+        callout:
+          "Looks okay right now — no visible injury or distress. Keep an eye out and report any changes.",
+        settingEmoji: "🚶",
+        responderNote:
+          "No immediate responder action — animal appears healthy. Monitor for changes.",
+      };
+    case "Vehicle-Adjacent (Road/Parking)":
+      return {
+        place: "NEAR THE ROAD",
+        titleSub: "No visible injury — location worth watching",
+        callout:
+          "No visible injury, but the location is worth watching. Report changes right away.",
+        settingEmoji: "🚗",
+        responderNote:
+          "No injury visible — location near traffic is the main thing to watch.",
+      };
+    case "Commercial Area":
+    case "Industrial/Warehouse":
+      return {
+        place: "ON SITE",
+        titleSub: "No visible injury or distress",
+        callout:
+          "Looks healthy where it is. Keep an eye out and report any changes.",
+        settingEmoji: "🏢",
+        responderNote:
+          "No immediate responder action — animal appears healthy. Monitor for changes.",
+      };
+    case "Shelter/Kennel":
+      return {
+        place: "AT THE SHELTER",
+        titleSub: "Healthy and in shelter care",
+        callout: "This animal is in shelter care and looks healthy.",
+        settingEmoji: "🏥",
+        responderNote: "Animal is in shelter care — no field response needed.",
+      };
+    default:
+      // Unknown setting — stay honest and generic, never claim "at home".
+      return {
+        place: "NO ACTION NEEDED",
+        titleSub: "No visible injury or distress",
+        callout:
+          "This animal looks healthy — no visible injury or distress. No action needed right now.",
+        settingEmoji: "📍",
+        responderNote:
+          "No responder action needed — animal appears healthy.",
+      };
+  }
+}

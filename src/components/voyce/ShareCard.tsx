@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
-import { type MissionId } from "@/lib/missions";
+import { animalWord, type MissionId } from "@/lib/missions";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
 import { JoinNetworkModal } from "@/components/voyce/JoinNetworkModal";
 import type { NetworkRole } from "@/lib/signups.functions";
@@ -94,7 +94,9 @@ function kindFor(mission: MissionId, data: Assessment): Kind {
 }
 
 function inferTitle(kind: Kind, data: Assessment): string {
-  const species = (data.species || "animal").toLowerCase();
+  // Exactness fix (July 5, 2026): headline the most specific animal word —
+  // "duck / unknown" breed must read DUCK, not fall back to the species "bird".
+  const species = animalWord(data).toLowerCase();
   const Cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
   switch (kind) {
     case "EMERGENCY": return `URGENT ${species.toUpperCase()}`;

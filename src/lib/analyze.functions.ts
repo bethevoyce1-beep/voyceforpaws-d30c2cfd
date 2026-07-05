@@ -72,6 +72,8 @@ NO-ANIMAL CHECK — DO THIS FIRST. Voyce is only for animals. If the image conta
 
 Be cinematic and specific about what you actually see in the image (surfaces, lighting, posture, objects). NEVER contradict yourself: if status is "Healthy" or "Monitoring", next_steps must not say "seek medical attention" or treat it as urgent. If you see a collar, indoor scene, bedding, or grooming, set is_likely_pet=true and prefer status "Monitoring". If no real symptoms, noticed must be [].
 
+WILDLIFE VS PET — CRITICAL. Wild species (ducks, geese, swans, pigeons, gulls, herons, crows, hawks, owls, squirrels, raccoons, deer, foxes, turtles, and similar) observed in a natural or public setting (lake, river, pond, shoreline, park, woods, field, sky) are WILD ANIMALS: set is_likely_pet=false, choose the setting_type that matches the actual scene (e.g. "Wild/Undeveloped" or "Public Space (Park/Plaza)"), and NEVER claim "Home (Indoor)" or describe them as a pet at home. Only call such a species a pet with clear domestic evidence (cage, coop, leash, indoor room). status_reason for healthy wildlife should read like "Wild animal in its natural habitat — no action needed."
+
 Paint the scene in detail — surfaces (couch, floor, pavement, kennel), surrounding objects (furniture, cars, fences, trash), lighting/time (daylight, fluorescent, dusk, rainy), and SAFETY-RELEVANT details a rescuer needs to know before approaching. If indoor pet at home with no hazards, say so explicitly. If outdoor with traffic risk, flag it. If commercial/industrial setting, note the hazards. Honesty over alarm.
 
 safety_flags MUST only describe hazards actually visible in the image — never speculate. For a calm indoor pet, return safety_flags: ["None — calm domestic environment"]. Never include urgency flags that contradict setting_type (e.g. no "Active road traffic" inside a living room). Use "Voyce's First Look" framing — never the words "Health Assessment".
@@ -253,6 +255,33 @@ export function validateAssessment(
     if (!a.status_reason || /urgent|injur|distress|rescue/i.test(a.status_reason)) {
       a.status_reason =
         "No visible injury or sickness in the photo — not an emergency.";
+    }
+  }
+
+  // Wildlife guard (July 5, 2026 fix — live duck test): classic wild species
+  // must never be labeled a pet or claim a home setting. A duck swimming on a
+  // lake once rendered "HEALTHY BIRD · RESTING AT HOME" with Setting: Home
+  // (Indoor). If the species/breed/title reads as wildlife AND the scene shows
+  // no domestic cues, force is_likely_pet=false and fix an indoor mislabel.
+  const wildSpecies =
+    /\b(duck|geese|goose|swan|waterfowl|mallard|pigeon|dove|seagull|gull|heron|crane|crow|raven|hawk|owl|squirrel|raccoon|opossum|possum|deer|coyote|fox|hare|turtle|frog|snake|lizard|bat)\b/i;
+  const wildText = `${a.species ?? ""} ${a.breed ?? ""} ${a.title ?? ""}`;
+  const envText = `${a.environment_text ?? ""} ${a.surface ?? ""} ${a.location_scene ?? ""}`;
+  const domesticCues =
+    /\b(collar|leash|cage|aviary|coop|kennel|bed(ding)?|couch|sofa|carpet|rug|living room|kitchen|indoors?)\b/i.test(
+      envText,
+    );
+  if (wildSpecies.test(wildText) && !domesticCues) {
+    a.is_likely_pet = false;
+    if (a.setting_type === "Home (Indoor)") {
+      a.setting_type = /\b(lake|river|pond|harbor|harbour|bay|creek|stream|canal|shoreline|waterfront|body of water|forest|woods|meadow|field)\b/i.test(
+        envText,
+      )
+        ? "Wild/Undeveloped"
+        : "Public Space (Park/Plaza)";
+    }
+    if (/pet at home|owned pet/i.test(a.status_reason ?? "")) {
+      a.status_reason = "Wild animal in its natural habitat — no action needed.";
     }
   }
 
