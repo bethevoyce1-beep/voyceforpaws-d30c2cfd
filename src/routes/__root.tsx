@@ -72,6 +72,89 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Auto-update (July 5, 2026): visitors kept getting stale cached versions of
+// the app and had to be walked through clearing their browser cache. This
+// hook compares the hashed asset files the RUNNING page loaded against the
+// ones the server currently serves. If they differ, a new build is live:
+//   • right after load → reload immediately (nothing in progress yet)
+//   • returning to a tab that sat hidden 30+ minutes → reload (stale session)
+// It never reloads while someone is actively using the app, so an
+// in-progress rescue report is never lost.
+// ---------------------------------------------------------------------------
+function collectAssetPaths(urls: string[]): string | null {
+  const paths = urls
+    .map((u) => {
+      try { return new URL(u, window.location.href).pathname; } catch { return ""; }
+    })
+    .filter((p) => p.includes("/assets/") || p.includes("/_build/"));
+  return paths.length ? [...new Set(paths)].sort().join("|") : null;
+}
+
+function runningVersion(): string | null {
+  const urls: string[] = [];
+  document.querySelectorAll("script[src]").forEach((el) => urls.push(el.getAttribute("src") ?? ""));
+  document.querySelectorAll('link[rel="stylesheet"][href]').forEach((el) => urls.push(el.getAttribute("href") ?? ""));
+  return collectAssetPaths(urls);
+}
+
+async function serverVersion(): Promise<string | null> {
+  const res = await fetch(window.location.pathname + "?_vc=" + Date.now(), {
+    cache: "no-store",
+    headers: { accept: "text/html" },
+  });
+  if (!res.ok) return null;
+  const html = await res.text();
+  const urls: string[] = [];
+  const re = /(?:src|href)="([^"]+)"/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html))) urls.push(m[1]);
+  return collectAssetPaths(urls);
+}
+
+function useAutoRefreshOnNewVersion() {
+  useEffect(() => {
+    let reloading = false;
+    let hiddenAt = 0;
+
+    const isNewBuild = async (): Promise<boolean> => {
+      const current = runningVersion();
+      if (!current) return false;
+      try {
+        const latest = await serverVersion();
+        return latest !== null && latest !== current;
+      } catch {
+        return false; // offline or flaky network — never disturb the user
+      }
+    };
+
+    const reloadIf = async () => {
+      if (reloading) return;
+      if (await isNewBuild()) {
+        reloading = true;
+        window.location.reload();
+      }
+    };
+
+    // Fresh arrival: if the browser served a stale cached page, swap it for
+    // the current build right away — the visitor hasn't started anything yet.
+    const t = setTimeout(() => void reloadIf(), 1500);
+
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenAt = Date.now();
+      } else if (hiddenAt && Date.now() - hiddenAt > 30 * 60 * 1000) {
+        void reloadIf();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
+}
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
@@ -122,6 +205,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useAutoRefreshOnNewVersion();
 
   return (
     <QueryClientProvider client={queryClient}>
