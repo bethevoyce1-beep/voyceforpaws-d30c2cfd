@@ -128,6 +128,7 @@ export function RescueReport({
   onSelectAnimal,
   onContinue,
   onDone,
+  onSend,
 }: {
   image: string;
   data: Assessment;
@@ -139,6 +140,7 @@ export function RescueReport({
   onSelectAnimal?: (i: number) => void;
   onContinue: () => void;
   onDone?: () => void;
+  onSend?: () => void;
 }) {
   const [tab, setTab] = useState<"story" | "vet">("story");
   // July 5, 2026: health assessment is OPEN by default — rescuers shouldn't
@@ -173,10 +175,10 @@ export function RescueReport({
   // ("Couldn't verify you're human"). Spam protection still runs at JoinNetworkModal
   // and other real submit points where it's actually useful.
   const handleSubmitReport = () => {
-    // Auto-notify the network. Manual sharing is optional — and the fallback
-    // when the reporter is offline and we can't reach the network.
-    const online = typeof navigator === "undefined" ? true : navigator.onLine;
-    setSentModal(online ? "online" : "offline");
+    // "Send to rescuers" is the real send moment — hand off to the network-
+    // alerting animation ("Alerting the network" → "Voyce answers"), which now
+    // plays AFTER send so the messaging is accurate. Falls back to onContinue.
+    (onSend ?? onContinue)();
   };
 
   const performShare = (platform: SharePlatform) => {
