@@ -73,32 +73,41 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 // ---------------------------------------------------------------------------
-// Auto-update (July 5, 2026): visitors kept getting stale cached versions of
-// the app and had to be walked through clearing their browser cache. This
-// hook compares the hashed asset files the RUNNING page loaded against the
-// ones the server currently serves. If they differ, a new build is live:
-//   • right after load → reload immediately (nothing in progress yet)
-//   • returning to a tab that sat hidden 30+ minutes → reload (stale session)
-// It never reloads while someone is actively using the app, so an
-// in-progress rescue report is never lost.
+// Auto-update (July 5, 2026; loop-fixed same day): visitors kept getting
+// stale cached versions and had to clear caches by hand. This hook compares
+// the MAIN ENTRY asset path the running page loaded against the one the
+// server currently serves. Vite content-hashes the entry on every build, so
+// a mismatch means a new deploy:
+//   • right after load → reload once (nothing in progress yet)
+//   • returning to a tab hidden 30+ minutes → reload once (stale session)
+// LOOP GUARDS: only the FIRST matching asset path is compared (lazy-loaded
+// chunks accumulate in the DOM and must not count), and a sessionStorage
+// stamp hard-caps auto-reloads to one per 2 minutes no matter what.
 // ---------------------------------------------------------------------------
-function collectAssetPaths(urls: string[]): string | null {
-  const paths = urls
-    .map((u) => {
-      try { return new URL(u, window.location.href).pathname; } catch { return ""; }
-    })
-    .filter((p) => p.includes("/assets/") || p.includes("/_build/"));
-  return paths.length ? [...new Set(paths)].sort().join("|") : null;
+const RELOAD_STAMP_KEY = "voyce_auto_reload_at";
+
+function entryAssetPath(urls: string[]): string | null {
+  for (const u of urls) {
+    if (!u) continue;
+    try {
+      const p = new URL(u, window.location.href).pathname;
+      if (p.includes("/assets/") || p.includes("/_build/")) return p;
+    } catch {
+      // malformed URL — skip
+    }
+  }
+  return null;
 }
 
-function runningVersion(): string | null {
+function runningEntry(): string | null {
   const urls: string[] = [];
-  document.querySelectorAll("script[src]").forEach((el) => urls.push(el.getAttribute("src") ?? ""));
-  document.querySelectorAll('link[rel="stylesheet"][href]').forEach((el) => urls.push(el.getAttribute("href") ?? ""));
-  return collectAssetPaths(urls);
+  document.querySelectorAll("script[src]").forEach((el) => {
+    urls.push(el.getAttribute("src") ?? "");
+  });
+  return entryAssetPath(urls);
 }
 
-async function serverVersion(): Promise<string | null> {
+async function serverEntry(): Promise<string | null> {
   const res = await fetch(window.location.pathname + "?_vc=" + Date.now(), {
     cache: "no-store",
     headers: { accept: "text/html" },
@@ -106,10 +115,19 @@ async function serverVersion(): Promise<string | null> {
   if (!res.ok) return null;
   const html = await res.text();
   const urls: string[] = [];
-  const re = /(?:src|href)="([^"]+)"/g;
+  const re = /<script[^>]+src="([^"]+)"/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(html))) urls.push(m[1]);
-  return collectAssetPaths(urls);
+  return entryAssetPath(urls);
+}
+
+function recentlyAutoReloaded(): boolean {
+  try {
+    const t = Number(sessionStorage.getItem(RELOAD_STAMP_KEY) || 0);
+    return Date.now() - t < 2 * 60 * 1000;
+  } catch {
+    return true; // storage unavailable — err on the side of never looping
+  }
 }
 
 function useAutoRefreshOnNewVersion() {
@@ -118,10 +136,10 @@ function useAutoRefreshOnNewVersion() {
     let hiddenAt = 0;
 
     const isNewBuild = async (): Promise<boolean> => {
-      const current = runningVersion();
+      const current = runningEntry();
       if (!current) return false;
       try {
-        const latest = await serverVersion();
+        const latest = await serverEntry();
         return latest !== null && latest !== current;
       } catch {
         return false; // offline or flaky network — never disturb the user
@@ -129,9 +147,15 @@ function useAutoRefreshOnNewVersion() {
     };
 
     const reloadIf = async () => {
-      if (reloading) return;
+      if (reloading || recentlyAutoReloaded()) return;
       if (await isNewBuild()) {
         reloading = true;
+        try {
+          sessionStorage.setItem(RELOAD_STAMP_KEY, String(Date.now()));
+        } catch {
+          // if we can't stamp it, don't reload — avoids any chance of a loop
+          return;
+        }
         window.location.reload();
       }
     };

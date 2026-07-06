@@ -77,9 +77,12 @@ export const MISSIONS: Record<MissionId, Mission> = {
     ringBg: "#FFE7DC",
     capturePillLabel: "Injured / Sick",
     alertButtonLabel: "🔔 Send Urgent Alert",
-    intakeTitle: "Injured or Stray Animal",
+    // Pre-launch copy (July 5, 2026): the camera-first front door invites
+    // TESTING with any animal photo — matches the landing-page modal —
+    // instead of urgent-rescue framing.
+    intakeTitle: "Try Voyce on your own pet — or any other animal",
     intakeDescription:
-      "Spotted an injured or stray animal on the street? One photo — Voyce AI generates a Rescue Card — Rescue Profile + Health Assessment — with visible injury notes. Closest in the network alerted first — vets, rescuers, fosters, and good samaritans — alert ripples outward until someone responds.",
+      "Upload any animal photo — yours, a stray you've seen, anything. Voyce's AI builds a full rescue profile in seconds so you can see exactly how it'll work when we launch. We're not live yet — this is a preview. See how the network responds.",
     titleSub: "Needs medical attention",
     callout: {
       emoji: "❤",
