@@ -304,7 +304,7 @@ export function RescueReport({
       <div className="mx-auto w-full max-w-2xl px-5 pt-4">
 
         {/* Card */}
-        <article className="overflow-hidden rounded-3xl border border-border bg-card shadow-[0_8px_30px_-12px_rgba(60,40,10,0.18)]">
+        <article className="overflow-hidden rounded-3xl border border-border bg-card shadow-[0_8px_30px_-12px_rgba(60,40,10,0.12)]">
           {/* Ribbon */}
           <div
             className="flex items-center justify-between gap-3 px-4 py-2.5"
@@ -331,11 +331,11 @@ export function RescueReport({
           </div>
 
           {/* Mission Timer */}
-          <div className="mx-4 mt-3 flex items-center justify-between gap-3 rounded-2xl border border-[#E8D58A] bg-gradient-to-b from-[#FBF1C8] to-[#F5E3A0] px-4 py-2.5">
+          <div className="mx-5 mt-4 flex items-center justify-between gap-3 rounded-2xl border border-[#EDE5D8] bg-[#FCF6E3] px-4 py-2.5">
             <div className="flex items-center gap-2">
               <span className="text-base">{ago.frozen ? "✅" : "🕐"}</span>
               <div>
-                <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#7A5A0E]">
+                <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A5A0E]">
                   {ago.frozen ? "Resolved" : "Mission Timer"}
                 </div>
                 <div className="text-[10px] leading-tight text-[#8A6A1E]">
@@ -361,13 +361,13 @@ export function RescueReport({
           {/* Wildlife top warning (always above title) */}
           {isWildlife && !isMonitoringFallback && m.showTopWarning && (
             <div
-              className="mx-5 mt-4 rounded-2xl border-2 px-4 py-3"
-              style={{ borderColor: "#D14848", background: "#FCE4E4", color: "#7E1F1F" }}
+              className="mx-5 mt-4 rounded-2xl border px-4 py-3.5"
+              style={{ borderColor: "#F0C8C8", background: "#FDF3F3", color: "#7E1F1F" }}
             >
-              <div className="text-[12px] font-bold uppercase tracking-[0.12em]">
+              <div className="text-[11px] font-bold uppercase tracking-[0.14em]">
                 {m.showTopWarning.title}
               </div>
-              <div className="mt-1 text-[13px] leading-relaxed">{m.showTopWarning.body}</div>
+              <div className="mt-1 text-[14px] leading-relaxed">{m.showTopWarning.body}</div>
             </div>
           )}
 
@@ -420,10 +420,10 @@ export function RescueReport({
                   href={mapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 rounded-full border-[1.5px] px-3 py-1 text-[12.5px] font-bold no-underline transition active:scale-[0.97]"
-                  style={{ borderColor: "#FFDF3B", color: "#8A5A0E", background: "#FFF9E6" }}
+                  className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-[12.5px] font-bold no-underline transition active:scale-[0.97]"
+                  style={{ borderColor: "#EDE5D8", color: "#8A5A0E", background: "#FFF9E6" }}
                 >
-                  <span aria-hidden>🗺️</span> View Map
+                  View Map
                 </a>
               )}
             </div>
@@ -437,14 +437,14 @@ export function RescueReport({
           {/* 8 — Urgency callout (mission-specific) */}
           {!isMonitoringFallback && (
             <div
-              className="mx-5 mt-4 rounded-2xl border-2 px-4 py-3.5"
+              className="mx-5 mt-4 rounded-2xl border px-4 py-3.5"
               style={{
                 borderColor: m.callout.border,
                 background: m.callout.bg,
                 color: m.callout.text,
               }}
             >
-              <div className="flex gap-2.5 text-[13.5px] leading-relaxed">
+              <div className="flex gap-2.5 text-[14px] leading-relaxed">
                 <span className="text-lg leading-none">{m.callout.emoji}</span>
                 <span className="font-medium">{m.callout.body}</span>
               </div>
@@ -453,7 +453,7 @@ export function RescueReport({
 
           {/* Calm callout for monitoring fallback — scene-aware copy */}
           {isMonitoringFallback && (
-            <div className="mx-5 mt-4 rounded-2xl border border-[#E8DCC2] bg-[#FAF8F5] px-4 py-3 text-[13.5px] text-[oklch(0.38_0.08_60)]">
+            <div className="mx-5 mt-4 rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3.5 text-[14px] leading-relaxed text-[oklch(0.38_0.08_60)]">
               {scene.callout}
             </div>
           )}
@@ -462,7 +462,7 @@ export function RescueReport({
           {!isMonitoringFallback && m.megaCta && (
             <div className="mx-5 mt-4">
               <button
-                className="w-full rounded-2xl px-5 py-4 text-[15px] font-bold uppercase tracking-wide shadow-md transition hover:brightness-105 active:scale-[0.99]"
+                className="w-full rounded-2xl px-5 py-4 text-[15px] font-bold uppercase tracking-wide shadow-sm transition hover:brightness-105 active:scale-[0.99]"
                 style={{ background: m.megaCta.gradient, color: m.megaCta.textColor }}
               >
                 {m.megaCta.label}
@@ -483,7 +483,7 @@ export function RescueReport({
                         ? () => window.open(mapsUrl, "_blank", "noopener,noreferrer")
                         : undefined
                   }
-                  className="flex flex-col items-center gap-1 rounded-xl border border-border bg-background/60 px-2 py-2.5 text-[11px] font-medium text-foreground/85 transition hover:bg-background hover:shadow-sm active:scale-[0.98]"
+                  className="flex flex-col items-center gap-1 rounded-xl border border-[#EDE5D8] bg-white px-2 py-2.5 text-[11px] font-medium text-foreground/85 transition hover:bg-background hover:shadow-sm active:scale-[0.98]"
                 >
                   <span className="text-base leading-none">{a.icon}</span>
                   <span>{a.label}</span>
@@ -503,7 +503,7 @@ export function RescueReport({
               </button>
             </div>
           ) : (
-            <div className="mx-5 mt-5">
+            <div className="mx-5 mt-4">
               <SectionDivider>I can help as</SectionDivider>
               <div className="mt-3 flex flex-wrap gap-2">
                 {m.rolePills.map((p) => (
@@ -522,7 +522,7 @@ export function RescueReport({
 
           {/* 12 — Share buttons (5 platforms) */}
           {!isMonitoringFallback && (
-            <div className="mx-5 mt-5">
+            <div className="mx-5 mt-4">
               <SectionDivider>
                 Or share to get more eyes on {shareName(data)}
               </SectionDivider>
@@ -539,8 +539,8 @@ export function RescueReport({
 
 
           {/* Rescue Profile (always) + Health Assessment behind a link */}
-          <div className="mx-5 mt-5">
-            <div className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#8A5A0E]">
+          <div className="mx-5 mt-4">
+            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A5A0E]">
               🐾 Rescue Profile
             </div>
             <div className="mt-3 space-y-4">
@@ -587,7 +587,7 @@ export function RescueReport({
               <button
                 type="button"
                 onClick={() => setShowVet((v) => !v)}
-                className="mt-4 flex w-full items-center justify-between rounded-xl border border-border bg-background/60 px-4 py-3 text-[13.5px] font-semibold text-[#8A5A0E] transition hover:bg-background active:scale-[0.99]"
+                className="mt-4 flex w-full items-center justify-between rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3 text-[13.5px] font-semibold text-[#8A5A0E] transition hover:bg-background active:scale-[0.99]"
               >
                 <span>🩺 {showVet ? "Hide health assessment" : "View full health assessment"}</span>
                 <span aria-hidden>{showVet ? "▲" : "→"}</span>
@@ -647,8 +647,8 @@ export function RescueReport({
           </div>
 
           {/* 13 — Report details (gray footer block) */}
-          <div className="mx-5 mt-5 rounded-2xl bg-muted/40 px-4 py-3.5">
-            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+          <div className="mx-5 mt-4 rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3.5">
+            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A5A0E]">
               Report details
             </div>
             <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[13px]">
@@ -667,7 +667,7 @@ export function RescueReport({
           {/* 14 — Nearby helpers callout */}
           {!isMonitoringFallback && (
             <div
-              className="mx-5 mt-4 mb-5 rounded-2xl px-4 py-3"
+              className="mx-5 mt-4 mb-5 rounded-2xl border border-[#EDE5D8] px-4 py-3.5"
               style={{ background: ringBg, color: titleColor }}
             >
               <div className="flex items-center gap-2 text-[14px] font-semibold">
@@ -768,8 +768,8 @@ function CountdownBlock() {
   const { h, m, s } = useCountdown(23 * 3600 + 47 * 60);
   return (
     <div
-      className="rounded-2xl border-2 px-4 py-3.5 text-center"
-      style={{ borderColor: "#D14848", background: "#FCE4E4" }}
+      className="rounded-2xl border px-4 py-3.5 text-center"
+      style={{ borderColor: "#F0C8C8", background: "#FDF3F3" }}
     >
       <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#7E1F1F]">
         ⏰ Time until euthanasia
@@ -845,7 +845,7 @@ function AnimalProfileLine({
       {chips.map((c) => (
         <span
           key={c.label}
-          className="inline-flex items-center gap-1 rounded-full border border-border bg-background/60 px-2.5 py-0.5 text-[11.5px] text-foreground/80"
+          className="inline-flex items-center gap-1 rounded-full border border-[#EDE5D8] bg-white px-2.5 py-0.5 text-[11.5px] text-foreground/80"
         >
           <span className="text-muted-foreground">{c.label}:</span>
           <span className="font-medium text-foreground/90">{c.value}</span>
@@ -977,9 +977,9 @@ function locationLine(data: Assessment): string {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div>
-      <h2 className="font-serif text-base font-semibold tracking-tight">{title}</h2>
-      <div className="mt-1 text-[14.5px] leading-relaxed text-foreground/85">{children}</div>
+    <div className="rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3.5">
+      <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A5A0E]">{title}</h2>
+      <div className="mt-1.5 text-[14px] leading-relaxed text-foreground/85">{children}</div>
     </div>
   );
 }
@@ -991,16 +991,16 @@ function WhereFound({ data }: { data: Assessment }) {
     "Only the animal is visible in this frame — limited environmental context.";
   const objects = (data.surrounding_objects || []).filter(Boolean);
   return (
-    <div className="rounded-2xl border border-[#E8DCC2] bg-[#FAF8F5] px-4 py-4">
+    <div className="rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3.5">
       <div className="flex items-center gap-2">
         <span className="text-base">📍</span>
-        <h2 className="font-serif text-base font-semibold tracking-tight">Where we found them</h2>
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A5A0E]">Where we found them</h2>
       </div>
-      <p className="mt-2 whitespace-pre-line text-[14.5px] leading-relaxed text-foreground/85">
+      <p className="mt-2 whitespace-pre-line text-[14px] leading-relaxed text-foreground/85">
         {text}
       </p>
       {objects.length > 0 && (
-        <div className="mt-3 border-t border-[#E8DCC2] pt-3">
+        <div className="mt-3 border-t border-[#EDE5D8] pt-3">
           <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A5A0E]">
             In the frame
           </div>
@@ -1008,7 +1008,7 @@ function WhereFound({ data }: { data: Assessment }) {
             {objects.map((o, i) => (
               <span
                 key={i}
-                className="rounded-full border border-[#E8DCC2] bg-white px-2.5 py-0.5 text-[12px] text-foreground/80"
+                className="rounded-full border border-[#EDE5D8] bg-white px-2.5 py-0.5 text-[12px] text-foreground/80"
               >
                 {o}
               </span>
@@ -1027,11 +1027,11 @@ function ResponderBriefing({ data, calm }: { data: Assessment; calm: boolean }) 
     // setting read and a note that matches it.
     const scene = calmScene(data);
     return (
-      <div className="rounded-2xl border-2 border-[#FFDF3B]/60 bg-[#FFFBEC] px-4 py-3.5">
+      <div className="rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3.5">
         <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A5A0E]">
           For the responder
         </div>
-        <div className="mt-2 space-y-1 text-[14px] text-foreground/85">
+        <div className="mt-2 space-y-1 text-[14px] leading-relaxed text-foreground/85">
           <div><span className="mr-1">{scene.settingEmoji}</span> Setting: <span className="font-medium">{data.setting_type || "Unknown"}</span></div>
           <div><span className="mr-1">📋</span> {scene.responderNote}</div>
         </div>
@@ -1043,13 +1043,12 @@ function ResponderBriefing({ data, calm }: { data: Assessment; calm: boolean }) 
       ? data.safety_flags
       : ["None — straightforward approach"];
   return (
-    <div className="rounded-2xl border-2 border-[#E89A7A] bg-[#FFF4EE] px-4 py-3.5">
+    <div className="rounded-2xl border border-[#F2D6C8] bg-[#FFF9F5] px-4 py-3.5">
       <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#A8431F]">
         ⚠️ For the responder — what you're walking into
       </div>
-      <div className="mt-2.5 space-y-1.5 text-[14px] text-foreground/90">
+      <div className="mt-2.5 space-y-1.5 text-[14px] leading-relaxed text-foreground/90">
         <div className="flex gap-2">
-          <span>🚧</span>
           <div>
             <div className="text-muted-foreground">Safety flags:</div>
             <ul className="mt-1 space-y-0.5">
@@ -1064,7 +1063,6 @@ function ResponderBriefing({ data, calm }: { data: Assessment; calm: boolean }) 
         </div>
         {data.environment_text && (
           <div className="flex gap-2">
-            <span>🎬</span>
             <span>
               <span className="text-muted-foreground">Scene:</span>{" "}
               <span className="font-medium">
@@ -1074,19 +1072,16 @@ function ResponderBriefing({ data, calm }: { data: Assessment; calm: boolean }) 
           </div>
         )}
         <div className="flex gap-2">
-          <span>🏠</span>
           <span><span className="text-muted-foreground">Setting:</span> <span className="font-medium">{data.setting_type}</span></span>
         </div>
         <div className="flex gap-2">
-          <span>🪑</span>
           <span><span className="text-muted-foreground">Surface:</span> <span className="font-medium">{data.surface}</span></span>
         </div>
         <div className="flex gap-2">
-          <span>💡</span>
           <span><span className="text-muted-foreground">Lighting:</span> <span className="font-medium">{data.lighting_conditions}</span></span>
         </div>
       </div>
-      <div className="mt-3 border-t border-[#E89A7A]/40 pt-2 text-[12px] italic text-muted-foreground">
+      <div className="mt-3 border-t border-[#F2D6C8] pt-2 text-[12px] italic text-muted-foreground">
         Voyce gives you the picture before you go. The more you know, the safer the rescue.
       </div>
     </div>
@@ -1096,14 +1091,14 @@ function ResponderBriefing({ data, calm }: { data: Assessment; calm: boolean }) 
 
 function AIHealthDisclaimer() {
   return (
-    <div className="rounded-2xl border-2 border-[#E89A7A] bg-[#FFF4EE] px-4 py-4">
-      <div className="text-[12px] font-bold uppercase tracking-[0.14em] text-[#A8431F]">
+    <div className="rounded-2xl border border-[#F2D6C8] bg-[#FFF9F5] px-4 py-3.5">
+      <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#A8431F]">
         ⚠️ Voyce's First Look — Honest Limits
       </div>
-      <p className="mt-2 text-[13.5px] leading-relaxed text-foreground/85">
+      <p className="mt-2 text-[14px] leading-relaxed text-foreground/85">
         This assessment is generated by computer vision and may be inaccurate. AI cannot:
       </p>
-      <ul className="mt-2 list-disc space-y-1 pl-5 text-[13.5px] leading-relaxed text-foreground/85">
+      <ul className="mt-2 list-disc space-y-1 pl-5 text-[14px] leading-relaxed text-foreground/85">
         <li>Detect internal injuries or diseases</li>
         <li>Diagnose conditions</li>
         <li>Estimate exact age, weight, or breed</li>
