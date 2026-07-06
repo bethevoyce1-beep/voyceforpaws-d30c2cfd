@@ -774,4 +774,11 @@ function AddMediaModal({
               disabled={busy}
               className="mt-4 w-full rounded-2xl border-2 border-[#FFDF3B] bg-black px-5 py-3 text-[13px] font-bold uppercase tracking-wide text-white shadow-lg transition active:scale-[0.99] disabled:opacity-70"
             >
-              {busy ? "Saving…" : "Save
+              {busy ? "Saving…" : "Save with credit"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
