@@ -1,19 +1,19 @@
 import { useEffect, useState } from "react";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
 
-// Shown right after the reporter fills "Tell us about them" — the network-alert
-// steps that used to sit at the end of the Rescue Journey. Auto-advances to the
-// rescue card.
+// Shown right after the reporter taps "Send to rescuers" on the rescue card —
+// the network-alert steps play here (AFTER the real send) so the "we alerted
+// the network" moment is accurate. Auto-advances to the share screen.
 const STEPS = [
   {
     icon: "📢",
     title: "Alerting the network",
-    sub: "Closest rescuers, fosters, vets & shelters get it first — rippling outward until they're helped.",
+    sub: "Closest rescuers, fosters, shelters, and animal lovers get it first — anyone willing to help. The alert keeps rippling out to the whole network.",
   },
   {
-    icon: "❤️",
-    title: "Voyce answers",
-    sub: "Your rescue card is ready. You'll be notified when someone responds.",
+    icon: "✅",
+    title: "Report sent",
+    sub: "It's saved to your home screen. We'll let you know the moment someone steps up to help.",
   },
 ];
 
