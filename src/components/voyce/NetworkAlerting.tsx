@@ -8,7 +8,7 @@ const STEPS = [
   {
     icon: "📢",
     title: "Alerting the network",
-    sub: "Closest rescuers, fosters, shelters, and animal lovers get it first — anyone willing to help. The alert keeps rippling out to the whole network.",
+    sub: "Closest rescuers, fosters, shelters, and animal lovers get it first — anyone willing to help. The alert keeps rippling across the whole network until this animal is helped.",
   },
   {
     icon: "✅",
