@@ -141,7 +141,9 @@ export function RescueReport({
   onDone?: () => void;
 }) {
   const [tab, setTab] = useState<"story" | "vet">("story");
-  const [showVet, setShowVet] = useState(false);
+  // July 5, 2026: health assessment is OPEN by default — rescuers shouldn't
+  // have to tap to see the clinical read. The button now collapses it.
+  const [showVet, setShowVet] = useState(true);
   const [shareConfirm, setShareConfirm] = useState(false);
   const [pendingShare, setPendingShare] = useState<SharePlatform | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -257,7 +259,15 @@ export function RescueReport({
 
   // The reporter confirmed the situation in the "Tell us about them" form
   // (pre-filled from Voyce's read), so the card shows that directly.
-  const effectiveType = situation || reportType;
+  // July 5, 2026 fix: a HEALTHY animal must never be typed "Injury" just
+  // because the flow entered through the injured mission (the camera-first
+  // default). When the calm/monitoring layout is active, the type reflects
+  // the AI's actual read.
+  const effectiveType = isMonitoringFallback
+    ? data.status === "Safe"
+      ? "Pet at home — no action needed"
+      : "Wellness check — no action needed"
+    : situation || reportType;
   // One Google Maps link, shared by the View Map pill and the Navigate action.
   const mapsUrl = location
     ? `https://www.google.com/maps/search/?api=1&query=${location.lat},${location.lon}`
