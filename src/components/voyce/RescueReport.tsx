@@ -445,7 +445,7 @@ export function RescueReport({
                 onClick={onEditDetails}
                 className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-[#EDE5D8] bg-white px-4 py-2.5 text-[12.5px] font-semibold text-[#8A5A0E] transition hover:bg-background active:scale-[0.99]"
               >
-                🔧 Voyce read this from your photo — missed something? Add or fix details
+                🔎 See what Voyce read — edit if needed
               </button>
             )}
           </div>
@@ -705,11 +705,11 @@ export function RescueReport({
             </div>
           )}
           <button
-            onClick={handleSubmitReport}
+            onClick={onEditDetails ?? handleSubmitReport}
             disabled={submitting}
             className="rounded-full bg-gradient-to-b from-[oklch(0.90_0.16_85)] to-[oklch(0.78_0.15_70)] px-6 py-2.5 text-sm font-semibold text-[oklch(0.25_0.04_60)] shadow-md transition hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {submitting ? "Verifying…" : "Send to rescuers"}
+            {submitting ? "Verifying…" : "Review & send to network"}
           </button>
         </div>
       </div>

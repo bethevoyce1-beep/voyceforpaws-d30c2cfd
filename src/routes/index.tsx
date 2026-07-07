@@ -15,6 +15,7 @@ import { ReportDetails } from "@/components/voyce/ReportDetails";
 import type { ReportDetails as ReportDetailsData } from "@/components/voyce/ReportDetails";
 import { BackNavContext } from "@/components/voyce/BrandHeader";
 import { RescueReport } from "@/components/voyce/RescueReport";
+import { ReviewSheet, type ReviewResult } from "@/components/voyce/ReviewSheet";
 import { NetworkAlerting } from "@/components/voyce/NetworkAlerting";
 import { StatusTimeline } from "@/components/voyce/StatusTimeline";
 import { DemoGate } from "@/components/voyce/DemoGate";
@@ -163,6 +164,7 @@ function Home() {
   const [reportDetails, setReportDetails] = useState<ReportDetailsData | null>(null);
   const [aiPending, setAiPending] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [showReview, setShowReview] = useState(false);
 
   // Analyze the photo as soon as it's captured — the AI goes first, then the
   // reporter refines details afterward ("what did Voyce miss?").
@@ -250,6 +252,27 @@ function Home() {
       }
     },
     [mission, assessment, captured, captureMeta, capturedIsSample, runAnalysis],
+  );
+
+  // Card-first: the review pop-up is the single confirm-and-send step. Applying
+  // the reporter's confirmed situation sets the mission, then sends instantly to
+  // the network (the "Notifying the network" animation).
+  const handleReviewSend = useCallback(
+    (r: ReviewResult) => {
+      setReportDetails({
+        animalType: r.animalType,
+        situation: r.situation,
+        witnessed: r.witnessed,
+        notes: r.notes,
+        email: "",
+        phone: "",
+      });
+      const resolved = resolveMission(r.situation, mission, assessment);
+      if (resolved !== mission) setMission(resolved);
+      setShowReview(false);
+      setStage("alerting");
+    },
+    [mission, assessment],
   );
 
   const reset = () => {
@@ -377,20 +400,30 @@ function Home() {
     ).map((a) => ({ ...a, caseId: a.caseId ?? assessment.caseId }));
     const idx = Math.min(animalIndex, animalsList.length - 1);
     return withBack(
-      <RescueReport
-        image={captured}
-        data={animalsList[idx]}
-        mission={mission}
-        location={location}
-        situation={reportDetails?.situation}
-        animals={animalsList}
-        animalIndex={idx}
-        onSelectAnimal={setAnimalIndex}
-        onContinue={() => setStage("share")}
-        onDone={() => setStage("timeline")}
-        onSend={() => setStage("alerting")}
-        onEditDetails={() => setStage("details")}
-      />
+      <>
+        <RescueReport
+          image={captured}
+          data={animalsList[idx]}
+          mission={mission}
+          location={location}
+          situation={reportDetails?.situation}
+          animals={animalsList}
+          animalIndex={idx}
+          onSelectAnimal={setAnimalIndex}
+          onContinue={() => setStage("share")}
+          onDone={() => setStage("timeline")}
+          onSend={() => setShowReview(true)}
+          onEditDetails={() => setShowReview(true)}
+        />
+        {showReview && (
+          <ReviewSheet
+            mission={mission}
+            assessment={animalsList[idx]}
+            onCancel={() => setShowReview(false)}
+            onSend={handleReviewSend}
+          />
+        )}
+      </>
     );
   }
   if (stage === "share" && mission === "at-risk-shelter" && acsAnimal) {
