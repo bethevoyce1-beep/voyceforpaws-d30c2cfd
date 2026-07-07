@@ -519,8 +519,8 @@ export function AcsShareCard({
           >
             <span className="text-[15px] leading-none">👥</span>
             <p className="text-[11.5px] leading-[1.45] font-medium">
-              Closest shelter partners & rescuers get it first, rippling outward — rescues, fosters &
-              adopters will see {animal.name} the moment Voyce launches alerts.
+              Closest shelter partners, rescuers, fosters & adopters get it first — the alert keeps
+              rippling until {animal.name} is helped. Live the moment Voyce launches alerts.
             </p>
           </div>
         </article>
