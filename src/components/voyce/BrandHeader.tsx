@@ -40,7 +40,7 @@ export function BrandHeader() {
         </span>
       </div>
       <div className="text-[11px] font-medium text-muted-foreground">
-        AI advisory · not a diagnosis
+        AI is advisory — not a diagnosis
       </div>
     </header>
   );
