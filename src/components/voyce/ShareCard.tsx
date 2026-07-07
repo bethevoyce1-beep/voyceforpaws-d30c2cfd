@@ -225,7 +225,7 @@ function variantFor(mission: MissionId, data: Assessment): Variant {
         ],
         helpersBg: "#FEF2F2", helpersText: "#991B1B",
         helpersBody:
-          "Closest rescues, volunteers & fosters get it first, rippling outward until they're helped — live the moment Voyce launches alerts.",
+          "Closest rescuers, fosters & animal lovers get it first — the alert keeps rippling until this animal is helped. Live the moment Voyce launches alerts.",
         ctaRole: "Rescuer",
       };
     case "AT-RISK": {
@@ -258,7 +258,7 @@ function variantFor(mission: MissionId, data: Assessment): Variant {
         ],
         helpersBg: "#FFFBEB", helpersText: "#92400E",
         helpersBody:
-          "Closest shelter partners & rescuers get it first, rippling outward — rescues, fosters & adopters will see her when Voyce launches alerts.",
+          "Closest shelter partners, rescuers, fosters & adopters get it first — the alert keeps rippling until this animal is helped. Live the moment Voyce launches alerts.",
         ctaRole: "Foster",
       };
     }
@@ -294,7 +294,7 @@ function variantFor(mission: MissionId, data: Assessment): Variant {
         ],
         helpersBg: "#EFF6FF", helpersText: "#1E40AF",
         helpersBody:
-          "Closest lost-pet groups & owners get it first, rippling outward — they'll see her when Voyce launches alerts.",
+          "Closest lost-pet groups, neighbors & animal lovers get it first — the alert keeps rippling until this animal is helped. Live the moment Voyce launches alerts.",
         ctaRole: "Animal Lover",
       };
     case "PREVENTION":
@@ -348,7 +348,7 @@ function variantFor(mission: MissionId, data: Assessment): Variant {
         ],
         helpersBg: "#ECFEFF", helpersText: "#155E75",
         helpersBody:
-          "Closest licensed rehabbers get it first, rippling outward — they'll see this case when Voyce launches alerts.",
+          "Closest licensed rehabbers & animal control get it first — the alert keeps rippling until this animal is in expert hands. Live the moment Voyce launches alerts.",
         ctaRole: "Rehabber",
       };
   }
@@ -582,7 +582,7 @@ export function ShareCard({
             {/* Story */}
             {story && (
               <p className="mt-3 line-clamp-3 text-[14px] italic leading-[1.55] text-[#4B5563]">
-                {`\u201C${story}\u201D`}
+                {`“${story}”`}
               </p>
             )}
 
