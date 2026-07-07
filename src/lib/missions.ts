@@ -82,7 +82,7 @@ export const MISSIONS: Record<MissionId, Mission> = {
     // instead of urgent-rescue framing.
     intakeTitle: "Try Voyce on your own pet — or any other animal",
     intakeDescription:
-      "Upload any animal photo — yours, a stray you've seen, anything. Voyce's AI builds a full rescue profile in seconds so you can see exactly how it'll work when we launch. We're not live yet — this is a preview. See how the network responds.",
+      "Upload any animal photo — yours, a stray you've seen, anything. Voyce's AI builds a full rescue profile in seconds — and at launch, it will instantly alert your nearby network of people who can help. We're not live yet — this is a preview. See how the network responds.",
     titleSub: "Needs medical attention",
     callout: {
       emoji: "❤",
