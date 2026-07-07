@@ -660,6 +660,12 @@ export function RescueReport({
               {data.caseId && <ReportRow label="Case #" value={data.caseId} />}
               <ReportRow label="Reported by" value="Reporter (no account)" />
               <ReportRow label="Reported at" value={stamp} />
+              {data.ai_confidence && (
+                <ReportRow
+                  label="AI confidence"
+                  value={data.ai_confidence.charAt(0).toUpperCase() + data.ai_confidence.slice(1)}
+                />
+              )}
               <ReportRow label="Type" value={effectiveType} />
               <ReportRow label="Visibility" value="Public" />
               {!isMonitoringFallback &&
@@ -840,7 +846,9 @@ function AnimalProfileLine({
     { label: "Species", value: data.species },
     { label: "Breed", value: data.breed },
     { label: "Age", value: data.age },
+    { label: "Size", value: data.size },
     { label: "Weight", value: data.weight },
+    { label: "Color", value: data.color },
   ].filter((c) => c.value && !/^unknown$/i.test(c.value));
   const conditionChip = condition.primarySign
     ? { label: "Condition", value: condition.primarySign }
