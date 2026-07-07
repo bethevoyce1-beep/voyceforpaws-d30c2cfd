@@ -127,6 +127,10 @@ function inferStreet(data: Assessment): string {
 function variantFor(mission: MissionId, data: Assessment): Variant {
   const kind = kindFor(mission, data);
   const title = inferTitle(kind, data);
+  // Pre-launch share cards describe what will happen the moment Voyce launches —
+  // one standardized "rippling outward" sentence, personalized with the animal's name.
+  const name = shareName(data);
+  const preLaunchRipple = `Rippling outward — rescues, fosters & adopters will see ${name} the moment Voyce launches alerts.`;
 
   switch (kind) {
     case "SAFE":
@@ -224,8 +228,7 @@ function variantFor(mission: MissionId, data: Assessment): Variant {
           { label: "Transport", ...PILL.transportBlue,  role: "animal_lover" },
         ],
         helpersBg: "#FEF2F2", helpersText: "#991B1B",
-        helpersBody:
-          "Closest rescuers, fosters & animal lovers get it first — the alert keeps rippling until this animal is helped. Live the moment Voyce launches alerts.",
+        helpersBody: preLaunchRipple,
         ctaRole: "Rescuer",
       };
     case "AT-RISK": {
@@ -257,8 +260,7 @@ function variantFor(mission: MissionId, data: Assessment): Variant {
           { label: "Transport", ...PILL.transportBlue, role: "animal_lover" },
         ],
         helpersBg: "#FFFBEB", helpersText: "#92400E",
-        helpersBody:
-          "Closest shelter partners, rescuers, fosters & adopters get it first — the alert keeps rippling until this animal is helped. Live the moment Voyce launches alerts.",
+        helpersBody: preLaunchRipple,
         ctaRole: "Foster",
       };
     }
@@ -293,8 +295,7 @@ function variantFor(mission: MissionId, data: Assessment): Variant {
           { label: "Pledge for care",    ...PILL.rescueRed,      role: "animal_lover" },
         ],
         helpersBg: "#EFF6FF", helpersText: "#1E40AF",
-        helpersBody:
-          "Closest lost-pet groups, neighbors & animal lovers get it first — the alert keeps rippling until this animal is helped. Live the moment Voyce launches alerts.",
+        helpersBody: preLaunchRipple,
         ctaRole: "Animal Lover",
       };
     case "PREVENTION":
@@ -347,8 +348,7 @@ function variantFor(mission: MissionId, data: Assessment): Variant {
           { label: "Volunteer", ...PILL.volunteerGreen,  role: "animal_lover" },
         ],
         helpersBg: "#ECFEFF", helpersText: "#155E75",
-        helpersBody:
-          "Closest licensed rehabbers & animal control get it first — the alert keeps rippling until this animal is in expert hands. Live the moment Voyce launches alerts.",
+        helpersBody: preLaunchRipple,
         ctaRole: "Rehabber",
       };
   }
