@@ -163,7 +163,7 @@ export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment
       },
       {
         title: "🪪 Creating rescue card",
-        sub: "Reading the photo into a Rescue Profile + Voyce AI health notes.",
+        sub: "Reading the photo into a Rescue Profile + Voyce's First Look.",
       },
     ],
     [],
