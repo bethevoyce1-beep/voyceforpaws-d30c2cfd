@@ -552,6 +552,7 @@ export function RescueReport({
                 <AIObservations data={data} />
                 <Section title="✨ Voyce's First Look">{data.first_look}</Section>
                 <Section title="Behavior">{data.behavior}</Section>
+                <EnvironmentAnalysis data={data} />
                 <WhereFound data={data} />
                 <ResponderBriefing data={data} calm={isMonitoringFallback} />
 
@@ -862,21 +863,21 @@ function AnimalProfileLine({
   );
 }
 
-const SETTING_OBSERVATION: Record<string, string> = {
-  "Home (Indoor)": "Indoor environment",
-  "Backyard/Domestic Outdoor": "Outdoor domestic environment",
-  "Street/Sidewalk": "Street / sidewalk environment",
-  "Commercial Area": "Commercial-area environment",
-  "Industrial/Warehouse": "Industrial environment",
-  "Vehicle-Adjacent (Road/Parking)": "Roadside environment",
-  "Public Space (Park/Plaza)": "Public-space environment",
-  "Wild/Undeveloped": "Outdoor natural environment",
-  "Shelter/Kennel": "Shelter kennel environment",
+const SETTING_PLACE: Record<string, string> = {
+  "Home (Indoor)": "Indoor home",
+  "Backyard/Domestic Outdoor": "Backyard",
+  "Street/Sidewalk": "Roadside",
+  "Commercial Area": "Commercial area",
+  "Industrial/Warehouse": "Industrial area",
+  "Vehicle-Adjacent (Road/Parking)": "Roadside / parking lot",
+  "Public Space (Park/Plaza)": "Park / public space",
+  "Wild/Undeveloped": "Wooded / natural area",
+  "Shelter/Kennel": "Shelter",
 };
 
 function AIObservations({ data }: { data: Assessment }) {
   const lines = Array.isArray(data.observations) ? data.observations.filter(Boolean) : [];
-  const envLine = data.setting_type ? SETTING_OBSERVATION[data.setting_type] : undefined;
+  if (lines.length === 0) return null;
   return (
     <div className="rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3.5">
       <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A5A0E]">
@@ -889,16 +890,36 @@ function AIObservations({ data }: { data: Assessment }) {
             <span>{line}</span>
           </li>
         ))}
-        {envLine && (
-          <li className="flex gap-2">
-            <span className="text-[oklch(0.65_0.18_70)]">•</span>
-            <span>{envLine}</span>
-          </li>
-        )}
       </ul>
       <p className="mt-2.5 border-t border-[#EDE5D8] pt-2 text-[12.5px] italic text-muted-foreground">
         Hidden injuries can't be determined from a photo.
       </p>
+    </div>
+  );
+}
+
+function EnvironmentAnalysis({ data }: { data: Assessment }) {
+  const rows: { label: string; value: string }[] = [];
+  const place = data.setting_type ? SETTING_PLACE[data.setting_type] : undefined;
+  if (place) rows.push({ label: "Environment", value: place });
+  if (data.weather && !/^not visible$/i.test(data.weather)) {
+    rows.push({ label: "Weather", value: data.weather });
+  }
+  if (data.lighting_conditions) rows.push({ label: "Lighting", value: data.lighting_conditions });
+  if (rows.length === 0) return null;
+  return (
+    <div className="rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3.5">
+      <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A5A0E]">
+        🌦 Environment Analysis
+      </h2>
+      <ul className="mt-2 space-y-1 text-[14px] leading-relaxed text-foreground/85">
+        {rows.map((r) => (
+          <li key={r.label} className="flex gap-2">
+            <span className="text-[oklch(0.65_0.18_70)]">•</span>
+            <span><span className="text-muted-foreground">{r.label}:</span> {r.value}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
