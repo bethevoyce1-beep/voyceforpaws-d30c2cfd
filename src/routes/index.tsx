@@ -25,7 +25,7 @@ import { AcsShareCard } from "@/components/voyce/AcsShareCard";
 import { ShelterPicker } from "@/components/voyce/ShelterPicker";
 import type { AcsAnimal } from "@/lib/acs.functions";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
-import { MISSIONS, type MissionId } from "@/lib/missions";
+import { MISSIONS, isWildSpecies, type MissionId } from "@/lib/missions";
 
 
 
@@ -120,11 +120,42 @@ function assessmentFromAcs(a: AcsAnimal): Assessment {
   };
 }
 
+// Map the reporter's confirmed situation pill to the mission that drives the
+// rescue-card layout. A detected wild animal always routes to Wildlife (safety),
+// and an explicit Wildlife pick is preserved.
+function resolveMission(
+  situation: string,
+  current: MissionId,
+  assessment: Assessment | null,
+): MissionId {
+  if (current === "wildlife") return "wildlife";
+  if (assessment && assessment.is_likely_pet === false && isWildSpecies(assessment)) {
+    return "wildlife";
+  }
+  switch (situation) {
+    case "Injured or hit by a car":
+    case "Sick or in distress":
+      return "injured";
+    case "Lost pet":
+    case "Found pet":
+    case "Abandoned puppies or kittens":
+      return "lost-found";
+    case "Stray, needs care":
+    case "Needs spay or vaccine":
+      return "prevention";
+    case "At-risk shelter":
+      return "at-risk-shelter";
+    default:
+      return current;
+  }
+}
+
 function Home() {
-  const [stage, setStage] = useState<Stage>("mission");
+  const [stage, setStage] = useState<Stage>("capture");
   const [mission, setMission] = useState<MissionId>("injured");
   const [captured, setCaptured] = useState<string | null>(null);
   const [captureMeta, setCaptureMeta] = useState<PhotoMeta | null>(null);
+  const [capturedIsSample, setCapturedIsSample] = useState(false);
   const [location, setLocation] = useState<{ lat: number; lon: number; label: string } | null>(null);
   const [animalIndex, setAnimalIndex] = useState(0);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
@@ -136,7 +167,7 @@ function Home() {
   // Analyze the photo as soon as it's captured — the AI goes first, then the
   // reporter refines details afterward ("what did Voyce miss?").
   const runAnalysis = useCallback(
-    async (dataUrl: string, meta: PhotoMeta | null, isSample = false) => {
+    async (dataUrl: string, meta: PhotoMeta | null, isSample = false, missionOverride?: MissionId) => {
       setAiPending(true);
       setAiError(null);
       setAssessment(null);
@@ -147,7 +178,7 @@ function Home() {
         const photoHash = isSample ? undefined : (await dhashFromDataUrl(dataUrl)) ?? undefined;
         const elapsedMs = isSample ? undefined : Date.now() - appLoadedAt;
         const result = await analyzeImage({
-          data: { imageDataUrl: dataUrl, mission, context: {}, photoHash, elapsedMs },
+          data: { imageDataUrl: dataUrl, mission: missionOverride ?? mission, context: {}, photoHash, elapsedMs },
         });
         const caseId = (() => {
           try {
@@ -184,6 +215,7 @@ function Home() {
       const dataUrl = await toDataUrl(src);
       setCaptured(dataUrl);
       setCaptureMeta(meta ?? null);
+      setCapturedIsSample(isSample);
       setStage("processing");
       void runAnalysis(dataUrl, meta ?? null, isSample);
     },
@@ -194,10 +226,25 @@ function Home() {
   // they can review it. The network-alerting animation now plays AFTER they tap
   // "Send to rescuers" on the card (see the report stage below), so the "we
   // alerted the network" moment only happens once it's actually true.
-  const startReport = useCallback((details: ReportDetailsData) => {
-    setReportDetails(details);
-    setStage("report");
-  }, []);
+  const startReport = useCallback(
+    (details: ReportDetailsData) => {
+      setReportDetails(details);
+      // The reporter confirmed (or corrected) the situation on the details
+      // pills. Map it to the matching mission so the rescue card renders in the
+      // right layout. If that mission differs from what the photo was analyzed
+      // under, re-read the photo with the corrected context so the suggested
+      // next-steps fit; otherwise go straight to the card.
+      const resolved = resolveMission(details.situation, mission, assessment);
+      if (resolved !== mission && captured) {
+        setMission(resolved);
+        setStage("processing");
+        void runAnalysis(captured, captureMeta, capturedIsSample, resolved);
+      } else {
+        setStage("report");
+      }
+    },
+    [mission, assessment, captured, captureMeta, capturedIsSample, runAnalysis],
+  );
 
   const reset = () => {
     setStage("mission");
@@ -301,7 +348,7 @@ function Home() {
         aiPending={aiPending}
         aiError={aiError}
         assessment={assessment}
-        onComplete={() => assessment && setStage("details")}
+        onComplete={() => assessment && setStage(reportDetails ? "report" : "details")}
         onRetry={() => {
           setCaptured(null);
           setCaptureMeta(null);
