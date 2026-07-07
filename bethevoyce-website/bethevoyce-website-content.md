@@ -61,7 +61,7 @@ Engaging young people in service and empathy — turning compassion into hands-o
 
 **Eyebrow:** Our Rescue Tool
 **Heading:** Voyce for Paws
-**Text:** See a stray? Snap a photo and our AI reads the animal *as it is* — building a rescue card, finding the location, and alerting nearby helpers. The alert keeps rippling out until help arrives.
+**Text:** See a stray? Snap a photo and our AI reads the animal *as it is* — building a rescue card, finding the location, and alerting nearby helpers. The alert keeps rippling outward until this animal is helped.
 
 Steps:
 1. Take or upload a photo
