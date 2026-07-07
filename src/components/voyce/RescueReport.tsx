@@ -549,35 +549,12 @@ export function RescueReport({
               🐾 Rescue Profile
             </div>
             <div className="mt-3 space-y-4">
+                <AIObservations data={data} />
                 <Section title="✨ Voyce's First Look">{data.first_look}</Section>
                 <Section title="Behavior">{data.behavior}</Section>
                 <WhereFound data={data} />
                 <ResponderBriefing data={data} calm={isMonitoringFallback} />
 
-                <Section title="What we noticed">
-                  {(data.symptoms && data.symptoms.length > 0
-                    ? data.symptoms
-                    : data.noticed
-                  ).length === 0 ? (
-                    <span className="text-muted-foreground">
-                      Nothing concerning visible in this image.
-                    </span>
-                  ) : (
-                    <ul className="space-y-1">
-                      {(data.symptoms && data.symptoms.length > 0
-                        ? data.symptoms
-                        : data.noticed
-                      ).map((n, i) => (
-                        <li key={i} className="flex gap-2">
-                          <span style={{ color: CONDITION_COLORS[condition.visibleCondition].dot }}>
-                            ✓
-                          </span>
-                          <span>{n}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </Section>
                 <Section title="Suggested next steps">
                   <ul className="space-y-1.5">
                     {data.next_steps.map((n, i) => (
@@ -881,6 +858,47 @@ function AnimalProfileLine({
           {conditionChip.value}
         </span>
       )}
+    </div>
+  );
+}
+
+const SETTING_OBSERVATION: Record<string, string> = {
+  "Home (Indoor)": "Indoor environment",
+  "Backyard/Domestic Outdoor": "Outdoor domestic environment",
+  "Street/Sidewalk": "Street / sidewalk environment",
+  "Commercial Area": "Commercial-area environment",
+  "Industrial/Warehouse": "Industrial environment",
+  "Vehicle-Adjacent (Road/Parking)": "Roadside environment",
+  "Public Space (Park/Plaza)": "Public-space environment",
+  "Wild/Undeveloped": "Outdoor natural environment",
+  "Shelter/Kennel": "Shelter kennel environment",
+};
+
+function AIObservations({ data }: { data: Assessment }) {
+  const lines = Array.isArray(data.observations) ? data.observations.filter(Boolean) : [];
+  const envLine = data.setting_type ? SETTING_OBSERVATION[data.setting_type] : undefined;
+  return (
+    <div className="rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3.5">
+      <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A5A0E]">
+        🔎 AI Observations
+      </h2>
+      <ul className="mt-2 space-y-1 text-[14px] leading-relaxed text-foreground/85">
+        {lines.map((line, i) => (
+          <li key={i} className="flex gap-2">
+            <span className="text-[oklch(0.65_0.18_70)]">•</span>
+            <span>{line}</span>
+          </li>
+        ))}
+        {envLine && (
+          <li className="flex gap-2">
+            <span className="text-[oklch(0.65_0.18_70)]">•</span>
+            <span>{envLine}</span>
+          </li>
+        )}
+      </ul>
+      <p className="mt-2.5 border-t border-[#EDE5D8] pt-2 text-[12.5px] italic text-muted-foreground">
+        Hidden injuries can't be determined from a photo.
+      </p>
     </div>
   );
 }
