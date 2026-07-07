@@ -57,6 +57,7 @@ export type Assessment = {
     primary_sign?: string; // short label e.g. "Limping", "Coughing", "Lethargic"
   };
   visible_condition?: "Healthy" | "Concerning" | "Critical";
+  observations?: string[];       // short standardized, hedged observation lines (behavior + visible physical signs)
   symptoms?: string[];           // clinical-phrased symptom list
   clinical_actions?: string[];   // suggested clinical next actions (exam, X-ray, fluids)
   differentials?: string[];      // differential possibilities
@@ -124,6 +125,8 @@ symptoms[]: every visible sign as a short, plain, OBSERVATIONAL line — describ
 clinical_actions[]: gentle SUGGESTIONS to raise with a licensed veterinarian — never doses, medication names, fluid volumes, or medical orders (e.g. "Ask a vet to take a closer look at the right hind leg", "A vet may want to check for infection", "Have a vet assess hydration and overall condition"). 3-5 items max. Always assume a licensed professional makes the medical decisions.
 differentials[]: 2-4 POSSIBILITIES a veterinarian may want to consider — plainly worded and clearly NOT a diagnosis (e.g. "Possible respiratory infection", "Possible soft-tissue injury or fracture", "Possible dehydration"). A licensed vet must confirm. Omit or empty array if nothing concerning is visible.
 
+OBSERVATIONS LIST. Also populate "observations" with 3-6 SHORT, standardized, hedged one-liners (about 3-6 words each) that a person can scan at a glance — covering the animal's apparent behavior/affect and any visible physical signs. Use the observational voice, never a diagnosis. Good examples: "Appears alert and responsive", "Appears calm", "Appears frightened", "Possible visible wound", "Possible limp observed", "Appears thin", "No visible injury detected". If nothing concerning is visible, include "No visible injury detected". Do NOT include environment lines here — the app adds the environment separately.
+
 SITUATION READ. Pick the single best-fit "suggested_situation" for what the photo shows, choosing ONLY from this exact list: "Injured or hit by a car", "Sick or in distress", "Lost pet", "Found pet", "Abandoned puppies or kittens", "Stray, needs care", "Needs spay or vaccine", "At-risk shelter". Set "situation_confidence" to "high" ONLY when the photo clearly supports it (e.g. visible injury for "Injured or hit by a car", grooming/collar for "Lost pet", multiple neonates for "Abandoned puppies or kittens"); otherwise use "medium" or "low". When unsure, prefer "low" — never guess "high".
 
 AUTHENTICITY CHECK — ANTI-SCAM. Judge whether this image is plausibly a FRESH PHONE CAPTURE versus a stock photo, screenshot, or image saved from the internet. Set "capture_authenticity" to: "fresh_capture" (looks like a real, casual phone photo — natural framing, ordinary lighting, real-world clutter), "likely_stock" (professional studio lighting, watermarks, posed composition, visible UI elements from a screenshot, borders, or obvious re-photograph of a screen), or "uncertain". Give a one-clause "authenticity_reason". Be conservative: most real reports ARE fresh captures — only flag "likely_stock" when clear signals are present. Never mention this check in user-facing text fields.
@@ -153,6 +156,7 @@ const SCHEMA_HINT = `{
   "behavior": "cinematic detail about posture, breath, alertness",
   "location_scene": "cinematic detail about surfaces, lighting, objects nearby",
   "noticed": ["only real visible signs, plainly worded; [] if none"],
+  "observations": ["3-6 SHORT standardized observation lines (<=6 words), hedged & observational — apparent behavior/affect and any visible physical signs; include 'No visible injury detected' when nothing concerning; never a diagnosis; do NOT include environment lines"],
   "next_steps": ["3-4 short suggested actions appropriate to status"],
   "vet_notes": {
     "bcs": "plain observation of apparent weight, e.g. 'Appears an ideal weight' or 'Appears underweight' — not a clinical score",
@@ -256,6 +260,20 @@ export function validateAssessment(
   if (!Array.isArray(a.symptoms)) a.symptoms = a.noticed.slice();
   if (!Array.isArray(a.clinical_actions)) a.clinical_actions = a.next_steps.slice();
   if (!Array.isArray(a.differentials)) a.differentials = [];
+
+  // Short standardized observation lines for the "AI Observations" block.
+  // Backfill from what the AI already surfaced so older/edge reports still show
+  // something consistent; never leave it empty.
+  if (!Array.isArray(a.observations)) a.observations = [];
+  if (a.observations.length === 0) {
+    const base =
+      a.symptoms && a.symptoms.length > 0
+        ? a.symptoms.slice(0, 5)
+        : a.noticed && a.noticed.length > 0
+          ? a.noticed.slice(0, 5)
+          : [];
+    a.observations = base.length > 0 ? base : ["No visible injury detected"];
+  }
 
   // Consistency safeguard — enforces an "as-is" read. If the AI detected NO
   // injury/sickness signs and listed NO concerning observations, the animal is
