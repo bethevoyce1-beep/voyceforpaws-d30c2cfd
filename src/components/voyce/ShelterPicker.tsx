@@ -73,7 +73,7 @@ export function ShelterPicker({ onPick, onBack }: Props) {
         </button>
 
         <p className="mb-3 text-center text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-          AI advisory · not a diagnosis
+          AI is advisory — not a diagnosis
         </p>
 
         {/* Live auto-feed banner */}

@@ -72,6 +72,8 @@ export type Assessment = {
 
 const SYSTEM = `You are Voyce, an AI that looks at a photo of an animal and produces an advisory rescue report. You are NOT a veterinarian. Output strict JSON only, matching the schema.
 
+LANGUAGE & SAFETY RULES — NON-NEGOTIABLE, THESE OVERRIDE EVERYTHING BELOW. Voyce shares OBSERVATIONS and SUGGESTIONS only — never a diagnosis, medical conclusion, or treatment order. (1) Never state a medical condition as established fact; use hedged, observational language ("appears", "possible", "may", "seems", "consider"). (2) Never give treatment instructions, medication or drug names, dosages, fluid volumes, injection routes, or medical schedules of any kind. (3) Never instruct anyone to perform a medical or surgical procedure. (4) Frame every clinical-sounding item as something to raise with, and confirm with, a licensed veterinarian. (5) When there is any doubt, recommend seeing a licensed veterinarian. Voyce describes what is visible and suggests seeking professional care — it does not practice veterinary medicine.
+
 NO-ANIMAL CHECK — DO THIS FIRST. Voyce is only for animals. If the image contains NO animal at all — only people, food, plates, drinks, objects, buildings, or scenery — set "animal_present": false and "species": "none", and set "non_animal_subject" to the single best label for what the photo actually shows: "person" (any human, even partially visible), "food", "vehicle", "plant", "object", "scenery", or "other". Do NOT invent an animal, a status, or a health reading. A human in the frame is NOT an animal; only report an actual animal (dog, cat, bird, wildlife, etc.). If a real animal is present, set "animal_present": true and continue normally.
 
 BREED — COMMIT TO YOUR CLOSEST GUESS. Always give your single closest visual breed read, using "mix" when unsure: "Labrador mix", "German Shepherd mix", "domestic shorthair tabby", "Chihuahua mix". Use visible cues — coat, ears, muzzle, size, build. NEVER answer just "unknown" or "mixed / unknown" when any breed traits are visible; reserve bare "unknown" for cases where the animal is barely visible. This applies at every detail level, including quick reads.
@@ -107,15 +109,15 @@ If the photo is a tight close-up with no visible environment, environment_text m
 surface MUST be specific too: "Grey leather couch with cream throw" — not "Couch". "Hardwood floor with rug" — not "Floor".
 surrounding_objects MUST capture textures + items: e.g. ["cream throw blanket","fern in clay pot","hardwood floor","water bowl","remote control on couch arm"].
 
-HEALTH SIGNS — CRITICAL. For animals showing signs of illness (not just injury), surface ALL observable health indicators: lethargy, discharge (eyes/nose/mouth), coughing, vomiting, diarrhea visible, skin/coat condition, body condition score, breathing patterns, posture, weight, hydration signs. Don't say only 'injured' if the animal is also clearly sick. Be honest about what you see — sick and injured can co-exist on one card.
+HEALTH SIGNS — CRITICAL, AND ALWAYS AS OBSERVATIONS. For animals showing possible signs of illness (not just injury), surface ALL observable indicators as things you can SEE, hedged: lethargy, discharge (eyes/nose/mouth), coughing, apparent vomiting, visible diarrhea, skin/coat condition, apparent body condition, breathing patterns, posture, apparent weight, possible hydration signs. Don't say only 'injured' if the animal also appears sick. Be honest about what you see — apparent sickness and injury can co-exist on one card. Describe, never diagnose.
 
 For every report, populate the health_signs object with booleans for sick/injured/lethargic/dehydrated based on what is visibly present, plus a short primary_sign label (e.g. "Limping", "Coughing", "Lethargic", "Eye discharge"). For a clearly healthy pet, all four booleans are false and primary_sign is omitted.
 
 Set visible_condition to "Healthy", "Concerning", or "Critical" based on the visible state alone — never on speculation.
 
-symptoms[]: every visible health sign as a short clinical-phrased line (e.g. "Mucopurulent ocular discharge, OD", "Right hindlimb non-weight-bearing lameness", "BCS 3/9 — underweight").
-clinical_actions[]: concrete clinician-oriented next steps (e.g. "Full physical exam", "Right hindlimb radiograph", "SC fluids 30 mL/kg", "FeLV/FIV snap test"). 3-5 items max.
-differentials[]: 2-4 differential possibilities a vet would consider given what's visible (e.g. "URI (feline herpesvirus / calicivirus)", "Soft-tissue trauma vs fracture", "Dehydration secondary to GI loss"). Omit or empty array if nothing concerning is visible.
+symptoms[]: every visible sign as a short, plain, OBSERVATIONAL line — describe what appears visible, hedged, never a diagnosis (e.g. "Possible discharge around the eye", "Appears to favor the right hind leg", "Appears underweight"). Do NOT use definitive clinical or diagnostic wording.
+clinical_actions[]: gentle SUGGESTIONS to raise with a licensed veterinarian — never doses, medication names, fluid volumes, or medical orders (e.g. "Ask a vet to take a closer look at the right hind leg", "A vet may want to check for infection", "Have a vet assess hydration and overall condition"). 3-5 items max. Always assume a licensed professional makes the medical decisions.
+differentials[]: 2-4 POSSIBILITIES a veterinarian may want to consider — plainly worded and clearly NOT a diagnosis (e.g. "Possible respiratory infection", "Possible soft-tissue injury or fracture", "Possible dehydration"). A licensed vet must confirm. Omit or empty array if nothing concerning is visible.
 
 SITUATION READ. Pick the single best-fit "suggested_situation" for what the photo shows, choosing ONLY from this exact list: "Injured or hit by a car", "Sick or in distress", "Lost pet", "Found pet", "Abandoned puppies or kittens", "Stray, needs care", "Needs spay or vaccine", "At-risk shelter". Set "situation_confidence" to "high" ONLY when the photo clearly supports it (e.g. visible injury for "Injured or hit by a car", grooming/collar for "Lost pet", multiple neonates for "Abandoned puppies or kittens"); otherwise use "medium" or "low". When unsure, prefer "low" — never guess "high".
 
@@ -142,13 +144,13 @@ const SCHEMA_HINT = `{
   "first_look": "2-3 warm sentences, Voyce's First Look",
   "behavior": "cinematic detail about posture, breath, alertness",
   "location_scene": "cinematic detail about surfaces, lighting, objects nearby",
-  "noticed": ["only real visible symptoms; [] if none"],
+  "noticed": ["only real visible signs, plainly worded; [] if none"],
   "next_steps": ["3-4 short suggested actions appropriate to status"],
   "vet_notes": {
-    "bcs": "e.g. 'BCS 5/9 — ideal'",
-    "posture": "clinical phrasing",
-    "hydration": "observation",
-    "clinical": "1-2 sentence clinical summary"
+    "bcs": "plain observation of apparent weight, e.g. 'Appears an ideal weight' or 'Appears underweight' — not a clinical score",
+    "posture": "plain observation of how the animal is holding itself",
+    "hydration": "plain observation, hedged (e.g. 'Appears well hydrated' or 'May be dehydrated — a vet should confirm')",
+    "clinical": "1-2 sentence plain-language summary of what is visible — not a diagnosis"
   },
   "is_likely_pet": true,
   "setting_type": "Home (Indoor) | Backyard/Domestic Outdoor | Street/Sidewalk | Commercial Area | Industrial/Warehouse | Vehicle-Adjacent (Road/Parking) | Public Space (Park/Plaza) | Wild/Undeveloped | Shelter/Kennel",
@@ -159,9 +161,9 @@ const SCHEMA_HINT = `{
   "environment_text": "60-80 words. Cinematic, sensory, specific. See system prompt for examples.",
   "health_signs": { "sick": false, "injured": false, "lethargic": false, "dehydrated": false, "primary_sign": "short label or omit" },
   "visible_condition": "Healthy | Concerning | Critical",
-  "symptoms": ["clinical-phrased visible signs; [] if none"],
-  "clinical_actions": ["clinician-oriented suggested actions; 3-5 items"],
-  "differentials": ["2-4 differential possibilities; [] if nothing concerning visible"]
+  "symptoms": ["plain observational signs, hedged ('possible', 'appears'); [] if none"],
+  "clinical_actions": ["gentle suggestions to discuss with a licensed vet — no doses, drug names, or medical orders; 3-5 items"],
+  "differentials": ["2-4 plain possibilities for a vet to consider, clearly not a diagnosis; [] if nothing concerning visible"]
 }`;
 
 
@@ -329,7 +331,7 @@ export function validateAssessment(
 
 const MISSION_GUIDANCE: Record<string, string> = {
   injured:
-    "MISSION: INJURED / SICK. Look closely for visible injuries (limb angle, wounds, lameness, lethargy, blood, swelling). Calibrate urgency honestly — do NOT default to Urgent. If there is NO visible wound, blood, swelling, limp, or sign of sickness, the animal is NOT urgent: a groomed, collared, or calmly resting pet with no injury must be status 'Monitoring' or 'Healthy', never 'Urgent'. Orient next_steps toward RESCUE only when a real problem is visible: stabilize, transport, vet contact.",
+    "MISSION: INJURED / SICK. Look closely for visible injuries (limb angle, wounds, lameness, lethargy, blood, swelling). Calibrate urgency honestly — do NOT default to Urgent. If there is NO visible wound, blood, swelling, limp, or sign of sickness, the animal is NOT urgent: a groomed, collared, or calmly resting pet with no injury must be status 'Monitoring' or 'Healthy', never 'Urgent'. Orient next_steps toward RESCUE only when a real problem is visible: stabilize, transport, and contact a vet.",
   "at-risk-shelter":
     "MISSION: AT-RISK SHELTER. Note kennel context (bars, concrete, ID tags), body condition for foster suitability, temperament cues. Orient next_steps toward FOSTER / PULL: foster commitment, rescue pull, transport coordination.",
   "lost-found":
@@ -337,7 +339,7 @@ const MISSION_GUIDANCE: Record<string, string> = {
   prevention:
     "MISSION: PREVENTION / CARE. Note body condition, nursing signs, reproductive status, ear-tip. Orient next_steps toward TNR / SPAY / VACCINE: trap-neuter-return, vaccination, community-cat care.",
   wildlife:
-    "MISSION: WILDLIFE. Identify species precisely. next_steps must ONLY say 'Do not handle. Voyce will route to licensed rehabbers.' Put any rehabber phone numbers or animal-control numbers (if you can infer plausible local ones, otherwise generic placeholders like 'Local wildlife rehabber: search state rehabber directory') in vet_notes.clinical.",
+    "MISSION: WILDLIFE. Identify species precisely. next_steps must ONLY say 'Do not handle. Voyce will route to licensed rehabbers.' Do NOT invent phone numbers. In vet_notes.clinical, advise the reporter to contact a licensed wildlife rehabber or local animal control, e.g. 'Search your state's licensed wildlife rehabber directory, or call local animal control.'",
 };
 
 export const analyzeImage = createServerFn({ method: "POST" })
@@ -497,36 +499,90 @@ export const analyzeImage = createServerFn({ method: "POST" })
         },
       });
 
+      // Small sleep helper for retry backoff.
+      const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
       let json:
         | { candidates?: { content?: { parts?: { text?: string }[] } }[] }
         | null = null;
-      let lastStatus = 0;
-      for (const model of models) {
+      let sawRateLimit = false; // 429 — free/daily quota on a model
+      let sawOverload = false; // 503/500/502/504 or network blip — transient
+
+      // Try each model; within a model, retry a few times on TRANSIENT errors
+      // (temporary overload / brief server blips) with exponential backoff.
+      // Gemini's 503 "model is currently experiencing high demand" is almost
+      // always cleared by a quick retry, so the user must NEVER see that raw
+      // error. Only genuinely unrecoverable errors surface — and even then as a
+      // clean, reassuring message, never the raw API JSON.
+      outer: for (const model of models) {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(geminiKey)}`;
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: requestBody,
-        });
-        if (res.ok) {
-          json = (await res.json()) as typeof json;
-          break;
-        }
-        lastStatus = res.status;
-        // Only fall through to the next model on a quota/rate-limit error.
-        // Any other error (bad key, bad request) is real — surface it now.
-        if (res.status !== 429) {
-          const body = await res.text();
-          throw new Error(`Gemini ${res.status}: ${body.slice(0, 300)}`);
+        const MAX_ATTEMPTS = 3;
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+          let res: Response;
+          try {
+            res = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: requestBody,
+            });
+          } catch (e) {
+            // Network-level failure — treat as transient: retry, then fall through.
+            console.warn(`[voyce] Gemini ${model} fetch failed (attempt ${attempt}):`, e);
+            sawOverload = true;
+            if (attempt < MAX_ATTEMPTS) {
+              await sleep(400 * attempt);
+              continue;
+            }
+            break; // exhausted this model — try the next one
+          }
+          if (res.ok) {
+            json = (await res.json()) as typeof json;
+            break outer;
+          }
+          const status = res.status;
+          // Read the body once for server-side logging only; never surface it.
+          const body = await res.text().catch(() => "");
+          console.warn(`[voyce] Gemini ${model} ${status} (attempt ${attempt}): ${body.slice(0, 300)}`);
+
+          if (status === 429) {
+            // Rate/quota limit on this model — its sibling has a separate free
+            // allowance, so stop retrying this one and move to the next model.
+            sawRateLimit = true;
+            break;
+          }
+          if (status === 500 || status === 502 || status === 503 || status === 504) {
+            // Temporary overload / server blip — back off and retry same model.
+            sawOverload = true;
+            if (attempt < MAX_ATTEMPTS) {
+              await sleep(500 * attempt);
+              continue;
+            }
+            break; // exhausted this model — try the next one
+          }
+          // Any other error (400 bad request, 401/403 bad key) won't be fixed by
+          // a retry. Log the detail server-side; show the user a clean message.
+          throw new Error(
+            "Voyce AI couldn't read this photo right now. Please try again in a moment — your photo and details are safe.",
+          );
         }
       }
+
       if (!json) {
-        if (lastStatus === 429) {
+        // Every model and retry is exhausted. Reassure the reporter — never
+        // expose the raw Gemini error.
+        if (sawOverload) {
+          throw new Error(
+            "Voyce AI is experiencing high demand right now. Your photo and details are safe — please try again in a moment.",
+          );
+        }
+        if (sawRateLimit) {
           throw new Error(
             "Voyce AI has reached today's free limit. Please try again in a little while — your photo and details are safe, nothing was lost.",
           );
         }
-        throw new Error(`Gemini ${lastStatus || "error"}: no response`);
+        throw new Error(
+          "Voyce AI is temporarily unavailable. Your photo and details are safe — please try again in a moment.",
+        );
       }
       content = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
     } else {
@@ -680,4 +736,3 @@ export const analyzeImage = createServerFn({ method: "POST" })
       ...(animals ? { animals } : {}),
     };
   });
-

@@ -61,13 +61,13 @@ Engaging young people in service and empathy — turning compassion into hands-o
 
 **Eyebrow:** Our Rescue Tool
 **Heading:** Voyce for Paws
-**Text:** See a stray? Snap a photo and our AI reads the animal *as it is* — building a rescue card, finding the location, and alerting nearby helpers.
+**Text:** See a stray? Snap a photo and our AI reads the animal *as it is* — building a rescue card, finding the location, and alerting nearby helpers. The alert keeps rippling outward until this animal is helped.
 
 Steps:
 1. Take or upload a photo
-2. AI builds a rescue profile & health assessment
+2. AI builds a rescue profile & health read
 3. Location detected with map & directions
-4. Shared to rescuers & fosters nearby
+4. Shared to rescuers, fosters & animal lovers nearby
 
 **Button:** Launch Voyce for Paws → app.voyceforpaws.org
 

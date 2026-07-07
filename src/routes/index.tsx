@@ -36,7 +36,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Snap or upload a photo of an animal. Voyce builds a rescue card in seconds. AI is advisory, not a diagnosis.",
+          "Snap or upload a photo of an animal. Voyce builds a rescue card in seconds. AI is advisory — not a diagnosis.",
       },
     ],
   }),
@@ -190,10 +190,13 @@ function Home() {
     [runAnalysis],
   );
 
-  // Reporter finished the "Tell us about them" form → build the final card.
+  // Reporter finished the "Tell us about them" form → show the rescue card so
+  // they can review it. The network-alerting animation now plays AFTER they tap
+  // "Send to rescuers" on the card (see the report stage below), so the "we
+  // alerted the network" moment only happens once it's actually true.
   const startReport = useCallback((details: ReportDetailsData) => {
     setReportDetails(details);
-    setStage("alerting");
+    setStage("report");
   }, []);
 
   const reset = () => {
@@ -216,7 +219,7 @@ function Home() {
     capture: "mission",
     processing: "capture",
     details: "capture",
-    alerting: "details",
+    alerting: "report",
     report: "details",
     share: "report",
     timeline: "share",
@@ -311,7 +314,7 @@ function Home() {
   }
 
   if (stage === "alerting") {
-    return withBack(<NetworkAlerting onComplete={() => setStage("report")} />);
+    return withBack(<NetworkAlerting onComplete={() => setStage("share")} />);
   }
 
   if (stage === "report" && assessment && captured) {
@@ -332,6 +335,7 @@ function Home() {
         onSelectAnimal={setAnimalIndex}
         onContinue={() => setStage("share")}
         onDone={() => setStage("timeline")}
+        onSend={() => setStage("alerting")}
       />
     );
   }

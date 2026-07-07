@@ -17,7 +17,7 @@ export function AIDisclosureBanner() {
       <div className="mx-auto flex max-w-2xl items-start gap-2 px-4 py-2 text-[12px] leading-snug text-[#5a4a2a]">
         <span aria-hidden className="select-none">⚠️</span>
         <span className="flex-1">
-          <span className="font-semibold">AI assessment — not a diagnosis.</span>{" "}
+          <span className="font-semibold">AI is advisory — not a diagnosis.</span>{" "}
           May misidentify breed, age, or condition.
         </span>
         <button
