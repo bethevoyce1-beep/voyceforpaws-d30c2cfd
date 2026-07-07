@@ -345,6 +345,9 @@ export function RescueReport({
                     ? `Resolved after ${formatTimer(ago.totalSeconds)}`
                     : "Time since this case was reported."}
                 </div>
+                <div className="mt-0.5 text-[10px] font-semibold leading-tight text-[#8A6A1E]">
+                  Reported {stamp}
+                </div>
               </div>
             </div>
             <div
