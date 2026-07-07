@@ -10,6 +10,8 @@ const ROLES: { id: NetworkRole; icon: string; label: string; sub: string }[] = [
   { id: "foster", icon: "🏠", label: "Foster", sub: "Open my home temporarily" },
   { id: "vet", icon: "🩺", label: "Vet", sub: "Provide medical care" },
   { id: "shelter", icon: "🏛", label: "Shelter", sub: "I work at one" },
+  { id: "volunteer", icon: "🙌", label: "Volunteer", sub: "Lend time & hands" },
+  { id: "wildlife_rehabilitator", icon: "🦝", label: "Wildlife Rehabilitator", sub: "Licensed wildlife care" },
   { id: "animal_lover", icon: "💛", label: "Animal Lover", sub: "Share + support" },
 ];
 
@@ -27,6 +29,7 @@ export function JoinNetworkModal({
   animalName?: string;
 }) {
   const [selected, setSelected] = useState<NetworkRole[]>([]);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [zip, setZip] = useState("");
   const [phone, setPhone] = useState("");
@@ -38,6 +41,7 @@ export function JoinNetworkModal({
   useEffect(() => {
     if (!open) return;
     setSelected(initialRole ? [initialRole] : []);
+    setName("");
     setEmail("");
     setZip("");
     setPhone("");
@@ -66,6 +70,7 @@ export function JoinNetworkModal({
       const turnstileToken = await getTurnstileToken();
       await submitNetworkSignup({
         data: {
+          name: name.trim() || undefined,
           email: email.trim(),
           zip: zip.trim(),
           phone: phone.trim() || undefined,
@@ -164,6 +169,17 @@ export function JoinNetworkModal({
             </div>
 
             <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+              <label className="block sm:col-span-2">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground/60">Name</span>
+                <input
+                  type="text"
+                  autoComplete="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your name"
+                  className="mt-1 w-full rounded-xl border border-[#D9D2C2] bg-white px-3 py-2 text-[14px] outline-none focus:border-[#C9871A]"
+                />
+              </label>
               <label className="block sm:col-span-2">
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground/60">Email *</span>
                 <input
