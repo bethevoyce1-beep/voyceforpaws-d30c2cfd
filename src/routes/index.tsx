@@ -180,6 +180,12 @@ function Home() {
         const result = await analyzeImage({
           data: { imageDataUrl: dataUrl, mission: missionOverride ?? mission, context: {}, photoHash, elapsedMs },
         });
+        // Camera-first: on the first read, adopt the situation the AI saw in the
+        // photo so the card opens in the right mission. Skipped on an explicit
+        // re-read (missionOverride set by a reporter correction).
+        if (!missionOverride) {
+          setMission(resolveMission(result.suggested_situation ?? "", mission, result));
+        }
         const caseId = (() => {
           try {
             const n = (parseInt(localStorage.getItem("voyce_case_seq") || "0", 10) || 0) + 1;
@@ -265,9 +271,9 @@ function Home() {
     shelter: "mission",
     capture: "mission",
     processing: "capture",
-    details: "capture",
+    details: "report",
     alerting: "report",
-    report: "details",
+    report: "capture",
     share: "report",
     timeline: "share",
     gate: "timeline",
@@ -348,7 +354,7 @@ function Home() {
         aiPending={aiPending}
         aiError={aiError}
         assessment={assessment}
-        onComplete={() => assessment && setStage(reportDetails ? "report" : "details")}
+        onComplete={() => assessment && setStage("report")}
         onRetry={() => {
           setCaptured(null);
           setCaptureMeta(null);
@@ -383,6 +389,7 @@ function Home() {
         onContinue={() => setStage("share")}
         onDone={() => setStage("timeline")}
         onSend={() => setStage("alerting")}
+        onEditDetails={() => setStage("details")}
       />
     );
   }

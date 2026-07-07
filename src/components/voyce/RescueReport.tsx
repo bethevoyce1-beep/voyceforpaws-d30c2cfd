@@ -129,6 +129,7 @@ export function RescueReport({
   onContinue,
   onDone,
   onSend,
+  onEditDetails,
 }: {
   image: string;
   data: Assessment;
@@ -141,6 +142,7 @@ export function RescueReport({
   onContinue: () => void;
   onDone?: () => void;
   onSend?: () => void;
+  onEditDetails?: () => void;
 }) {
   const [tab, setTab] = useState<"story" | "vet">("story");
   // July 5, 2026: health assessment is OPEN by default — rescuers shouldn't
@@ -437,6 +439,15 @@ export function RescueReport({
             <p className="mt-2 text-[14px] italic leading-relaxed text-[oklch(0.45_0.03_70)]">
               {data.first_look}
             </p>
+            {onEditDetails && (
+              <button
+                type="button"
+                onClick={onEditDetails}
+                className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-[#EDE5D8] bg-white px-4 py-2.5 text-[12.5px] font-semibold text-[#8A5A0E] transition hover:bg-background active:scale-[0.99]"
+              >
+                🔧 Voyce read this from your photo — missed something? Add or fix details
+              </button>
+            )}
           </div>
 
           {/* 8 — Urgency callout (mission-specific) */}

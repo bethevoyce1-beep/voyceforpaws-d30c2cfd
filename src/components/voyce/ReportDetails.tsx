@@ -162,7 +162,7 @@ export function ReportDetails({
             color: "#3A2A07",
           }}
         >
-          ✨ Build the rescue card
+          ✨ Update the rescue card
         </button>
         <p className="mt-3 text-center text-[11.5px] leading-relaxed text-muted-foreground">
           We'll finalize the rescue card with your corrections.
