@@ -1,8 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 
-export type NetworkRole = "rescuer" | "foster" | "vet" | "shelter" | "animal_lover";
+export type NetworkRole = "rescuer" | "foster" | "vet" | "shelter" | "animal_lover" | "volunteer" | "wildlife_rehabilitator";
 
 export type SignupInput = {
+  name?: string;
   email: string;
   zip: string;
   phone?: string;
@@ -11,7 +12,7 @@ export type SignupInput = {
   turnstileToken: string;
 };
 
-const ALLOWED_ROLES: NetworkRole[] = ["rescuer", "foster", "vet", "shelter", "animal_lover"];
+const ALLOWED_ROLES: NetworkRole[] = ["rescuer", "foster", "vet", "shelter", "animal_lover", "volunteer", "wildlife_rehabilitator"];
 
 function isEmail(s: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
@@ -20,6 +21,7 @@ function isEmail(s: string) {
 export const submitNetworkSignup = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => {
     const o = (input ?? {}) as Partial<SignupInput>;
+    const name = o.name ? String(o.name).trim().slice(0, 120) : undefined;
     const email = String(o.email ?? "").trim().toLowerCase();
     const zip = String(o.zip ?? "").trim();
     const phone = o.phone ? String(o.phone).trim().slice(0, 40) : undefined;
@@ -36,7 +38,7 @@ export const submitNetworkSignup = createServerFn({ method: "POST" })
     if (roles.length === 0) throw new Error("Pick at least one role");
     if (!turnstileToken) throw new Error("Missing verification");
 
-    return { email, zip, phone, city, roles, turnstileToken };
+    return { name, email, zip, phone, city, roles, turnstileToken };
   })
   .handler(async ({ data }) => {
     // Verify Turnstile server-side
@@ -55,6 +57,7 @@ export const submitNetworkSignup = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("network_signups").insert({
+      name: data.name ?? null,
       email: data.email,
       zip: data.zip,
       phone: data.phone ?? null,
