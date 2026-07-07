@@ -591,7 +591,7 @@ export function RescueReport({
                 onClick={() => setShowVet((v) => !v)}
                 className="mt-4 flex w-full items-center justify-between rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3 text-[13.5px] font-semibold text-[#8A5A0E] transition hover:bg-background active:scale-[0.99]"
               >
-                <span>🩺 {showVet ? "Hide health assessment" : "View full health assessment"}</span>
+                <span>🩺 {showVet ? "Hide Voyce's First Look" : "View Voyce's First Look"}</span>
                 <span aria-hidden>{showVet ? "▲" : "→"}</span>
               </button>
               {showVet && (
@@ -1154,7 +1154,7 @@ function ReportSentDialog({
         <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">
           {offline
             ? "We couldn't auto-notify the network. Share manually to reach people nearby — we'll send it automatically once you're back online."
-            : "The closest rescuers and NGOs get it first — the alert ripples outward until this animal is helped. Your report is being processed — you'll see it on your home screen shortly."}
+            : "The closest rescuers and NGOs get it first — the alert keeps rippling outward until this animal is helped. Your report is being processed — you'll see it on your home screen shortly."}
         </p>
         <div className="mt-5 flex flex-col gap-2">
           <button
