@@ -499,36 +499,90 @@ export const analyzeImage = createServerFn({ method: "POST" })
         },
       });
 
+      // Small sleep helper for retry backoff.
+      const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
       let json:
         | { candidates?: { content?: { parts?: { text?: string }[] } }[] }
         | null = null;
-      let lastStatus = 0;
-      for (const model of models) {
+      let sawRateLimit = false; // 429 — free/daily quota on a model
+      let sawOverload = false; // 503/500/502/504 or network blip — transient
+
+      // Try each model; within a model, retry a few times on TRANSIENT errors
+      // (temporary overload / brief server blips) with exponential backoff.
+      // Gemini's 503 "model is currently experiencing high demand" is almost
+      // always cleared by a quick retry, so the user must NEVER see that raw
+      // error. Only genuinely unrecoverable errors surface — and even then as a
+      // clean, reassuring message, never the raw API JSON.
+      outer: for (const model of models) {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(geminiKey)}`;
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: requestBody,
-        });
-        if (res.ok) {
-          json = (await res.json()) as typeof json;
-          break;
-        }
-        lastStatus = res.status;
-        // Only fall through to the next model on a quota/rate-limit error.
-        // Any other error (bad key, bad request) is real — surface it now.
-        if (res.status !== 429) {
-          const body = await res.text();
-          throw new Error(`Gemini ${res.status}: ${body.slice(0, 300)}`);
+        const MAX_ATTEMPTS = 3;
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+          let res: Response;
+          try {
+            res = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: requestBody,
+            });
+          } catch (e) {
+            // Network-level failure — treat as transient: retry, then fall through.
+            console.warn(`[voyce] Gemini ${model} fetch failed (attempt ${attempt}):`, e);
+            sawOverload = true;
+            if (attempt < MAX_ATTEMPTS) {
+              await sleep(400 * attempt);
+              continue;
+            }
+            break; // exhausted this model — try the next one
+          }
+          if (res.ok) {
+            json = (await res.json()) as typeof json;
+            break outer;
+          }
+          const status = res.status;
+          // Read the body once for server-side logging only; never surface it.
+          const body = await res.text().catch(() => "");
+          console.warn(`[voyce] Gemini ${model} ${status} (attempt ${attempt}): ${body.slice(0, 300)}`);
+
+          if (status === 429) {
+            // Rate/quota limit on this model — its sibling has a separate free
+            // allowance, so stop retrying this one and move to the next model.
+            sawRateLimit = true;
+            break;
+          }
+          if (status === 500 || status === 502 || status === 503 || status === 504) {
+            // Temporary overload / server blip — back off and retry same model.
+            sawOverload = true;
+            if (attempt < MAX_ATTEMPTS) {
+              await sleep(500 * attempt);
+              continue;
+            }
+            break; // exhausted this model — try the next one
+          }
+          // Any other error (400 bad request, 401/403 bad key) won't be fixed by
+          // a retry. Log the detail server-side; show the user a clean message.
+          throw new Error(
+            "Voyce AI couldn't read this photo right now. Please try again in a moment — your photo and details are safe.",
+          );
         }
       }
+
       if (!json) {
-        if (lastStatus === 429) {
+        // Every model and retry is exhausted. Reassure the reporter — never
+        // expose the raw Gemini error.
+        if (sawOverload) {
+          throw new Error(
+            "Voyce AI is experiencing high demand right now. Your photo and details are safe — please try again in a moment.",
+          );
+        }
+        if (sawRateLimit) {
           throw new Error(
             "Voyce AI has reached today's free limit. Please try again in a little while — your photo and details are safe, nothing was lost.",
           );
         }
-        throw new Error(`Gemini ${lastStatus || "error"}: no response`);
+        throw new Error(
+          "Voyce AI is temporarily unavailable. Your photo and details are safe — please try again in a moment.",
+        );
       }
       content = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
     } else {
