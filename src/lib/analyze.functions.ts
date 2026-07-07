@@ -46,6 +46,7 @@ export type Assessment = {
   surface: string;
   surrounding_objects: string[];
   lighting_conditions: string;
+  weather?: string; // visibly-apparent weather for outdoor scenes; "Not visible" indoors/unclear
   safety_flags: string[];
   environment_text: string;
   // Health-sign fields (sick + injured can co-exist)
@@ -115,6 +116,8 @@ If the photo is a tight close-up with no visible environment, environment_text m
 surface MUST be specific too: "Grey leather couch with cream throw" — not "Couch". "Hardwood floor with rug" — not "Floor".
 surrounding_objects MUST capture textures + items: e.g. ["cream throw blanket","fern in clay pot","hardwood floor","water bowl","remote control on couch arm"].
 
+WEATHER. For OUTDOOR scenes, set "weather" to the short weather that is visibly apparent — "Clear / sunny", "Overcast", "Rain", "Snow", "Fog", or "Night". If the scene is indoors or the weather cannot be told from the photo, set "weather" to "Not visible". Never guess beyond what the image shows.
+
 HEALTH SIGNS — CRITICAL, AND ALWAYS AS OBSERVATIONS. For animals showing possible signs of illness (not just injury), surface ALL observable indicators as things you can SEE, hedged: lethargy, discharge (eyes/nose/mouth), coughing, apparent vomiting, visible diarrhea, skin/coat condition, apparent body condition, breathing patterns, posture, apparent weight, possible hydration signs. Don't say only 'injured' if the animal also appears sick. Be honest about what you see — apparent sickness and injury can co-exist on one card. Describe, never diagnose.
 
 For every report, populate the health_signs object with booleans for sick/injured/lethargic/dehydrated based on what is visibly present, plus a short primary_sign label (e.g. "Limping", "Coughing", "Lethargic", "Eye discharge"). For a clearly healthy pet, all four booleans are false and primary_sign is omitted.
@@ -169,6 +172,7 @@ const SCHEMA_HINT = `{
   "surface": "SPECIFIC, e.g. 'Grey leather couch with cream throw' or 'Cracked asphalt shoulder' or 'Concrete shelter floor with rubber mat'",
   "surrounding_objects": ["specific textured items actually visible — e.g. 'cream throw blanket','fern in clay pot','hardwood floor','water bowl'"],
   "lighting_conditions": "specific source + time, e.g. 'Soft late-afternoon light from south-facing window'",
+  "weather": "SHORT visibly-apparent weather for OUTDOOR scenes: 'Clear / sunny' | 'Overcast' | 'Rain' | 'Snow' | 'Fog' | 'Night'. Use 'Not visible' if indoors or not determinable from the photo",
   "safety_flags": ["honest hazards visible in photo; ['None — calm domestic environment'] if none"],
   "environment_text": "60-80 words. Cinematic, sensory, specific. See system prompt for examples.",
   "health_signs": { "sick": false, "injured": false, "lethargic": false, "dehydrated": false, "primary_sign": "short label or omit" },
@@ -225,6 +229,7 @@ export function validateAssessment(
   // New profile fields — never let a missing value render as broken UI.
   if (typeof a.size !== "string") a.size = "";
   if (typeof a.color !== "string") a.color = "";
+  if (typeof a.weather !== "string") a.weather = "";
   if (a.ai_confidence !== "high" && a.ai_confidence !== "medium" && a.ai_confidence !== "low") {
     a.ai_confidence = undefined;
   }
