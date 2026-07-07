@@ -19,6 +19,8 @@ export type Assessment = {
   breed: string;
   age: string;
   weight: string;
+  size: string;
+  color: string;
   first_look: string;
   behavior: string;
   location_scene: string;
@@ -62,6 +64,7 @@ export type Assessment = {
   caseId?: string;               // human-facing case reference, e.g. "VFP-0042"
   suggested_situation?: string;  // best-fit reporter-situation label read from the photo
   situation_confidence?: "high" | "medium" | "low"; // how sure Voyce is about it
+  ai_confidence?: "high" | "medium" | "low"; // overall confidence in the visual read
   animals?: Assessment[];        // one complete assessment per animal when 2+ are present
   // Anti-scam Tier 2 (July 5, 2026): does this look like a fresh phone capture
   // or a stock/internet image? "likely_stock" caps situation_confidence at low.
@@ -77,6 +80,8 @@ LANGUAGE & SAFETY RULES — NON-NEGOTIABLE, THESE OVERRIDE EVERYTHING BELOW. Voy
 NO-ANIMAL CHECK — DO THIS FIRST. Voyce is only for animals. If the image contains NO animal at all — only people, food, plates, drinks, objects, buildings, or scenery — set "animal_present": false and "species": "none", and set "non_animal_subject" to the single best label for what the photo actually shows: "person" (any human, even partially visible), "food", "vehicle", "plant", "object", "scenery", or "other". Do NOT invent an animal, a status, or a health reading. A human in the frame is NOT an animal; only report an actual animal (dog, cat, bird, wildlife, etc.). If a real animal is present, set "animal_present": true and continue normally.
 
 BREED — COMMIT TO YOUR CLOSEST GUESS. Always give your single closest visual breed read, using "mix" when unsure: "Labrador mix", "German Shepherd mix", "domestic shorthair tabby", "Chihuahua mix". Use visible cues — coat, ears, muzzle, size, build. NEVER answer just "unknown" or "mixed / unknown" when any breed traits are visible; reserve bare "unknown" for cases where the animal is barely visible. This applies at every detail level, including quick reads.
+
+SIZE, COLOR & CONFIDENCE. Always fill "size" with the animal's overall body size from visible build and proportions — one of "Small", "Medium", "Large", or "Extra large". Always fill "color" with the main visible coat color(s) in plain words — e.g. "Black", "Black & white", "Golden", "Tabby brown". Never leave size or color blank when the animal is visible. Set "ai_confidence" to your overall confidence in this visual read — "high", "medium", or "low" — based on image clarity, how much of the animal is visible, and how certain the identification is; use "low" for blurry, partial, or ambiguous photos. ai_confidence is a qualitative level, NEVER a percentage.
 
 Be cinematic and specific about what you actually see in the image (surfaces, lighting, posture, objects). NEVER contradict yourself: if status is "Healthy" or "Monitoring", next_steps must not say "seek medical attention" or treat it as urgent. If you see a collar, indoor scene, bedding, or grooming, set is_likely_pet=true and prefer status "Monitoring". If no real symptoms, noticed must be [].
 
@@ -135,12 +140,15 @@ const SCHEMA_HINT = `{
   "status_reason": "one short clause, e.g. 'Likely a pet at home'",
   "suggested_situation": "best-fit label from: Injured or hit by a car | Sick or in distress | Lost pet | Found pet | Abandoned puppies or kittens | Stray, needs care | Needs spay or vaccine | At-risk shelter",
   "situation_confidence": "high | medium | low (high only when the photo clearly supports it)",
+  "ai_confidence": "high | medium | low — overall confidence in this visual read",
   "capture_authenticity": "fresh_capture | uncertain | likely_stock",
   "authenticity_reason": "one short clause, e.g. 'casual framing and natural lighting' or 'studio backdrop with watermark'",
   "species": "dog | cat | bird | other | none (if no animal)",
   "breed": "closest visual guess with 'mix' when unsure, e.g. 'Labrador mix' or 'domestic shorthair tabby' — avoid bare 'unknown'",
   "age": "puppy/kitten | young | adult | senior | unknown",
   "weight": "estimate range, e.g. '4-5 kg'",
+  "size": "overall body size from visible build: Small | Medium | Large | Extra large",
+  "color": "main visible coat color(s), e.g. 'Black', 'Black & white', 'Golden', 'Tabby brown'",
   "first_look": "2-3 warm sentences, Voyce's First Look",
   "behavior": "cinematic detail about posture, breath, alertness",
   "location_scene": "cinematic detail about surfaces, lighting, objects nearby",
@@ -208,6 +216,13 @@ export function validateAssessment(
   }
   if (!a.environment_text || typeof a.environment_text !== "string") {
     a.environment_text = a.location_scene || "Only the animal is visible in this frame — limited environmental context.";
+  }
+
+  // New profile fields — never let a missing value render as broken UI.
+  if (typeof a.size !== "string") a.size = "";
+  if (typeof a.color !== "string") a.color = "";
+  if (a.ai_confidence !== "high" && a.ai_confidence !== "medium" && a.ai_confidence !== "low") {
+    a.ai_confidence = undefined;
   }
 
   // Backfill health-sign fields from `noticed` keywords so downstream UI is honest.
