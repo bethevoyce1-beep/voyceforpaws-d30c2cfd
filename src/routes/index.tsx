@@ -36,7 +36,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Snap or upload a photo of an animal. Voyce builds a rescue card in seconds. AI is advisory, not a diagnosis.",
+          "Snap or upload a photo of an animal. Voyce builds a rescue card in seconds. AI is advisory — not a diagnosis.",
       },
     ],
   }),
