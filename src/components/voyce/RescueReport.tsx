@@ -658,7 +658,7 @@ export function RescueReport({
             </div>
             <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[13px]">
               {data.caseId && <ReportRow label="Case #" value={data.caseId} />}
-              <ReportRow label="Reported by" value="Reporter (no account)" />
+              <ReportRow label="Reported by" value="Reporter" />
               <ReportRow label="Reported at" value={stamp} />
               {data.ai_confidence && (
                 <ReportRow
