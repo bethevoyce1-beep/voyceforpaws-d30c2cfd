@@ -34,7 +34,7 @@ export const submitNetworkSignup = createServerFn({ method: "POST" })
     const turnstileToken = String(o.turnstileToken ?? "");
 
     if (!isEmail(email) || email.length > 255) throw new Error("Invalid email");
-    if (zip.length > 16) throw new Error("Invalid ZIP");
+    if (!zip || zip.length > 16) throw new Error("Invalid ZIP");
     if (roles.length === 0) throw new Error("Pick at least one role");
     if (!turnstileToken) throw new Error("Missing verification");
 
