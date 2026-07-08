@@ -56,6 +56,33 @@ const GREEN2 = "#047857";
 const TEAL1 = "#14B8A6";
 const TEAL2 = "#0E7490";
 
+// =============================================================
+// "Correct this" editor data (module scope)
+// The reporter can re-categorize the report and flag what a photo
+// couldn't show, then send a simulated (pre-launch) network update.
+// =============================================================
+const CATEGORIES = [
+  { key: "injured",   icon: "🚨", label: "Injured / Sick",              examples: ["Hit by car","Wounded","Sick","Abandoned","Immediate concern"] },
+  { key: "shelter",   icon: "🏠", label: "At-Risk Shelter",             examples: ["Shelter deadline","Euthanasia risk","Rescue needed","Foster needed","Adoption needed"] },
+  { key: "lostfound", icon: "🐾", label: "Lost & Found",                examples: ["Lost dog","Lost cat","Found pet","Reunion support"] },
+  { key: "stray",     icon: "❤️", label: "Stray & Preventative Care",   examples: ["Community cat","Community dog","Food support","Vaccine support","Spay/neuter support","General welfare concern"] },
+  { key: "wildlife",  icon: "🦉", label: "Wildlife",                     examples: ["Injured bird","Injured deer","Injured rabbit","Orphaned wildlife","Wildlife concern"] },
+];
+
+const WITNESSED = ["Hit by a car","Trapped / in danger","Abuse / cruelty witnessed"];
+
+// Map the mission prop to a "Correct this" category key.
+function missionToCat(mission: MissionId): string {
+  switch (mission) {
+    case "injured":         return "injured";
+    case "at-risk-shelter": return "shelter";
+    case "lost-found":      return "lostfound";
+    case "prevention":      return "stray";
+    case "wildlife":        return "wildlife";
+    default:                return "injured";
+  }
+}
+
 const PILL = {
   fosterGreen: { bg: "#D1FAE5", text: "#065F46" },
   rescueRed:   { bg: "#FEE2E2", text: "#991B1B" },
@@ -474,6 +501,13 @@ export function ShareCard({
   // last card, so the reporter can review every observation without leaving.
   const [showRead, setShowRead] = useState(false);
 
+  // "Correct this" editor state — lets the reporter fix the category and note
+  // what the photo couldn't show, then send a simulated (pre-launch) update.
+  const [cat, setCat] = useState<string>(missionToCat(mission));
+  const [examples, setExamples] = useState<string[]>([]);
+  const [witnessed, setWitnessed] = useState<string[]>([]);
+  const [sentUpdate, setSentUpdate] = useState(false);
+
   const openModal = (role?: NetworkRole) => {
     setModalRole(role);
     setModalOpen(true);
@@ -525,6 +559,15 @@ export function ShareCard({
       window.open(intents[platform], "_blank", "noopener,noreferrer");
     }
   };
+
+  // Toggle a value in/out of a string[] state array (multi-select chips).
+  const toggleIn = (
+    setter: React.Dispatch<React.SetStateAction<string[]>>,
+    value: string,
+  ) => setter((arr) => (arr.includes(value) ? arr.filter((x) => x !== value) : [...arr, value]));
+
+  const selectedCat = CATEGORIES.find((c) => c.key === cat);
+  const catExamples = selectedCat?.examples ?? [];
 
   return (
     <div className="min-h-[100dvh] bg-[#FAF8F5]">
@@ -825,6 +868,126 @@ export function ShareCard({
                       </ul>
                     </div>
                   )}
+
+                  {/* ============ CORRECT THIS — re-categorize + flag what the photo missed ============ */}
+                  <div className="rounded-xl border border-[#F0E4C6] bg-white px-3.5 py-3.5">
+                    {!sentUpdate ? (
+                      <>
+                        <p className="text-[13px] font-extrabold text-[#3A2A07]">Not quite right? Fix it</p>
+                        <p className="mt-0.5 text-[11.5px] leading-[1.45] text-[#9CA3AF]">
+                          Correct the category and tell us what the photo couldn't show.
+                        </p>
+
+                        {/* a. What is this? — single-select category pills */}
+                        <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
+                          What is this?
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {CATEGORIES.map((c) => {
+                            const active = c.key === cat;
+                            return (
+                              <button
+                                key={c.key}
+                                onClick={() => {
+                                  setCat(c.key);
+                                  setExamples([]);
+                                }}
+                                className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition active:scale-95"
+                                style={{
+                                  background: active ? "#FFDF3B" : "#FFFDF7",
+                                  color: active ? "#3A2A07" : "#6B7280",
+                                  border: active ? "1.5px solid #C9871A" : "1.5px solid #F0E4C6",
+                                }}
+                              >
+                                <span>{c.icon}</span>
+                                <span>{c.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* b. Examples for the selected category — multi-select chips */}
+                        {catExamples.length > 0 && (
+                          <>
+                            <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
+                              {selectedCat?.label} — what fits?
+                            </p>
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {catExamples.map((ex) => {
+                                const active = examples.includes(ex);
+                                return (
+                                  <button
+                                    key={ex}
+                                    onClick={() => toggleIn(setExamples, ex)}
+                                    className="rounded-full px-3 py-1.5 text-[12px] font-semibold transition active:scale-95"
+                                    style={{
+                                      background: active ? "#FFDF3B" : "#FFFDF7",
+                                      color: active ? "#3A2A07" : "#6B7280",
+                                      border: active ? "1.5px solid #C9871A" : "1.5px solid #F0E4C6",
+                                    }}
+                                  >
+                                    {ex}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* c. What the photo couldn't show — multi-select chips */}
+                        <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
+                          What the photo couldn't show
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {WITNESSED.map((w) => {
+                            const active = witnessed.includes(w);
+                            return (
+                              <button
+                                key={w}
+                                onClick={() => toggleIn(setWitnessed, w)}
+                                className="rounded-full px-3 py-1.5 text-[12px] font-semibold transition active:scale-95"
+                                style={{
+                                  background: active ? "#FFDF3B" : "#FFFDF7",
+                                  color: active ? "#3A2A07" : "#6B7280",
+                                  border: active ? "1.5px solid #C9871A" : "1.5px solid #F0E4C6",
+                                }}
+                              >
+                                {w}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* d. Buttons */}
+                        <button
+                          onClick={() => setSentUpdate(true)}
+                          className="mt-4 w-full rounded-[14px] px-4 py-3 text-[13px] font-extrabold uppercase tracking-wide shadow-md transition active:scale-[0.99]"
+                          style={{ background: "linear-gradient(135deg,#FFDF3B,#C9871A)", color: "#3A2A07" }}
+                        >
+                          🔔 Update &amp; notify the network
+                        </button>
+                        <button
+                          onClick={() => setShowRead(false)}
+                          className="mt-2 w-full rounded-[14px] border-[1.5px] border-[#F0E4C6] bg-white px-4 py-2.5 text-[12.5px] font-semibold text-[#9CA3AF] transition active:scale-[0.99]"
+                        >
+                          Nothing to change
+                        </button>
+                      </>
+                    ) : (
+                      /* e. Green confirmation banner (simulated, pre-launch) */
+                      <div className="rounded-xl border border-[#A7F3D0] bg-[#ECFDF5] px-3.5 py-3.5">
+                        <p className="text-[13px] font-extrabold text-[#065F46]">✅ Update sent to the network</p>
+                        <p className="mt-1 text-[12px] leading-[1.5] text-[#047857]">
+                          Updated to {selectedCat?.label ?? "Injured / Sick"}
+                          {examples.length > 0 ? `, ${examples.join(", ")}` : ""}
+                          {witnessed.length > 0 ? ` · Flagged: ${witnessed.join(", ")}` : ""}
+                        </p>
+                        <p className="mt-2 text-[10.5px] italic leading-[1.45] text-[#059669]">
+                          Your report and the update are safe — this is a preview of launch alerts.
+                        </p>
+                      </div>
+                    )}
+                  </div>
 
                   <p className="border-t border-[#F0E4C6] pt-3 text-[10.5px] italic leading-[1.45] text-[#9CA3AF]">
                     AI observations &amp; suggestions — not a diagnosis. Confirm with a licensed vet.
