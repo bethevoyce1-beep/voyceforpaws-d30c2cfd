@@ -582,7 +582,7 @@ export function ShareCard({
 
             {/* Badge top-left */}
             <span
-              className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-white shadow-lg"
+              className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-extrabold uppercase tracking-[0.12em] text-white shadow-lg"
               style={{ background: v.badgeGradient }}
             >
               <span>{v.badgeIcon}</span>
@@ -610,24 +610,24 @@ export function ShareCard({
               {v.title}
             </h2>
             {/* Subhead */}
-            <p className="mt-1 font-serif text-[15px] italic font-semibold text-[#6B7280]">
+            <p className="mt-1 font-serif text-[16px] italic font-semibold leading-snug text-[#6B7280]">
               {v.subhead}
             </p>
 
             {/* Species */}
             {speciesLine && (
-              <p className="mt-2 text-[13.5px] font-medium text-[#6B7280]">{speciesLine}</p>
+              <p className="mt-2 text-[14px] font-medium text-[#6B7280]">{speciesLine}</p>
             )}
 
             {/* Location */}
-            <p className="mt-1 flex items-center gap-1.5 text-[13.5px] font-medium text-[#374151]">
+            <p className="mt-1 flex items-center gap-1.5 text-[14px] font-medium text-[#374151]">
               <span style={{ color: "#FFDF3B" }}>📍</span>
               <span>Near {street} · {city}</span>
             </p>
 
             {/* Story */}
             {story && (
-              <p className="mt-3 line-clamp-3 text-[14px] italic leading-[1.55] text-[#4B5563]">
+              <p className="mt-3 line-clamp-3 text-[16px] italic leading-relaxed text-[#4B5563]">
                 {`“${story}”`}
               </p>
             )}
@@ -639,7 +639,7 @@ export function ShareCard({
                 style={{ background: v.urgency.bg, borderColor: v.urgency.border }}
               >
                 <span className="text-[18px] leading-none">{v.urgency.icon}</span>
-                <p className="text-[13px] font-bold" style={{ color: v.urgency.border }}>
+                <p className="text-[15px] font-bold leading-relaxed" style={{ color: v.urgency.border }}>
                   {v.urgency.title}{" "}
                   <span className="font-semibold opacity-90">{v.urgency.body}</span>
                 </p>
@@ -675,7 +675,7 @@ export function ShareCard({
 
             {/* Urgency line */}
             <p
-              className="mt-4 flex items-center gap-1.5 text-[12.5px] font-bold"
+              className="mt-4 flex items-center gap-1.5 text-[14px] font-bold"
               style={{ color: v.urgencyLine.color }}
             >
               <span>{v.urgencyLine.icon}</span>
@@ -683,7 +683,7 @@ export function ShareCard({
             </p>
 
             {/* I CAN HELP AS */}
-            <p className="mt-4 text-[10.5px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
+            <p className="mt-4 text-[12px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
               I can help as:
             </p>
             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -691,7 +691,7 @@ export function ShareCard({
                 <button
                   key={p.label}
                   onClick={() => openModal(p.role)}
-                  className="rounded-full px-3.5 py-2 text-[12.5px] font-bold transition active:scale-95"
+                  className="rounded-full px-3.5 py-2 text-[14px] font-bold transition active:scale-95"
                   style={{
                     background: p.bg,
                     color: p.text,
@@ -707,7 +707,7 @@ export function ShareCard({
             <div className="my-[18px] h-px w-full bg-[#F3F4F6]" />
 
             {/* OR SHARE */}
-            <p className="text-center text-[10px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">
+            <p className="text-center text-[12px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">
               Or share to get more eyes on {name}
             </p>
 
@@ -769,28 +769,28 @@ export function ShareCard({
                 <div className="mt-2 space-y-3 rounded-xl border border-[#F0E4C6] bg-[#FFFDF7] px-4 py-4">
                   {data.first_look && (
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#C9871A]">
+                      <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-[#C9871A]">
                         ✨ Voyce's First Look
                       </p>
-                      <p className="mt-1 text-[13px] leading-[1.5] text-[#4B5563]">{data.first_look}</p>
+                      <p className="mt-1 text-[15px] leading-relaxed text-[#4B5563]">{data.first_look}</p>
                     </div>
                   )}
 
                   {data.behavior && (
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
+                      <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
                         Behavior
                       </p>
-                      <p className="mt-1 text-[13px] leading-[1.5] text-[#4B5563]">{data.behavior}</p>
+                      <p className="mt-1 text-[15px] leading-relaxed text-[#4B5563]">{data.behavior}</p>
                     </div>
                   )}
 
                   {Array.isArray(data.observations) && data.observations.length > 0 && (
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
+                      <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
                         What Voyce observed
                       </p>
-                      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[13px] leading-[1.5] text-[#4B5563]">
+                      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[15px] leading-relaxed text-[#4B5563]">
                         {data.observations.map((o, i) => (
                           <li key={i}>{o}</li>
                         ))}
@@ -800,10 +800,10 @@ export function ShareCard({
 
                   {Array.isArray(data.symptoms) && data.symptoms.length > 0 && (
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
+                      <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
                         Possible signs
                       </p>
-                      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[13px] leading-[1.5] text-[#4B5563]">
+                      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[15px] leading-relaxed text-[#4B5563]">
                         {data.symptoms.map((s, i) => (
                           <li key={i}>{s}</li>
                         ))}
@@ -813,55 +813,55 @@ export function ShareCard({
 
                   {data.vet_notes?.bcs && (
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
+                      <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
                         Body condition
                       </p>
-                      <p className="mt-1 text-[13px] leading-[1.5] text-[#4B5563]">{data.vet_notes.bcs}</p>
+                      <p className="mt-1 text-[15px] leading-relaxed text-[#4B5563]">{data.vet_notes.bcs}</p>
                     </div>
                   )}
 
                   {data.vet_notes?.posture && (
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
+                      <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
                         Posture
                       </p>
-                      <p className="mt-1 text-[13px] leading-[1.5] text-[#4B5563]">{data.vet_notes.posture}</p>
+                      <p className="mt-1 text-[15px] leading-relaxed text-[#4B5563]">{data.vet_notes.posture}</p>
                     </div>
                   )}
 
                   {data.vet_notes?.hydration && (
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
+                      <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
                         Hydration
                       </p>
-                      <p className="mt-1 text-[13px] leading-[1.5] text-[#4B5563]">{data.vet_notes.hydration}</p>
+                      <p className="mt-1 text-[15px] leading-relaxed text-[#4B5563]">{data.vet_notes.hydration}</p>
                     </div>
                   )}
 
                   {data.vet_notes?.clinical && (
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
+                      <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
                         Summary — not a diagnosis
                       </p>
-                      <p className="mt-1 text-[13px] leading-[1.5] text-[#4B5563]">{data.vet_notes.clinical}</p>
+                      <p className="mt-1 text-[15px] leading-relaxed text-[#4B5563]">{data.vet_notes.clinical}</p>
                     </div>
                   )}
 
                   {data.environment_text && (
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
+                      <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
                         Where we found them
                       </p>
-                      <p className="mt-1 text-[13px] leading-[1.5] text-[#4B5563]">{data.environment_text}</p>
+                      <p className="mt-1 text-[15px] leading-relaxed text-[#4B5563]">{data.environment_text}</p>
                     </div>
                   )}
 
                   {Array.isArray(data.next_steps) && data.next_steps.length > 0 && (
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#C9871A]">
+                      <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-[#C9871A]">
                         Suggested next steps
                       </p>
-                      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[13px] leading-[1.5] text-[#4B5563]">
+                      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[15px] leading-relaxed text-[#4B5563]">
                         {data.next_steps.map((n, i) => (
                           <li key={i}>{n}</li>
                         ))}
@@ -873,13 +873,13 @@ export function ShareCard({
                   <div className="rounded-xl border border-[#F0E4C6] bg-white px-3.5 py-3.5">
                     {!sentUpdate ? (
                       <>
-                        <p className="text-[13px] font-extrabold text-[#3A2A07]">Not quite right? Fix it</p>
-                        <p className="mt-0.5 text-[11.5px] leading-[1.45] text-[#9CA3AF]">
+                        <p className="text-[15px] font-extrabold text-[#3A2A07]">Not quite right? Fix it</p>
+                        <p className="mt-0.5 text-[14px] leading-relaxed text-[#9CA3AF]">
                           Correct the category and tell us what the photo couldn't show.
                         </p>
 
                         {/* a. What is this? — single-select category pills */}
-                        <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
+                        <p className="mt-3 text-[12px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
                           What is this?
                         </p>
                         <div className="mt-2 flex flex-wrap gap-1.5">
@@ -892,7 +892,7 @@ export function ShareCard({
                                   setCat(c.key);
                                   setExamples([]);
                                 }}
-                                className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition active:scale-95"
+                                className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[14px] font-bold transition active:scale-95"
                                 style={{
                                   background: active ? "#FFDF3B" : "#FFFDF7",
                                   color: active ? "#3A2A07" : "#6B7280",
@@ -909,7 +909,7 @@ export function ShareCard({
                         {/* b. Examples for the selected category — multi-select chips */}
                         {catExamples.length > 0 && (
                           <>
-                            <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
+                            <p className="mt-3 text-[12px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
                               {selectedCat?.label} — what fits?
                             </p>
                             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -919,7 +919,7 @@ export function ShareCard({
                                   <button
                                     key={ex}
                                     onClick={() => toggleIn(setExamples, ex)}
-                                    className="rounded-full px-3 py-1.5 text-[12px] font-semibold transition active:scale-95"
+                                    className="rounded-full px-3 py-1.5 text-[14px] font-semibold transition active:scale-95"
                                     style={{
                                       background: active ? "#FFDF3B" : "#FFFDF7",
                                       color: active ? "#3A2A07" : "#6B7280",
@@ -935,7 +935,7 @@ export function ShareCard({
                         )}
 
                         {/* c. What the photo couldn't show — multi-select chips */}
-                        <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
+                        <p className="mt-3 text-[12px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
                           What the photo couldn't show
                         </p>
                         <div className="mt-2 flex flex-wrap gap-1.5">
@@ -945,7 +945,7 @@ export function ShareCard({
                               <button
                                 key={w}
                                 onClick={() => toggleIn(setWitnessed, w)}
-                                className="rounded-full px-3 py-1.5 text-[12px] font-semibold transition active:scale-95"
+                                className="rounded-full px-3 py-1.5 text-[14px] font-semibold transition active:scale-95"
                                 style={{
                                   background: active ? "#FFDF3B" : "#FFFDF7",
                                   color: active ? "#3A2A07" : "#6B7280",
@@ -976,20 +976,20 @@ export function ShareCard({
                     ) : (
                       /* e. Green confirmation banner (simulated, pre-launch) */
                       <div className="rounded-xl border border-[#A7F3D0] bg-[#ECFDF5] px-3.5 py-3.5">
-                        <p className="text-[13px] font-extrabold text-[#065F46]">✅ Update sent to the network</p>
-                        <p className="mt-1 text-[12px] leading-[1.5] text-[#047857]">
+                        <p className="text-[15px] font-extrabold text-[#065F46]">✅ Update sent to the network</p>
+                        <p className="mt-1 text-[14px] leading-relaxed text-[#047857]">
                           Updated to {selectedCat?.label ?? "Injured / Sick"}
                           {examples.length > 0 ? `, ${examples.join(", ")}` : ""}
                           {witnessed.length > 0 ? ` · Flagged: ${witnessed.join(", ")}` : ""}
                         </p>
-                        <p className="mt-2 text-[10.5px] italic leading-[1.45] text-[#059669]">
+                        <p className="mt-2 text-[12px] italic leading-relaxed text-[#059669]">
                           Your report and the update are safe — this is a preview of launch alerts.
                         </p>
                       </div>
                     )}
                   </div>
 
-                  <p className="border-t border-[#F0E4C6] pt-3 text-[10.5px] italic leading-[1.45] text-[#9CA3AF]">
+                  <p className="border-t border-[#F0E4C6] pt-3 text-[12px] italic leading-relaxed text-[#9CA3AF]">
                     AI observations &amp; suggestions — not a diagnosis. Confirm with a licensed vet.
                   </p>
                 </div>
@@ -1003,7 +1003,7 @@ export function ShareCard({
                 style={{ background: v.helpersBg, color: v.helpersText }}
               >
                 <span className="text-[15px] leading-none">👥</span>
-                <p className="text-[11.5px] leading-[1.45] font-medium">{v.helpersBody}</p>
+                <p className="text-[14px] leading-relaxed font-medium">{v.helpersBody}</p>
               </div>
             )}
           </div>
@@ -1011,7 +1011,7 @@ export function ShareCard({
 
         {/* PRE-LAUNCH BANNER */}
         <p
-          className="mx-auto mt-4 max-w-[360px] text-center text-[12px] italic leading-[1.5]"
+          className="mx-auto mt-4 max-w-[360px] text-center text-[14px] italic leading-relaxed"
           style={{ color: "#C9871A" }}
         >
           🐾 Pre-launch · shares grow Voyce.<br />
@@ -1029,7 +1029,7 @@ export function ShareCard({
           <h3 className="font-serif text-[18px] font-bold leading-tight">
             Be the first {v.ctaRole} in {city}
           </h3>
-          <p className="mt-1.5 text-[13px] leading-[1.45]">
+          <p className="mt-1.5 text-[15px] leading-relaxed">
             Join the network so the next animal in need reaches you — not no one.
           </p>
           <button
