@@ -109,7 +109,7 @@ export function JoinNetworkModal({
           <div className="px-6 py-10 text-center">
             <div className="text-4xl">💛</div>
             <h2 className="mt-3 font-serif text-2xl font-bold tracking-tight text-[#0B0B0C]">
-              You're on the founding list.
+              You're in the Voyce Pack! 🐾
             </h2>
             <p className="mt-2 text-[14px] leading-relaxed text-foreground/75">
               We'll email you the moment Voyce launches full alerts
@@ -125,7 +125,7 @@ export function JoinNetworkModal({
         ) : (
           <div className="px-5 pb-6 pt-7 sm:px-6">
             <h2 className="font-serif text-[22px] font-bold leading-tight tracking-tight text-[#0B0B0C]">
-              Be the first to answer{city ? ` in ${city}` : " in your area"}
+              Join the Voyce Pack{city ? ` in ${city}` : " in your area"}
             </h2>
             <p className="mt-1.5 text-[13.5px] leading-relaxed text-foreground/70">
               We're building the network animal by animal. Your sign-up means
@@ -245,7 +245,7 @@ export function JoinNetworkModal({
               disabled={submitting}
               className="mt-5 w-full rounded-2xl border-2 border-[#FFDF3B] bg-black px-5 py-3 text-[14px] font-bold uppercase tracking-wide text-white shadow-lg transition hover:brightness-110 active:scale-[0.99] disabled:opacity-70"
             >
-              {submitting ? "Joining…" : "Join the Network →"}
+              {submitting ? "Joining…" : "Join the Pack →"}
             </button>
 
             <p className="mt-3 text-center text-[11px] italic text-foreground/55">
