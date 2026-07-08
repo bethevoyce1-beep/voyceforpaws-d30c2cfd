@@ -424,18 +424,9 @@ export const analyzeImage = createServerFn({ method: "POST" })
     return { imageDataUrl: o.imageDataUrl, mission, context, elapsedMs, photoHash };
   })
   .handler(async ({ data }): Promise<Assessment> => {
-    // ── Anti-scam Tier 2 (July 5, 2026) ──────────────────────────────────
-    // Time-on-page minimum: a real reporter needs time to open the camera and
-    // frame an animal. Reports fired in under 10 seconds are a bot signal.
-    if (
-      typeof data.elapsedMs === "number" &&
-      data.elapsedMs >= 0 &&
-      data.elapsedMs < 10_000
-    ) {
-      throw new Error(
-        "That was quick! Please take a moment with the animal, then try again in a few seconds.",
-      );
-    }
+    // Time-on-page gate removed (July 2026): it rejected legitimate fast reports
+    // ("That was quick!"). A rescue report must never be blocked for being fast.
+    // Photo dedup below + Turnstile at signup remain as the anti-abuse measures.
 
     // Photo dedup: the client sends a perceptual hash (dHash) of the capture.
     // The same photo resubmitted within a rolling 30 days is rejected. Fails
