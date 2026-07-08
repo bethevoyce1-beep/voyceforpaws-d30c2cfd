@@ -444,6 +444,7 @@ function Home() {
         image={captured}
         data={assessment}
         mission={mission}
+        location={location}
         onContinue={() => setStage("timeline")}
       />
     );
