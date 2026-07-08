@@ -600,13 +600,29 @@ export function ShareCard({
   const selectedCat = CATEGORIES.find((c) => c.key === cat);
   const catExamples = selectedCat?.examples ?? [];
 
+  // Short structured health fields — rendered as scannable chips inside the read
+  // panel (label + value), one chip per available value.
+  const healthChips = useMemo(
+    () =>
+      [
+        { label: "Condition", value: data.visible_condition },
+        { label: "Body", value: data.vet_notes?.bcs },
+        { label: "Posture", value: data.vet_notes?.posture },
+        { label: "Hydration", value: data.vet_notes?.hydration },
+      ].filter(
+        (c): c is { label: string; value: string } =>
+          typeof c.value === "string" && c.value.trim() !== "",
+      ),
+    [data],
+  );
+
   return (
     <div className="min-h-[100dvh] bg-[#FAF8F5]">
       <BrandHeader />
 
       <div className="mx-auto w-full max-w-[420px] px-4 pb-10 pt-4">
         {/* ============ SHAREABLE CARD ============ */}
-        <article className="overflow-hidden rounded-2xl bg-white shadow-[0_18px_50px_-22px_rgba(20,15,5,0.35)] ring-1 ring-black/5">
+        <article className="overflow-hidden rounded-2xl border-2 border-[#E8C97A] bg-white shadow-lg shadow-[0_18px_50px_-22px_rgba(20,15,5,0.35)] ring-1 ring-black/5">
           {/* PHOTO */}
           <div className="relative w-full overflow-hidden bg-black" style={{ aspectRatio: "4/3" }}>
             <img src={image} alt={name} className="absolute inset-0 h-full w-full object-cover" />
@@ -650,7 +666,7 @@ export function ShareCard({
               <p className="mt-2 text-[14px] font-medium text-[#6B7280]">{speciesLine}</p>
             )}
 
-            {/* ============ ANIMAL INFO — compact pills + View Map + details line ============ */}
+            {/* ============ ANIMAL INFO — compact pills + View Map + report-detail pills ============ */}
             {(infoPills.length > 0 || location) && (
               <div className="mt-3">
                 {/* Chips: one per available animal-info field, plus a View Map link if located */}
@@ -677,20 +693,31 @@ export function ShareCard({
                   )}
                 </div>
 
-                {/* Details line: AI confidence · reporter · date */}
-                {(data.ai_confidence || data.reportedAt) && (
-                  <p className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12px] text-muted-foreground">
-                    {data.ai_confidence && (
-                      <span>🧠 AI confidence: {capWord(String(data.ai_confidence))}</span>
-                    )}
-                    {data.ai_confidence && <span aria-hidden>·</span>}
-                    <span>🧑 Reported by: Reporter</span>
-                    {data.reportedAt && <span aria-hidden>·</span>}
-                    {data.reportedAt && (
-                      <span>{new Date(data.reportedAt).toLocaleDateString()}</span>
-                    )}
-                  </p>
-                )}
+                {/* Report-detail chips: Case # · AI confidence · Reported by · Date */}
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {data.caseId && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#EDE5D8] bg-white px-2.5 py-1 text-[13px]">
+                      <span className="text-[#9CA3AF]">Case #</span>
+                      <span className="font-bold text-[#374151]">{data.caseId}</span>
+                    </span>
+                  )}
+                  {data.ai_confidence && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#EDE5D8] bg-white px-2.5 py-1 text-[13px]">
+                      <span className="text-[#9CA3AF]">AI confidence</span>
+                      <span className="font-bold text-[#374151]">{capWord(String(data.ai_confidence))}</span>
+                    </span>
+                  )}
+                  <span className="inline-flex items-center gap-1 rounded-full border border-[#EDE5D8] bg-white px-2.5 py-1 text-[13px]">
+                    <span className="text-[#9CA3AF]">Reported by</span>
+                    <span className="font-bold text-[#374151]">Reporter</span>
+                  </span>
+                  {data.reportedAt && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#EDE5D8] bg-white px-2.5 py-1 text-[13px]">
+                      <span className="text-[#9CA3AF]">Date</span>
+                      <span className="font-bold text-[#374151]">{new Date(data.reportedAt).toLocaleDateString()}</span>
+                    </span>
+                  )}
+                </div>
               </div>
             )}
 
@@ -860,16 +887,36 @@ export function ShareCard({
                     </div>
                   )}
 
+                  {/* Short structured health fields — scannable chips */}
+                  {healthChips.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {healthChips.map((c) => (
+                        <span
+                          key={c.label}
+                          className="inline-flex items-center gap-1 rounded-full border border-[#EDE5D8] bg-white px-2.5 py-1 text-[13px]"
+                        >
+                          <span className="text-[#9CA3AF]">{c.label}</span>
+                          <span className="font-bold text-[#374151]">{c.value}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
                   {Array.isArray(data.observations) && data.observations.length > 0 && (
                     <div>
                       <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
                         What Voyce observed
                       </p>
-                      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[15px] leading-relaxed text-[#4B5563]">
+                      <div className="mt-1 flex flex-wrap gap-1.5">
                         {data.observations.map((o, i) => (
-                          <li key={i}>{o}</li>
+                          <span
+                            key={i}
+                            className="inline-flex items-center rounded-full border border-[#EDE5D8] bg-white px-2.5 py-1 text-[13px] font-medium text-[#374151]"
+                          >
+                            {o}
+                          </span>
                         ))}
-                      </ul>
+                      </div>
                     </div>
                   )}
 
@@ -878,38 +925,16 @@ export function ShareCard({
                       <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
                         Possible signs
                       </p>
-                      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[15px] leading-relaxed text-[#4B5563]">
+                      <div className="mt-1 flex flex-wrap gap-1.5">
                         {data.symptoms.map((s, i) => (
-                          <li key={i}>{s}</li>
+                          <span
+                            key={i}
+                            className="inline-flex items-center rounded-full border border-[#EDE5D8] bg-white px-2.5 py-1 text-[13px] font-medium text-[#374151]"
+                          >
+                            {s}
+                          </span>
                         ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {data.vet_notes?.bcs && (
-                    <div>
-                      <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
-                        Body condition
-                      </p>
-                      <p className="mt-1 text-[15px] leading-relaxed text-[#4B5563]">{data.vet_notes.bcs}</p>
-                    </div>
-                  )}
-
-                  {data.vet_notes?.posture && (
-                    <div>
-                      <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
-                        Posture
-                      </p>
-                      <p className="mt-1 text-[15px] leading-relaxed text-[#4B5563]">{data.vet_notes.posture}</p>
-                    </div>
-                  )}
-
-                  {data.vet_notes?.hydration && (
-                    <div>
-                      <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
-                        Hydration
-                      </p>
-                      <p className="mt-1 text-[15px] leading-relaxed text-[#4B5563]">{data.vet_notes.hydration}</p>
+                      </div>
                     </div>
                   )}
 
