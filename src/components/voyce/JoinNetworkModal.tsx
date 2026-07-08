@@ -63,7 +63,7 @@ export function JoinNetworkModal({
     setError(null);
     if (selected.length === 0) return setError("Pick at least one role.");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError("Enter a valid email.");
-    if (!zip.trim()) return setError("Enter your ZIP / postal code.");
+
     if (!consent) return setError("Please accept Privacy & Terms to continue.");
     setSubmitting(true);
     try {
@@ -193,7 +193,7 @@ export function JoinNetworkModal({
                 />
               </label>
               <label className="block">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground/60">ZIP *</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground/60">ZIP (optional)</span>
                 <input
                   type="text"
                   inputMode="text"
