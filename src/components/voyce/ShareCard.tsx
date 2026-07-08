@@ -715,10 +715,11 @@ export function ShareCard({
               <button
                 onClick={() => setShowRead((s) => !s)}
                 aria-expanded={showRead}
-                className="flex w-full items-center justify-between gap-2 rounded-xl border-[1.5px] border-[#EAD9B0] bg-[#FFFBEF] px-4 py-3 text-[12.5px] font-bold text-[#8A5A0E] transition hover:bg-[#FFF7E1] active:scale-[0.99]"
+                className="flex w-full items-center justify-between gap-2 rounded-xl px-4 py-3.5 text-[13px] font-bold uppercase tracking-wide shadow-md transition hover:brightness-105 active:scale-[0.99]"
+                style={{ background: "linear-gradient(135deg, #FFDF3B 0%, #C9871A 100%)", color: "#3A2A07" }}
               >
-                <span>🔎 {showRead ? "Hide what Voyce read" : "See what Voyce read"}</span>
-                <span className="text-[11px] leading-none opacity-80">{showRead ? "▲" : "→"}</span>
+                <span>📋 {showRead ? "Hide Rescue Card & Health Assessment" : "Rescue Card & Health Assessment detail"}</span>
+                <span className="text-[12px] leading-none opacity-80">{showRead ? "▲" : "→"}</span>
               </button>
 
               {showRead && (
