@@ -407,7 +407,21 @@ export function RescueReport({
             </div>
           )}
 
-          {/* 3 — Big Title */}
+          {/* Quick read — scannable summary, important info up top */}
+            <div className="mx-5 mt-4 overflow-hidden rounded-2xl border border-[#EDE5D8] bg-white">
+              <ReadoutRow
+                label="Species"
+                value={[data.species, data.breed].filter((v) => v && !/^unknown$/i.test(v)).join(" · ") || "Unknown"}
+              />
+              <ReadoutRow
+                label="Condition"
+                value={condition.primarySign || condition.visibleCondition}
+                color={CONDITION_COLORS[condition.visibleCondition].text}
+              />
+              <ReadoutRow label="Location" value={locationLine(data)} />
+            </div>
+
+            {/* 3 — Big Title */}
           <div className="px-5 pt-5">
             <h1
               className="font-serif text-[28px] font-bold leading-[1.05] uppercase tracking-tight"
@@ -994,6 +1008,22 @@ function ReportRow({ label, value }: { label: string; value: string }) {
     <div className="flex justify-between gap-2">
       <dt className="text-muted-foreground">{label}</dt>
       <dd className="text-right font-medium text-foreground/85">{value}</dd>
+    </div>
+  );
+}
+
+function ReadoutRow({ label, value, color }: { label: string; value: string; color?: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-[#F0EADD] px-4 py-3 last:border-b-0">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+        {label}
+      </span>
+      <span
+        className="text-right text-[14px] font-bold text-foreground"
+        style={color ? { color } : undefined}
+      >
+        {value}
+      </span>
     </div>
   );
 }
