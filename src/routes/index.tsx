@@ -394,7 +394,7 @@ function Home() {
   }
 
   if (stage === "alerting") {
-    return withBack(<NetworkAlerting onComplete={() => setStage("report")} />);
+    return withBack(<NetworkAlerting onComplete={() => setStage("share")} />);
   }
 
   if (stage === "report" && assessment && captured) {
