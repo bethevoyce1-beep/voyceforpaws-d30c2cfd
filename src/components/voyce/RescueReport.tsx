@@ -365,27 +365,7 @@ export function RescueReport({
             <img src={image} alt={data.title} className="aspect-[4/3] w-full object-cover" />
           </div>
 
-          {/* Location map */}
-          {location && (
-            <div className="mx-5 mt-4 overflow-hidden rounded-2xl border border-[#EDE5D8] shadow-sm">
-              <iframe
-                title="Animal location"
-                src={`https://www.openstreetmap.org/export/embed.html?bbox=${location.lon - 0.004}%2C${location.lat - 0.004}%2C${location.lon + 0.004}%2C${location.lat + 0.004}&layer=mapnik&marker=${location.lat}%2C${location.lon}`}
-                loading="lazy"
-                className="block h-[180px] w-full border-0"
-              />
-              {mapsUrl && (
-                <a
-                  href={mapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block bg-white px-4 py-2.5 text-center text-[13px] font-bold text-[#8A5A0E] no-underline transition hover:bg-muted"
-                >
-                  🧭 Open in Maps
-                </a>
-              )}
-            </div>
-          )}
+
 
           {/* Wildlife top warning (always above title) */}
           {isWildlife && !isMonitoringFallback && m.showTopWarning && (
@@ -407,21 +387,7 @@ export function RescueReport({
             </div>
           )}
 
-          {/* Quick read — scannable summary, important info up top */}
-            <div className="mx-5 mt-4 overflow-hidden rounded-2xl border border-[#EDE5D8] bg-white">
-              <ReadoutRow
-                label="Species"
-                value={[data.species, data.breed].filter((v) => v && !/^unknown$/i.test(v)).join(" · ") || "Unknown"}
-              />
-              <ReadoutRow
-                label="Condition"
-                value={condition.primarySign || condition.visibleCondition}
-                color={CONDITION_COLORS[condition.visibleCondition].text}
-              />
-              <ReadoutRow label="Location" value={locationLine(data)} />
-            </div>
-
-            {/* 3 — Big Title */}
+          {/* 3 — Big Title */}
           <div className="px-5 pt-5">
             <h1
               className="font-serif text-[28px] font-bold leading-[1.05] uppercase tracking-tight"
@@ -1012,21 +978,7 @@ function ReportRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ReadoutRow({ label, value, color }: { label: string; value: string; color?: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 border-b border-[#F0EADD] px-4 py-3 last:border-b-0">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-        {label}
-      </span>
-      <span
-        className="text-right text-[14px] font-bold text-foreground"
-        style={color ? { color } : undefined}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
+
 
 function shareName(data: Assessment): string {
   const breed = data.breed && !/unknown|mixed/i.test(data.breed) ? data.breed : "";
