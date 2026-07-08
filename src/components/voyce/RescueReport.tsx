@@ -128,8 +128,6 @@ export function RescueReport({
   onSelectAnimal,
   onContinue,
   onDone,
-  onSend,
-  onEditDetails,
 }: {
   image: string;
   data: Assessment;
@@ -150,8 +148,6 @@ export function RescueReport({
   const [showVet, setShowVet] = useState(true);
   const [shareConfirm, setShareConfirm] = useState(false);
   const [pendingShare, setPendingShare] = useState<SharePlatform | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const [sentModal, setSentModal] = useState<null | "online" | "offline">(null);
   const m = MISSIONS[mission];
   const urgency = useMemo(() => getUrgency(data, mission), [data, mission]);
@@ -171,17 +167,6 @@ export function RescueReport({
       console.warn("[voyce] turnstile preload failed:", e);
     });
   }, []);
-
-  // Polish-list fix (June 30, 2026): Rescue Card → Share Card is pure UI navigation,
-  // not a server submit. The previous Turnstile gate here blocked iOS Safari users
-  // ("Couldn't verify you're human"). Spam protection still runs at JoinNetworkModal
-  // and other real submit points where it's actually useful.
-  const handleSubmitReport = () => {
-    // "Send to rescuers" is the real send moment — hand off to the network-
-    // alerting animation ("Alerting the network" → "Voyce answers"), which now
-    // plays AFTER send so the messaging is accurate. Falls back to onContinue.
-    (onSend ?? onContinue)();
-  };
 
   const performShare = (platform: SharePlatform) => {
     const text = buildShareText(data, mission);
@@ -441,15 +426,6 @@ export function RescueReport({
             <p className="mt-2 text-[14px] italic leading-relaxed text-[oklch(0.45_0.03_70)]">
               {data.first_look}
             </p>
-            {onEditDetails && (
-              <button
-                type="button"
-                onClick={onEditDetails}
-                className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-[#EDE5D8] bg-white px-4 py-2.5 text-[12.5px] font-semibold text-[#8A5A0E] transition hover:bg-background active:scale-[0.99]"
-              >
-                🔎 See what Voyce read — edit if needed
-              </button>
-            )}
           </div>
 
           {/* 8 — Urgency callout (mission-specific) */}
@@ -585,7 +561,7 @@ export function RescueReport({
                 onClick={() => setShowVet((v) => !v)}
                 className="mt-4 flex w-full items-center justify-between rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3 text-[13.5px] font-semibold text-[#8A5A0E] transition hover:bg-background active:scale-[0.99]"
               >
-                <span>🩺 {showVet ? "Hide Voyce's First Look" : "View Voyce's First Look"}</span>
+                <span>🔎 {showVet ? "Hide what Voyce read" : "See what Voyce read"}</span>
                 <span aria-hidden>{showVet ? "▲" : "→"}</span>
               </button>
               {showVet && (
@@ -695,25 +671,6 @@ export function RescueReport({
           pain, pregnancy, or vaccination status. Always confirm with a licensed veterinarian before any
           medical, rescue, or transport decision.
         </p>
-      </div>
-
-
-      {/* Sticky continue */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
-        <div className="mx-auto flex max-w-2xl flex-col items-end gap-1.5">
-          {submitError && (
-            <div className="text-[12px] font-medium text-[#A8431F]" role="alert">
-              {submitError}
-            </div>
-          )}
-          <button
-            onClick={onEditDetails ?? handleSubmitReport}
-            disabled={submitting}
-            className="rounded-full bg-gradient-to-b from-[oklch(0.90_0.16_85)] to-[oklch(0.78_0.15_70)] px-6 py-2.5 text-sm font-semibold text-[oklch(0.25_0.04_60)] shadow-md transition hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {submitting ? "Verifying…" : "Review & send to network"}
-          </button>
-        </div>
       </div>
 
 
