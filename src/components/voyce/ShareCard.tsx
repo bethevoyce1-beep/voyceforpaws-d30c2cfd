@@ -474,17 +474,37 @@ const SHARE_MORE = [
 ];
 
 // =============================================================
+// Animal-info pill fields — compact chips under the species line.
+// One chip per available field; empty or "unknown" values are skipped.
+// =============================================================
+const INFO_FIELDS: { label: string; key: keyof Assessment }[] = [
+  { label: "Species", key: "species" },
+  { label: "Breed",   key: "breed" },
+  { label: "Age",     key: "age" },
+  { label: "Size",    key: "size" },
+  { label: "Weight",  key: "weight" },
+  { label: "Color",   key: "color" },
+];
+
+// Capitalize the first letter of an AI-confidence value ("high" → "High").
+function capWord(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
+// =============================================================
 // Component
 // =============================================================
 export function ShareCard({
   image,
   data,
   mission,
+  location,
   onContinue,
 }: {
   image: string;
   data: Assessment;
   mission: MissionId;
+  location?: { lat: number; lon: number; label: string } | null;
   onContinue: () => void;
 }) {
   const v = useMemo(() => variantFor(mission, data), [mission, data]);
@@ -518,6 +538,17 @@ export function ShareCard({
       [data.breed, data.age, data.species, data.weight]
         .filter((x) => x && !/^unknown/i.test(x))
         .join(" · "),
+    [data],
+  );
+
+  // Animal-info chips — one per non-empty, non-"unknown" field (module INFO_FIELDS order).
+  const infoPills = useMemo(
+    () =>
+      INFO_FIELDS.map((f) => ({ label: f.label, value: (data[f.key] as unknown) }))
+        .filter(
+          (p): p is { label: string; value: string } =>
+            typeof p.value === "string" && p.value.trim() !== "" && !/^unknown$/i.test(p.value.trim()),
+        ),
     [data],
   );
 
@@ -617,6 +648,50 @@ export function ShareCard({
             {/* Species */}
             {speciesLine && (
               <p className="mt-2 text-[14px] font-medium text-[#6B7280]">{speciesLine}</p>
+            )}
+
+            {/* ============ ANIMAL INFO — compact pills + View Map + details line ============ */}
+            {(infoPills.length > 0 || location) && (
+              <div className="mt-3">
+                {/* Chips: one per available animal-info field, plus a View Map link if located */}
+                <div className="flex flex-wrap gap-1.5">
+                  {infoPills.map((p) => (
+                    <span
+                      key={p.label}
+                      className="inline-flex items-center gap-1 rounded-full border border-[#EDE5D8] bg-white px-2.5 py-1 text-[13px]"
+                    >
+                      <span className="text-[#9CA3AF]">{p.label}</span>
+                      <span className="font-bold text-[#374151]">{p.value}</span>
+                    </span>
+                  ))}
+
+                  {location && (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${location.lat},${location.lon}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 rounded-full border border-[#C7DBFF] bg-[#EFF6FF] px-2.5 py-1 text-[13px] font-bold text-[#1D4ED8] transition active:scale-95 hover:brightness-105"
+                    >
+                      📍 View Map
+                    </a>
+                  )}
+                </div>
+
+                {/* Details line: AI confidence · reporter · date */}
+                {(data.ai_confidence || data.reportedAt) && (
+                  <p className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12px] text-muted-foreground">
+                    {data.ai_confidence && (
+                      <span>🧠 AI confidence: {capWord(String(data.ai_confidence))}</span>
+                    )}
+                    {data.ai_confidence && <span aria-hidden>·</span>}
+                    <span>🧑 Reported by: Reporter</span>
+                    {data.reportedAt && <span aria-hidden>·</span>}
+                    {data.reportedAt && (
+                      <span>{new Date(data.reportedAt).toLocaleDateString()}</span>
+                    )}
+                  </p>
+                )}
+              </div>
             )}
 
             {/* Location */}
