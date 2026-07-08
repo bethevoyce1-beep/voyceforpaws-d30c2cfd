@@ -381,7 +381,7 @@ function Home() {
         aiPending={aiPending}
         aiError={aiError}
         assessment={assessment}
-        onComplete={() => assessment && setStage("report")}
+        onComplete={() => assessment && setStage("alerting")}
         onRetry={() => {
           setCaptured(null);
           setCaptureMeta(null);
@@ -394,7 +394,7 @@ function Home() {
   }
 
   if (stage === "alerting") {
-    return withBack(<NetworkAlerting onComplete={() => setStage("share")} />);
+    return withBack(<NetworkAlerting onComplete={() => setStage("report")} />);
   }
 
   if (stage === "report" && assessment && captured) {
