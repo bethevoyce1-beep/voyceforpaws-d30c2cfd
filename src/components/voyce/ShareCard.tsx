@@ -470,6 +470,9 @@ export function ShareCard({
   const [modalRole, setModalRole] = useState<NetworkRole | undefined>();
   const [shareMoreOpen, setShareMoreOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  // Collapsible "See what Voyce read" — reveals the full AI read inline on the
+  // last card, so the reporter can review every observation without leaving.
+  const [showRead, setShowRead] = useState(false);
 
   const openModal = (role?: NetworkRole) => {
     setModalRole(role);
@@ -706,6 +709,128 @@ export function ShareCard({
             >
               ⋯  More share options
             </button>
+
+            {/* ============ SEE WHAT VOYCE READ (collapsible full AI read) ============ */}
+            <div className="mt-4">
+              <button
+                onClick={() => setShowRead((s) => !s)}
+                aria-expanded={showRead}
+                className="flex w-full items-center justify-between gap-2 rounded-xl border-[1.5px] border-[#EAD9B0] bg-[#FFFBEF] px-4 py-3 text-[12.5px] font-bold text-[#8A5A0E] transition hover:bg-[#FFF7E1] active:scale-[0.99]"
+              >
+                <span>🔎 {showRead ? "Hide what Voyce read" : "See what Voyce read"}</span>
+                <span className="text-[11px] leading-none opacity-80">{showRead ? "▲" : "→"}</span>
+              </button>
+
+              {showRead && (
+                <div className="mt-2 space-y-3 rounded-xl border border-[#F0E4C6] bg-[#FFFDF7] px-4 py-4">
+                  {data.first_look && (
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#C9871A]">
+                        ✨ Voyce's First Look
+                      </p>
+                      <p className="mt-1 text-[13px] leading-[1.5] text-[#4B5563]">{data.first_look}</p>
+                    </div>
+                  )}
+
+                  {data.behavior && (
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
+                        Behavior
+                      </p>
+                      <p className="mt-1 text-[13px] leading-[1.5] text-[#4B5563]">{data.behavior}</p>
+                    </div>
+                  )}
+
+                  {Array.isArray(data.observations) && data.observations.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
+                        What Voyce observed
+                      </p>
+                      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[13px] leading-[1.5] text-[#4B5563]">
+                        {data.observations.map((o, i) => (
+                          <li key={i}>{o}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {Array.isArray(data.symptoms) && data.symptoms.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
+                        Possible signs
+                      </p>
+                      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[13px] leading-[1.5] text-[#4B5563]">
+                        {data.symptoms.map((s, i) => (
+                          <li key={i}>{s}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {data.vet_notes?.bcs && (
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
+                        Body condition
+                      </p>
+                      <p className="mt-1 text-[13px] leading-[1.5] text-[#4B5563]">{data.vet_notes.bcs}</p>
+                    </div>
+                  )}
+
+                  {data.vet_notes?.posture && (
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
+                        Posture
+                      </p>
+                      <p className="mt-1 text-[13px] leading-[1.5] text-[#4B5563]">{data.vet_notes.posture}</p>
+                    </div>
+                  )}
+
+                  {data.vet_notes?.hydration && (
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
+                        Hydration
+                      </p>
+                      <p className="mt-1 text-[13px] leading-[1.5] text-[#4B5563]">{data.vet_notes.hydration}</p>
+                    </div>
+                  )}
+
+                  {data.vet_notes?.clinical && (
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
+                        Summary — not a diagnosis
+                      </p>
+                      <p className="mt-1 text-[13px] leading-[1.5] text-[#4B5563]">{data.vet_notes.clinical}</p>
+                    </div>
+                  )}
+
+                  {data.environment_text && (
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
+                        Where we found them
+                      </p>
+                      <p className="mt-1 text-[13px] leading-[1.5] text-[#4B5563]">{data.environment_text}</p>
+                    </div>
+                  )}
+
+                  {Array.isArray(data.next_steps) && data.next_steps.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#C9871A]">
+                        Suggested next steps
+                      </p>
+                      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[13px] leading-[1.5] text-[#4B5563]">
+                        {data.next_steps.map((n, i) => (
+                          <li key={i}>{n}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <p className="border-t border-[#F0E4C6] pt-3 text-[10.5px] italic leading-[1.45] text-[#9CA3AF]">
+                    AI observations &amp; suggestions — not a diagnosis. Confirm with a licensed vet.
+                  </p>
+                </div>
+              )}
+            </div>
 
             {/* Nearby helpers footer */}
             {v.helpersBody && (
