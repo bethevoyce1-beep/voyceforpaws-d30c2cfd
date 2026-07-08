@@ -34,7 +34,7 @@ export const submitNetworkSignup = createServerFn({ method: "POST" })
     const turnstileToken = String(o.turnstileToken ?? "");
 
     if (!isEmail(email) || email.length > 255) throw new Error("Invalid email");
-    if (!zip || zip.length > 16) throw new Error("Invalid ZIP");
+    if (zip.length > 16) throw new Error("Invalid ZIP");
     if (roles.length === 0) throw new Error("Pick at least one role");
     if (!turnstileToken) throw new Error("Missing verification");
 
@@ -59,7 +59,7 @@ export const submitNetworkSignup = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin.from("network_signups").insert({
       name: data.name ?? null,
       email: data.email,
-      zip: data.zip,
+      zip: data.zip || null,
       phone: data.phone ?? null,
       city: data.city ?? null,
       roles: data.roles,
