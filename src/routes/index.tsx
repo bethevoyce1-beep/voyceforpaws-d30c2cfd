@@ -488,7 +488,7 @@ function RestartFab({ onClick }: { onClick: () => void }) {
       type="button"
       onClick={onClick}
       aria-label="Test another animal"
-      className="fixed bottom-[4.75rem] left-4 z-40 flex items-center gap-1.5 rounded-full border border-border bg-card/95 px-4 py-2 text-[13px] font-semibold text-[#8A5A0E] shadow-lg backdrop-blur transition active:scale-95"
+      className="fixed bottom-4 left-[8.5rem] z-40 flex items-center gap-1.5 rounded-full border border-border bg-card/95 px-4 py-2 text-[13px] font-semibold text-[#8A5A0E] shadow-lg backdrop-blur transition active:scale-95"
       style={{ marginBottom: "env(safe-area-inset-bottom)" }}
     >
       <span aria-hidden>🔄</span> Test another
