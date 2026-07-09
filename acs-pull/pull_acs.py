@@ -3,18 +3,19 @@
 Voyce for Paws - ACS at-risk animal refresh.
 
 Downloads the City of San Antonio ACS "Capacity Euthanasia List" PDF, parses the
-per-animal narrative blocks, classifies each animal's status the way the Voyce
-prototype does, and reconciles them into the live acs_animals table via the
-acs_apply_pull() function (upsert current animals + mark drop-offs as 'left',
-preserving history).
+per-animal narrative blocks, classifies each animal, and reconciles into the live
+acs_animals table via acs_apply_pull() (upsert + mark drop-offs 'left', while
+keeping euthanized animals permanently for the In Memoriam view).
 
-Status model (matches voyce-acs-cards-merged.html):
-  euthanasia  - kennel == 'EUTHANASIA'
-  b6spt       - kennel starts 'B6' or contains 'SPT'
-  adoption    - block text has 'ADOPTION HOLD' / 'ADOPTION IN PROGRESS'
-  foster      - block text has 'FOSTER HOLD'
-  immediate   - has 'euthanized on <date>' notice (scheduled for capacity day)
-  atrisk      - on the list, no imminent euth notice
+Status model (status_key -> public_status shown to people):
+  euthanized -> In Memoriam                 kennel == EUTHANASIA (confirmed)
+  b6spt      -> Critical - final minutes     kennel starts B6 / contains SPT
+  immediate  -> Critical - today             'will be euthanized on {date}'
+  atrisk     -> Urgent                       'could be euthanized after {date}'
+  adoption   -> Rescue Hold                  'ACS ADOPTION hold'
+  foster     -> Foster Pending               'ACS FOSTER hold'
+  watch      -> Foster Pending (family)      'My family is coming for me'
+  secured    -> Secured                      'Placement has been secured'
 
 Env vars:
   SUPABASE_URL                (optional; host auto-detected/fixed)
@@ -63,8 +64,20 @@ SPECIES = {
 DEMO_RE = re.compile(r"^\(([A-Z])\)\s*Estimated Age\s+(.*)$")
 VAL_RE = re.compile(r"^(A\d{6,8})\s+(\d{1,2}/\d{1,2}/\d{4})\s+(\S+)")
 ID_RE = re.compile(r"\b(A\d{6,8})\b")
-EUTH_RE = re.compile(r"euthanized on\s+(\d{1,2}/\d{1,2}/\d{4})", re.I)
+EUTH_ON_RE = re.compile(r"euthanized on\s+(\d{1,2}/\d{1,2}/\d{4})", re.I)
 SIZEHDR_RE = re.compile(r"^(Size|Weight)\s+Days At Shelter\s+At Risk Since", re.I)
+
+# status_key -> friendly label shown to the public
+PUBLIC = {
+    "euthanized": "In Memoriam",
+    "b6spt": "Critical · final minutes",
+    "immediate": "Critical · today",
+    "atrisk": "Urgent",
+    "adoption": "Rescue Hold",
+    "foster": "Foster Pending",
+    "watch": "Foster Pending · family coming",
+    "secured": "Secured",
+}
 
 
 def log(*a):
@@ -138,21 +151,27 @@ def split_demo(rest):
     return age_raw, color, breed
 
 
-def classify(kennel, euth, block_text):
-    """Return (status_key, status) matching the Voyce prototype categories."""
+def classify(kennel, euth_on, block_text):
+    """Return (status_key, public_status)."""
     k = (kennel or "").upper()
     bt = (block_text or "").upper()
-    if k == "EUTHANASIA":
-        return "euthanasia", "EUTHANASIA"
-    if k.startswith("B6") or "SPT" in k:
-        return "b6spt", "B6-SPT"
-    if "ADOPTION HOLD" in bt or "ADOPTION IN PROGRESS" in bt:
-        return "adoption", "ADOPTION IN PROGRESS"
-    if "FOSTER HOLD" in bt:
-        return "foster", "FOSTER HOLD"
-    if euth:
-        return "immediate", "IMMEDIATE RISK"
-    return "atrisk", "AT RISK"
+    if k == "EUTHANASIA" or "HAS BEEN EUTHANIZED" in bt or "WAS EUTHANIZED" in bt:
+        key = "euthanized"
+    elif k.startswith("B6") or "SPT" in k:
+        key = "b6spt"
+    elif "PLACEMENT HAS BEEN SECURED" in bt:
+        key = "secured"
+    elif "ADOPTION HOLD" in bt or "ADOPTION IN PROGRESS" in bt:
+        key = "adoption"
+    elif "FOSTER HOLD" in bt:
+        key = "foster"
+    elif "FAMILY IS COMING" in bt:
+        key = "watch"
+    elif euth_on:
+        key = "immediate"
+    else:
+        key = "atrisk"
+    return key, PUBLIC[key]
 
 
 def fetch_pdf(url):
@@ -182,7 +201,7 @@ def parse_rows(raw_text):
         sex = m.group(1)
         age_raw, color, breed = split_demo(m.group(2))
 
-        aid = due_out = kennel = euth = None
+        aid = due_out = kennel = euth_on = None
         for j in range(i - 1, max(-1, i - 7), -1):
             lj = lines[j].strip()
             vm = VAL_RE.match(lj)
@@ -190,9 +209,9 @@ def parse_rows(raw_text):
                 aid = vm.group(1)
                 due_out = parse_date_iso(vm.group(2))
                 kennel = vm.group(3)
-            em = EUTH_RE.search(lines[j])
-            if em and euth is None:
-                euth = em.group(1)
+            em = EUTH_ON_RE.search(lines[j])
+            if em and euth_on is None:
+                euth_on = em.group(1)
             if aid is None:
                 idm = ID_RE.search(lj)
                 if idm:
@@ -223,18 +242,18 @@ def parse_rows(raw_text):
                 story = collect_story(lines, k + 1, n)
                 break
 
-        # Block text for status markers (this animal's slice only).
         b_start = max(0, i - 6)
         b_end = (demo_idx[pos + 1] - 6) if pos + 1 < len(demo_idx) else n
         b_end = max(b_end, i + 1)
         block_text = "\n".join(lines[b_start:b_end])
-        status_key, status = classify(kennel, euth, block_text)
+        status_key, public_status = classify(kennel, euth_on, block_text)
 
         out[aid] = {
             "id": aid,
             "list_date": date.today().isoformat(),
-            "status": status,
+            "status": public_status,
             "status_key": status_key,
+            "public_status": public_status,
             "name": name.upper() if name else None,
             "breed": breed.upper() if breed else None,
             "color": color.upper() if color else None,
@@ -245,7 +264,7 @@ def parse_rows(raw_text):
             "kennel": kennel,
             "days": days,
             "risk_since": risk,
-            "euth_date": euth,
+            "euth_date": euth_on,
             "due_out": due_out,
             "heartworm": None,
             "story": story,
@@ -268,7 +287,6 @@ def collect_story(lines, start, n):
 
 
 def apply_pull(rows):
-    """Reconcile into live acs_animals via the acs_apply_pull() function."""
     url = f"{REST}/rpc/acs_apply_pull"
     r = requests.post(
         url,
