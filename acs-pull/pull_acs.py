@@ -13,18 +13,17 @@ Status model (status_key -> public_status):
   adoption   -> Rescue Hold    foster -> ACS Foster Hold
   watch      -> Foster Pending    secured -> Secured
 
-Classification precedence (Option A - kennel wins, safest):
+Classification precedence:
   1. kennel EUTHANASIA / "has been euthanized"      -> euthanized (In Memoriam)
-  2. note "Placement has been secured"              -> secured (only note that
-     can beat a euthanasia kennel)
-  3. euthanasia-staging kennels:
-       Office / B6* / *SPT*                          -> b6spt (final minutes)
-       OUTSIDE*                                      -> immediate (euth today)
-     (these override adoption/foster holds)
-  4. notes: ADOPTION HOLD -> adoption; FOSTER HOLD -> foster;
-     "family is coming" -> watch
-  5. "euthanized today" / "euthanized on {date}"     -> immediate
-  6. otherwise (incl. "euthanized after {date}")     -> atrisk
+  2. note "Placement has been secured"              -> secured
+  3. kennel Office / B6* / *SPT* (euthanasia room)  -> b6spt (final minutes);
+     a foster/adoption hold does NOT clear these — only "secured" does
+  4. note ADOPTION HOLD -> adoption; FOSTER HOLD -> foster;
+     "family is coming" -> watch  (these override an OUTSIDE kennel — someone
+     has stepped in)
+  5. kennel OUTSIDE* (euth today, no hold)          -> immediate
+  6. "euthanized today" / "euthanized on {date}"    -> immediate
+  7. otherwise (incl. "euthanized after {date}")    -> atrisk
 
 Env vars:
   SUPABASE_URL                (optional; host auto-detected/fixed)
@@ -176,9 +175,13 @@ def split_demo(rest):
 
 
 def classify(kennel, euth_on, euth_today, block_text):
-    """Return (status_key, public_status). Option A: euthanasia-staging kennels
-    beat adoption/foster holds; only 'Placement has been secured' overrides a
-    euthanasia kennel."""
+    """Return (status_key, public_status).
+
+    Euthanasia-room kennels (Office/B6/SPT) are Critical regardless of a hold —
+    only 'Placement has been secured' clears them. An OUTSIDE kennel means
+    euthanized-today ONLY if no foster/adoption hold is present; a hold means
+    someone stepped in, so it wins over OUTSIDE.
+    """
     k = (kennel or "").upper()
     bt = (block_text or "").upper()
     if k == "EUTHANASIA" or "HAS BEEN EUTHANIZED" in bt or "WAS EUTHANIZED" in bt:
@@ -186,17 +189,17 @@ def classify(kennel, euth_on, euth_today, block_text):
     elif "PLACEMENT HAS BEEN SECURED" in bt:
         key = "secured"
     elif "OFFICE" in k or k.startswith("B6") or "SPT" in k:
-        # Released to euthanasia / moved to euthanasia prep -> most urgent.
+        # In the euthanasia room — a foster/adoption hold does NOT clear this.
         key = "b6spt"
-    elif "OUTSIDE" in k:
-        # ACS OUTSIDE kennels = scheduled for euthanasia today.
-        key = "immediate"
     elif "ADOPTION HOLD" in bt or "ADOPTION IN PROGRESS" in bt:
         key = "adoption"
     elif "FOSTER HOLD" in bt:
         key = "foster"
     elif "FAMILY IS COMING" in bt:
         key = "watch"
+    elif "OUTSIDE" in k:
+        # OUTSIDE kennel with no hold = scheduled for euthanasia today.
+        key = "immediate"
     elif euth_today or euth_on:
         key = "immediate"
     else:
