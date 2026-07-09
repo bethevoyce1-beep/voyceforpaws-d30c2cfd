@@ -7,6 +7,7 @@ import {
   type AcsAnimal,
   type AcsListResult,
   type AcsSectionId,
+  type AcsStatusMeta,
 } from "@/lib/acs.functions";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
 
@@ -124,10 +125,15 @@ const CHIPS: ChipDef[] = [
   { id: "memoriam", label: "In Memoriam", sections: ["in_memoriam"] },
 ];
 
-function sectionOf(a: AcsAnimal): AcsSectionId {
+// `left` rows are filtered out server-side and never reach the UI, but the type
+// includes it — fall back to the `atrisk` meta so lookups stay type-safe.
+function metaOf(a: AcsAnimal): AcsStatusMeta {
   const key = normalizeStatusKey(a.status_key);
-  if (key === "left") return "urgent"; // never reaches UI (filtered server-side)
-  return ACS_STATUS_MODEL[key].section;
+  return key === "left" ? ACS_STATUS_MODEL.atrisk : ACS_STATUS_MODEL[key];
+}
+
+function sectionOf(a: AcsAnimal): AcsSectionId {
+  return metaOf(a).section;
 }
 
 function firstPhoto(a: AcsAnimal): string | null {
@@ -185,8 +191,8 @@ function PhotoThumb({ a }: { a: AcsAnimal }) {
 
 function AnimalRow({ a, onPick }: { a: AcsAnimal; onPick: (a: AcsAnimal) => void }) {
   const [showNote, setShowNote] = useState(false);
-  const key = normalizeStatusKey(a.status_key);
-  const section = SECTION_BY_ID[sectionOf(a)];
+  const meta = metaOf(a);
+  const section = SECTION_BY_ID[meta.section];
   const badge = statusLabel(a);
   const spec = specLine(a);
   const note = (a.story ?? "").trim();
@@ -249,7 +255,7 @@ function AnimalRow({ a, onPick }: { a: AcsAnimal; onPick: (a: AcsAnimal) => void
           </button>
         )}
         <span className="ml-auto text-[10.5px] italic text-muted-foreground">
-          {ACS_STATUS_MODEL[key].meaning}
+          {meta.meaning}
         </span>
       </div>
 
