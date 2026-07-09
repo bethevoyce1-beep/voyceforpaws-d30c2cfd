@@ -9,7 +9,7 @@ table via acs_apply_pull().
 
 Status model (status_key -> public_status):
   euthanized -> In Memoriam    b6spt -> Critical - final minutes
-  immediate  -> Critical - today   atrisk -> Urgent
+  immediate  -> Critical - today / Critical - {date}   atrisk -> Urgent
   adoption   -> Rescue Hold    foster -> ACS Foster Hold
   watch      -> Foster Pending    secured -> Secured
 
@@ -19,10 +19,10 @@ Classification precedence:
   3. kennel Office / B6* / *SPT* (euthanasia room)  -> b6spt (final minutes);
      a foster/adoption hold does NOT clear these — only "secured" does
   4. note ADOPTION HOLD -> adoption; FOSTER HOLD -> foster;
-     "family is coming" -> watch  (these override an OUTSIDE kennel — someone
-     has stepped in)
+     "family is coming" -> watch  (these override an OUTSIDE kennel)
   5. kennel OUTSIDE* (euth today, no hold)          -> immediate
   6. "euthanized today" / "euthanized on {date}"    -> immediate
+     (labeled "Critical - today" if today, else "Critical - {Mon D}")
   7. otherwise (incl. "euthanized after {date}")    -> atrisk
 
 Env vars:
@@ -180,7 +180,8 @@ def classify(kennel, euth_on, euth_today, block_text):
     Euthanasia-room kennels (Office/B6/SPT) are Critical regardless of a hold —
     only 'Placement has been secured' clears them. An OUTSIDE kennel means
     euthanized-today ONLY if no foster/adoption hold is present; a hold means
-    someone stepped in, so it wins over OUTSIDE.
+    someone stepped in, so it wins over OUTSIDE. A specific "euthanized on
+    {date}" (today or a future day) is also Critical; the label carries the day.
     """
     k = (kennel or "").upper()
     bt = (block_text or "").upper()
@@ -189,7 +190,6 @@ def classify(kennel, euth_on, euth_today, block_text):
     elif "PLACEMENT HAS BEEN SECURED" in bt:
         key = "secured"
     elif "OFFICE" in k or k.startswith("B6") or "SPT" in k:
-        # In the euthanasia room — a foster/adoption hold does NOT clear this.
         key = "b6spt"
     elif "ADOPTION HOLD" in bt or "ADOPTION IN PROGRESS" in bt:
         key = "adoption"
@@ -198,13 +198,20 @@ def classify(kennel, euth_on, euth_today, block_text):
     elif "FAMILY IS COMING" in bt:
         key = "watch"
     elif "OUTSIDE" in k:
-        # OUTSIDE kennel with no hold = scheduled for euthanasia today.
         key = "immediate"
     elif euth_today or euth_on:
         key = "immediate"
     else:
         key = "atrisk"
     return key, PUBLIC[key]
+
+
+def critical_label(euth_today, euth_on_iso, today_iso):
+    """Label for an `immediate` animal: 'Critical · today' vs 'Critical · Jul 10'."""
+    if euth_today or not euth_on_iso or euth_on_iso <= today_iso:
+        return "Critical · today"
+    d = datetime.strptime(euth_on_iso, "%Y-%m-%d")
+    return f"Critical · {d.strftime('%b')} {d.day}"
 
 
 def fetch_pdf(url):
@@ -227,6 +234,7 @@ def extract(pdf_bytes):
 def parse_rows(raw_text):
     lines = raw_text.split("\n")
     n = len(lines)
+    today_iso = date.today().isoformat()
     today_mdy = date.today().strftime("%m/%d/%Y")
     demo_idx = [i for i, l in enumerate(lines) if DEMO_RE.match(l.strip())]
     out = {}
@@ -281,16 +289,19 @@ def parse_rows(raw_text):
         b_end = max(b_end, i + 1)
         block_text = "\n".join(lines[b_start:b_end])
         euth_today = bool(EUTH_TODAY_RE.search(block_text))
+        euth_on_iso = parse_date_iso(euth_on)
         status_key, public_status = classify(kennel, euth_on, euth_today, block_text)
-        # Critical animals always carry a deadline for the countdown; use the
-        # explicit euth date if present, otherwise today.
+        # Date-stamp the Critical label: today vs a specific future day.
+        if status_key == "immediate":
+            public_status = critical_label(euth_today, euth_on_iso, today_iso)
+        # Critical animals always carry a deadline for the countdown.
         euth_date = euth_on or (
             today_mdy if (euth_today or status_key in CRITICAL_KEYS) else None
         )
 
         out[aid] = {
             "id": aid,
-            "list_date": date.today().isoformat(),
+            "list_date": today_iso,
             "status": public_status,
             "status_key": status_key,
             "public_status": public_status,
