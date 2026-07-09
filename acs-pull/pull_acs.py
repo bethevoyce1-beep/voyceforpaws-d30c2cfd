@@ -3,25 +3,23 @@
 Voyce for Paws - ACS at-risk animal refresh.
 
 Downloads the City of San Antonio ACS "Capacity Euthanasia List" PDF, parses the
-per-animal narrative blocks, classifies each animal, and reconciles into the live
-acs_animals table via acs_apply_pull() (upsert + mark drop-offs 'left', while
-keeping euthanized animals permanently for the In Memoriam view).
+per-animal narrative blocks, classifies each animal, enriches new animals with a
+photo from their ACS PetSearch page, and reconciles into the live acs_animals
+table via acs_apply_pull().
 
-Status model (status_key -> public_status shown to people):
-  euthanized -> In Memoriam                 kennel == EUTHANASIA (confirmed)
-  b6spt      -> Critical - final minutes     kennel starts B6 / contains SPT
-  immediate  -> Critical - today             'will be euthanized on {date}'
-  atrisk     -> Urgent                       'could be euthanized after {date}'
-  adoption   -> Rescue Hold                  'ACS ADOPTION hold'
-  foster     -> ACS Foster Hold              'ACS FOSTER hold'
-  watch      -> Foster Pending               'My family is coming for me'
-  secured    -> Secured                      'Placement has been secured'
+Status model (status_key -> public_status):
+  euthanized -> In Memoriam    b6spt -> Critical - final minutes
+  immediate  -> Critical - today   atrisk -> Urgent
+  adoption   -> Rescue Hold    foster -> ACS Foster Hold
+  watch      -> Foster Pending    secured -> Secured
 
 Env vars:
   SUPABASE_URL                (optional; host auto-detected/fixed)
   SUPABASE_SERVICE_ROLE_KEY   (required)
   PDF_URL                     (default: ACS capacity euthanasia PDF)
   WRITE_DEBUG                 (default: true)
+  ENRICH_PHOTOS               (default: true)
+  MAX_PHOTO_FETCHES           (default: 60 per run)
 """
 import io
 import json
@@ -48,6 +46,8 @@ PDF_URL = os.environ.get(
     "PDF_URL", "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf"
 )
 WRITE_DEBUG = os.environ.get("WRITE_DEBUG", "true").lower() == "true"
+ENRICH_PHOTOS = os.environ.get("ENRICH_PHOTOS", "true").lower() == "true"
+MAX_PHOTO_FETCHES = int(os.environ.get("MAX_PHOTO_FETCHES", "60"))
 
 REST = f"{SUPABASE_URL}/rest/v1"
 HEADERS = {
@@ -55,6 +55,7 @@ HEADERS = {
     "Authorization": f"Bearer {SERVICE_KEY}",
     "Content-Type": "application/json",
 }
+UA = {"User-Agent": "VoyceForPaws-ACS/1.0"}
 
 SPECIES = {
     "DOG", "CAT", "PUPPY", "KITTEN", "RABBIT", "BIRD", "OTHER", "LIVESTOCK",
@@ -66,6 +67,13 @@ VAL_RE = re.compile(r"^(A\d{6,8})\s+(\d{1,2}/\d{1,2}/\d{4})\s+(\S+)")
 ID_RE = re.compile(r"\b(A\d{6,8})\b")
 EUTH_ON_RE = re.compile(r"euthanized on\s+(\d{1,2}/\d{1,2}/\d{4})", re.I)
 SIZEHDR_RE = re.compile(r"^(Size|Weight)\s+Days At Shelter\s+At Risk Since", re.I)
+
+OG_RE = re.compile(r'property=["\']og:image["\'][^>]*content=["\']([^"\']+)', re.I)
+OG_RE2 = re.compile(r'content=["\']([^"\']+)["\'][^>]*property=["\']og:image["\']', re.I)
+GALLERY_RE = re.compile(
+    r'https://webapp1\.sanantonio\.gov/ACSPetAdopt/\d+/[^\s"\'<>]+?\.(?:png|jpg|jpeg)', re.I
+)
+PETCONNECT_RE = re.compile(r'https://24petconnect\.com/image/[^\s"\'<>]+', re.I)
 
 # status_key -> friendly label shown to the public
 PUBLIC = {
@@ -152,7 +160,6 @@ def split_demo(rest):
 
 
 def classify(kennel, euth_on, block_text):
-    """Return (status_key, public_status)."""
     k = (kennel or "").upper()
     bt = (block_text or "").upper()
     if k == "EUTHANASIA" or "HAS BEEN EUTHANIZED" in bt or "WAS EUTHANIZED" in bt:
@@ -176,7 +183,7 @@ def classify(kennel, euth_on, block_text):
 
 def fetch_pdf(url):
     log(f"Fetching PDF: {url}")
-    r = requests.get(url, timeout=60, headers={"User-Agent": "VoyceForPaws-ACS/1.0"})
+    r = requests.get(url, timeout=60, headers=UA)
     r.raise_for_status()
     log(f"  {len(r.content)} bytes, content-type={r.headers.get('content-type')}")
     return r.content
@@ -286,6 +293,60 @@ def collect_story(lines, start, n):
     return text[:4000] or None
 
 
+def existing_thumb_ids():
+    """IDs that already have a stored photo, so we don't refetch them."""
+    try:
+        r = requests.get(
+            f"{REST}/acs_animals?select=id,thumb", headers=HEADERS, timeout=60
+        )
+        if r.status_code >= 300:
+            log(f"thumb prefetch {r.status_code}: {r.text[:200]}")
+            return set()
+        return {row["id"] for row in r.json() if row.get("thumb")}
+    except Exception as e:
+        log(f"thumb prefetch failed: {e}")
+        return set()
+
+
+def enrich_photo(pet_search_url):
+    """Return (thumb, photos[]) from an animal's ACS PetSearch page."""
+    try:
+        r = requests.get(pet_search_url, timeout=15, headers=UA)
+        if r.status_code >= 300:
+            return None, []
+        html = r.text
+        m = OG_RE.search(html) or OG_RE2.search(html)
+        thumb = m.group(1).strip() if m else None
+        photos = []
+        candidates = ([thumb] if thumb else []) + PETCONNECT_RE.findall(html) + GALLERY_RE.findall(html)
+        for u in candidates:
+            u = (u or "").strip()
+            if u and u not in photos:
+                photos.append(u)
+        return thumb, photos[:6]
+    except Exception as e:
+        log(f"photo enrich failed ({pet_search_url}): {e}")
+        return None, []
+
+
+def enrich_new_photos(rows):
+    if not ENRICH_PHOTOS:
+        return 0
+    have = existing_thumb_ids()
+    fetched = 0
+    for row in rows:
+        if fetched >= MAX_PHOTO_FETCHES:
+            break
+        if row["id"] in have:
+            continue
+        thumb, photos = enrich_photo(row["pet_search_url"])
+        if thumb:
+            row["thumb"] = thumb
+            row["photos"] = photos
+            fetched += 1
+    return fetched
+
+
 def apply_pull(rows):
     url = f"{REST}/rpc/acs_apply_pull"
     r = requests.post(
@@ -341,6 +402,8 @@ def main():
     if not rows:
         log("WARNING: 0 rows parsed. Check acs_pull_debug for raw layout.")
         sys.exit(0)
+    enriched = enrich_new_photos(rows)
+    log(f"Enriched photos for {enriched} new animals")
     res = apply_pull(rows)
     log(f"acs_apply_pull result: {res}")
 
