@@ -1,9 +1,6 @@
 name: ACS at-risk refresh
 
 on:
-  schedule:
-    # Every 15 minutes (matches the source PDF refresh). Times are UTC.
-    - cron: "*/15 * * * *"
   workflow_dispatch:
     inputs:
       target_table:
@@ -32,5 +29,4 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          TARGET_TABLE: ${{ github.event.inputs.target_table || 'acs_animals_staging' }}
         run: python acs-pull/pull_acs.py
