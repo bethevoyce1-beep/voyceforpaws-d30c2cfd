@@ -19,8 +19,8 @@ Classification precedence:
   2. note "Placement has been secured"              -> secured
   3. kennel Office / B6* / *SPT* (euthanasia room)  -> b6spt (final minutes);
      a foster/adoption hold does NOT clear these — only "secured" does
-  4. note ADOPTION HOLD -> adoption; FOSTER HOLD -> foster;
-     "family is coming" -> watch  (these override an OUTSIDE kennel)
+  4. note ADOPTION HOLD -> adoption; FOSTER HOLD -> foster (ACS Foster Hold);
+     "family is coming" -> watch (Foster Pending; overrides an OUTSIDE kennel)
   5. kennel OUTSIDE* (euth today, no hold)          -> immediate
   6. "euthanized today"                             -> immediate (Critical today)
      "euthanized on {future date}"                  -> scheduled (On the clock)
@@ -89,7 +89,9 @@ GALLERY_RE = re.compile(
 )
 PETCONNECT_RE = re.compile(r'https://24petconnect\.com/image/[^\s"\'<>]+', re.I)
 
-# status_key -> friendly label shown to the public
+# status_key -> friendly label shown to the public. `watch` (Foster Pending) is
+# a distinct tier from `foster` (ACS Foster Hold): a family is coming, but the
+# placement isn't confirmed yet.
 PUBLIC = {
     "euthanized": "In Memoriam",
     "b6spt": "Critical · final minutes",

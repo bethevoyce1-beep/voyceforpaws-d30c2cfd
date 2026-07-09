@@ -9,6 +9,12 @@ import {
   type AcsSectionId,
   type AcsStatusMeta,
 } from "@/lib/acs.functions";
+import {
+  deadlineForAnimal,
+  useEuthCountdown,
+  urgencyFor,
+  formatCountdown,
+} from "@/lib/acs.timer";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
 
 const GOLD = "#FFDF3B";
@@ -24,8 +30,6 @@ type Props = {
 // ============================================================
 // Section presentation — ordered most-urgent first. Each section carries a
 // plain-language header, the action a reader can take, and a badge style.
-// ACS Foster Hold is folded under the same chip/section as Foster Pending
-// keeps the UI clean while staying honest via the per-card badge label.
 // ============================================================
 type SectionDef = {
   id: AcsSectionId;
@@ -48,10 +52,18 @@ const SECTIONS: SectionDef[] = [
   {
     id: "critical_today",
     title: "Critical · today",
-    action: "On today's euthanasia list — email ACS before 5 PM to foster or rescue.",
+    action: "On today's euthanasia list — email ACS before the deadline to foster or rescue.",
     badgeBg: "#FECACA",
     badgeText: "#7F1D1D",
     accent: "#DC2626",
+  },
+  {
+    id: "on_the_clock",
+    title: "On the clock",
+    action: "A euthanasia date is set — foster, rescue, or adopt before the date.",
+    badgeBg: "#FED7AA",
+    badgeText: "#9A3412",
+    accent: "#F97316",
   },
   {
     id: "urgent",
@@ -70,20 +82,20 @@ const SECTIONS: SectionDef[] = [
     accent: "#0EA5E9",
   },
   {
-    id: "foster_pending",
-    title: "Foster Pending",
-    action: "A family is coming but not confirmed — keep watching.",
-    badgeBg: "#DDD6FE",
-    badgeText: "#5B21B6",
-    accent: "#8B5CF6",
-  },
-  {
     id: "acs_foster_hold",
     title: "ACS Foster Hold",
-    action: "Official ACS foster hold in place — share as backup.",
+    action: "An ACS foster hold is in place — share as backup.",
     badgeBg: "#C7F9E5",
     badgeText: "#065F46",
     accent: "#10B981",
+  },
+  {
+    id: "foster_pending",
+    title: "Foster Pending",
+    action: "A family is coming, but it isn't confirmed yet — keep watching in case plans change.",
+    badgeBg: "#DBEAFE",
+    badgeText: "#1E40AF",
+    accent: "#3B82F6",
   },
   {
     id: "secured",
@@ -96,7 +108,7 @@ const SECTIONS: SectionDef[] = [
   {
     id: "in_memoriam",
     title: "In Memoriam",
-    action: "Confirmed euthanized. Remembered here permanently.",
+    action: "Confirmed euthanized. Remembered here.",
     badgeBg: "#E5E7EB",
     badgeText: "#374151",
     accent: "#9CA3AF",
@@ -112,15 +124,16 @@ const SECTION_BY_ID = SECTIONS.reduce<Record<AcsSectionId, SectionDef>>(
 );
 
 // Filter chips. `all` shows everything; each other chip maps to one or more
-// sections. "Foster Pending" chip covers both the pending watch state and the
-// official ACS foster hold, keeping the chip row short.
+// sections. Critical folds the two most-urgent tiers into one scannable chip;
+// Foster covers both the ACS Foster Hold and Foster Pending tiers.
 type ChipDef = { id: string; label: string; sections: AcsSectionId[] | "all" };
 const CHIPS: ChipDef[] = [
   { id: "all", label: "All", sections: "all" },
   { id: "critical", label: "Critical", sections: ["critical_now", "critical_today"] },
+  { id: "ontheclock", label: "On the clock", sections: ["on_the_clock"] },
   { id: "urgent", label: "Urgent", sections: ["urgent"] },
   { id: "rescue", label: "Rescue Hold", sections: ["rescue_hold"] },
-  { id: "foster", label: "Foster Pending", sections: ["foster_pending", "acs_foster_hold"] },
+  { id: "foster", label: "Foster", sections: ["acs_foster_hold", "foster_pending"] },
   { id: "secured", label: "Secured", sections: ["secured"] },
   { id: "memoriam", label: "In Memoriam", sections: ["in_memoriam"] },
 ];
@@ -134,6 +147,12 @@ function metaOf(a: AcsAnimal): AcsStatusMeta {
 
 function sectionOf(a: AcsAnimal): AcsSectionId {
   return metaOf(a).section;
+}
+
+// Which rows get the live euthanasia timer/urgency badge.
+function showsTimer(a: AcsAnimal): boolean {
+  const key = normalizeStatusKey(a.status_key);
+  return key === "b6spt" || key === "immediate" || key === "scheduled";
 }
 
 function firstPhoto(a: AcsAnimal): string | null {
@@ -189,6 +208,34 @@ function PhotoThumb({ a }: { a: AcsAnimal }) {
   );
 }
 
+// Small live euthanasia badge for a list row — an escalating urgency chip with
+// a ticking countdown, layered on top of the category pill. b6spt shows the
+// "in progress" state (no numeric timer); immediate/scheduled tick down.
+function RowTimerBadge({ a }: { a: AcsAnimal }) {
+  const inRoom = normalizeStatusKey(a.status_key) === "b6spt";
+  const target = useMemo(() => (inRoom ? null : deadlineForAnimal(a)), [a, inRoom]);
+  const { msLeft, hasTarget } = useEuthCountdown(target);
+
+  const chip = inRoom
+    ? { label: "In progress — act now", bg: "#7F1D1D", text: "#FFFFFF", pulse: true }
+    : urgencyFor(msLeft);
+  const countdown = !inRoom && hasTarget ? formatCountdown(msLeft) : null;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-bold leading-tight ${
+        chip.pulse ? "motion-safe:animate-pulse" : ""
+      }`}
+      style={{ background: chip.bg, color: chip.text }}
+      role="status"
+      aria-live="polite"
+    >
+      <span>{chip.label}</span>
+      {countdown && <span className="tabular-nums">⏳ {countdown}</span>}
+    </span>
+  );
+}
+
 function AnimalRow({ a, onPick }: { a: AcsAnimal; onPick: (a: AcsAnimal) => void }) {
   const [showNote, setShowNote] = useState(false);
   const meta = metaOf(a);
@@ -198,6 +245,7 @@ function AnimalRow({ a, onPick }: { a: AcsAnimal; onPick: (a: AcsAnimal) => void
   const note = (a.story ?? "").trim();
   const euth = (a.euth_date ?? "").trim();
   const hasContext = !!note || !!euth;
+  const hasTimer = showsTimer(a);
 
   return (
     <div
@@ -222,6 +270,11 @@ function AnimalRow({ a, onPick }: { a: AcsAnimal; onPick: (a: AcsAnimal) => void
           {typeof a.days === "number" && (
             <div className="mt-0.5 text-[11px]" style={{ color: GOLD_DEEP }}>
               {a.days} days at shelter
+            </div>
+          )}
+          {hasTimer && (
+            <div className="mt-1">
+              <RowTimerBadge a={a} />
             </div>
           )}
         </div>
@@ -362,7 +415,7 @@ export function ShelterPicker({ onPick, onBack }: Props) {
         <div className="mb-4 grid grid-cols-3 gap-2">
           {[
             { label: "CRITICAL", value: (d?.counts.b6spt ?? 0) + (d?.counts.immediate ?? 0) },
-            { label: "URGENT", value: d?.counts.atrisk ?? 0 },
+            { label: "ON THE CLOCK", value: d?.counts.scheduled ?? 0 },
             { label: "IN MEMORIAM", value: d?.counts.euthanized ?? 0 },
           ].map((s) => (
             <div key={s.label} className="rounded-xl px-2 py-3 text-center" style={{ background: "#1A1611" }}>
