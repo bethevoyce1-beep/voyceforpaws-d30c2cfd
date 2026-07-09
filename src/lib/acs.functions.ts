@@ -216,18 +216,25 @@ const SELECT_COLUMNS = [
   "updated_at",
 ].join(", ");
 
+// The Supabase project URL + publishable (anon) key are NOT secret — the
+// landing page ships them in plain HTML. Fall back to them so the reader works
+// even when the host hasn't set SUPABASE_URL / SUPABASE_PUBLISHABLE_KEY env
+// vars (which caused a "supabaseUrl is required" crash in the deployed app).
+const FALLBACK_SUPABASE_URL = "https://okmukfrhvqkxphzueqww.supabase.co";
+const FALLBACK_SUPABASE_PUBLISHABLE_KEY =
+  "sb_publishable_e_OWsyXVeFqgV6EVGAKKTw_sgEV2cTN";
+
 function serverClient() {
-  return createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
-    {
-      auth: {
-        storage: undefined,
-        persistSession: false,
-        autoRefreshToken: false,
-      },
+  const url = process.env.SUPABASE_URL || FALLBACK_SUPABASE_URL;
+  const key =
+    process.env.SUPABASE_PUBLISHABLE_KEY || FALLBACK_SUPABASE_PUBLISHABLE_KEY;
+  return createClient(url, key, {
+    auth: {
+      storage: undefined,
+      persistSession: false,
+      autoRefreshToken: false,
     },
-  );
+  });
 }
 
 // `photos` is a jsonb column — normalize whatever shape comes back into a
