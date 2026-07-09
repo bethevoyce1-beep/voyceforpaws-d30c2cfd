@@ -20,6 +20,7 @@ export type AcsStatusKey =
   | "atrisk"
   | "adoption"
   | "foster"
+  | "watch"
   | "secured"
   | "euthanized"
   | "left";
@@ -31,6 +32,7 @@ export type AcsSectionId =
   | "urgent"
   | "rescue_hold"
   | "acs_foster_hold"
+  | "foster_pending"
   | "secured"
   | "in_memoriam";
 
@@ -98,13 +100,21 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
     action: "Share as backup in case the hold falls through.",
     rank: 5,
   },
+  watch: {
+    key: "watch",
+    section: "foster_pending",
+    label: "Foster Pending",
+    meaning: "A family is coming, but it isn't confirmed yet.",
+    action: "Keep watching in case plans change.",
+    rank: 6,
+  },
   secured: {
     key: "secured",
     section: "secured",
     label: "Secured",
     meaning: "Placement confirmed — they're safe.",
     action: "Celebrate and share the good news.",
-    rank: 6,
+    rank: 7,
   },
   euthanized: {
     key: "euthanized",
@@ -112,17 +122,15 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
     label: "In Memoriam",
     meaning: "Confirmed euthanized. Remembered here.",
     action: "Share their story so it doesn't happen again.",
-    rank: 7,
+    rank: 8,
   },
 };
 
 /**
  * Resolve a raw status_key to a known key, defaulting to `atrisk`.
- * Legacy `watch` values (retired — folded into ACS Foster Hold) map to `foster`.
  */
 export function normalizeStatusKey(raw: string | null | undefined): AcsStatusKey {
   const k = (raw ?? "").trim().toLowerCase();
-  if (k === "watch") return "foster";
   if (
     k === "b6spt" ||
     k === "immediate" ||
@@ -130,6 +138,7 @@ export function normalizeStatusKey(raw: string | null | undefined): AcsStatusKey
     k === "atrisk" ||
     k === "adoption" ||
     k === "foster" ||
+    k === "watch" ||
     k === "secured" ||
     k === "euthanized" ||
     k === "left"
