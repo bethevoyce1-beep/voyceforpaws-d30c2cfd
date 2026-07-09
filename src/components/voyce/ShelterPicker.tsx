@@ -90,6 +90,14 @@ const SECTIONS: SectionDef[] = [
     accent: "#10B981",
   },
   {
+    id: "foster_pending",
+    title: "Foster Pending",
+    action: "A family is coming, but it isn't confirmed yet — keep watching in case plans change.",
+    badgeBg: "#DBEAFE",
+    badgeText: "#1E40AF",
+    accent: "#3B82F6",
+  },
+  {
     id: "secured",
     title: "Secured",
     action: "Placement confirmed — they're safe. Celebrate and share.",
@@ -116,7 +124,8 @@ const SECTION_BY_ID = SECTIONS.reduce<Record<AcsSectionId, SectionDef>>(
 );
 
 // Filter chips. `all` shows everything; each other chip maps to one or more
-// sections. Critical folds the two most-urgent tiers into one scannable chip.
+// sections. Critical folds the two most-urgent tiers into one scannable chip;
+// Foster covers both the ACS Foster Hold and Foster Pending tiers.
 type ChipDef = { id: string; label: string; sections: AcsSectionId[] | "all" };
 const CHIPS: ChipDef[] = [
   { id: "all", label: "All", sections: "all" },
@@ -124,7 +133,7 @@ const CHIPS: ChipDef[] = [
   { id: "ontheclock", label: "On the clock", sections: ["on_the_clock"] },
   { id: "urgent", label: "Urgent", sections: ["urgent"] },
   { id: "rescue", label: "Rescue Hold", sections: ["rescue_hold"] },
-  { id: "foster", label: "Foster Hold", sections: ["acs_foster_hold"] },
+  { id: "foster", label: "Foster", sections: ["acs_foster_hold", "foster_pending"] },
   { id: "secured", label: "Secured", sections: ["secured"] },
   { id: "memoriam", label: "In Memoriam", sections: ["in_memoriam"] },
 ];
