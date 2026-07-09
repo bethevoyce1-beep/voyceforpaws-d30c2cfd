@@ -16,10 +16,10 @@ import { createClient } from "@supabase/supabase-js";
 export type AcsStatusKey =
   | "b6spt"
   | "immediate"
+  | "scheduled"
   | "atrisk"
   | "adoption"
   | "foster"
-  | "watch"
   | "secured"
   | "euthanized"
   | "left";
@@ -27,10 +27,10 @@ export type AcsStatusKey =
 export type AcsSectionId =
   | "critical_now"
   | "critical_today"
+  | "on_the_clock"
   | "urgent"
   | "rescue_hold"
   | "acs_foster_hold"
-  | "foster_pending"
   | "secured"
   | "in_memoriam";
 
@@ -63,8 +63,16 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
     section: "critical_today",
     label: "Critical · today",
     meaning: "On today's euthanasia list.",
-    action: "Email ACS before 5 PM to foster or rescue.",
+    action: "Email ACS before the deadline to foster or rescue.",
     rank: 1,
+  },
+  scheduled: {
+    key: "scheduled",
+    section: "on_the_clock",
+    label: "On the clock",
+    meaning: "A euthanasia date is set (not today).",
+    action: "Foster, rescue, or adopt before the date.",
+    rank: 2,
   },
   atrisk: {
     key: "atrisk",
@@ -72,7 +80,7 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
     label: "Urgent",
     meaning: "Could be euthanized if the shelter fills.",
     action: "Adopt, foster, or share.",
-    rank: 2,
+    rank: 3,
   },
   adoption: {
     key: "adoption",
@@ -80,22 +88,14 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
     label: "Rescue Hold",
     meaning: "A rescue or adopter has claimed them.",
     action: "Share as backup in case the hold falls through.",
-    rank: 3,
+    rank: 4,
   },
   foster: {
     key: "foster",
     section: "acs_foster_hold",
     label: "ACS Foster Hold",
-    meaning: "Official ACS foster hold in place.",
-    action: "Share as backup.",
-    rank: 4,
-  },
-  watch: {
-    key: "watch",
-    section: "foster_pending",
-    label: "Foster Pending",
-    meaning: "A family is coming, but it isn't confirmed yet.",
-    action: "Keep watching in case plans change.",
+    meaning: "An ACS foster hold is in place.",
+    action: "Share as backup in case the hold falls through.",
     rank: 5,
   },
   secured: {
@@ -110,22 +110,26 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
     key: "euthanized",
     section: "in_memoriam",
     label: "In Memoriam",
-    meaning: "Confirmed euthanized. Remembered here permanently.",
+    meaning: "Confirmed euthanized. Remembered here.",
     action: "Share their story so it doesn't happen again.",
     rank: 7,
   },
 };
 
-/** Resolve a raw status_key to a known key, defaulting to `atrisk`. */
+/**
+ * Resolve a raw status_key to a known key, defaulting to `atrisk`.
+ * Legacy `watch` values (retired — folded into ACS Foster Hold) map to `foster`.
+ */
 export function normalizeStatusKey(raw: string | null | undefined): AcsStatusKey {
   const k = (raw ?? "").trim().toLowerCase();
+  if (k === "watch") return "foster";
   if (
     k === "b6spt" ||
     k === "immediate" ||
+    k === "scheduled" ||
     k === "atrisk" ||
     k === "adoption" ||
     k === "foster" ||
-    k === "watch" ||
     k === "secured" ||
     k === "euthanized" ||
     k === "left"
