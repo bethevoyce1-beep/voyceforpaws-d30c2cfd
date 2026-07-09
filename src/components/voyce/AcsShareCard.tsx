@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
 import { JoinNetworkModal } from "@/components/voyce/JoinNetworkModal";
 import { addAnimalMedia } from "@/lib/media.functions";
@@ -8,6 +8,12 @@ import {
   statusLabel,
   type AcsAnimal,
 } from "@/lib/acs.functions";
+import {
+  deadlineForAnimal,
+  useEuthCountdown,
+  urgencyFor,
+  formatCountdown,
+} from "@/lib/acs.timer";
 import type { NetworkRole } from "@/lib/signups.functions";
 
 // ============================================================
@@ -51,54 +57,83 @@ function daysText(a: AcsAnimal): string {
   return typeof a.days === "number" ? `${a.days} days at shelter` : "on the at-risk list";
 }
 
-// Whether this animal's status is genuinely time-critical (drives the red
-// countdown treatment). A secured / memoriam animal must NOT show a ticking
-// euthanasia clock.
-function isTimeCritical(a: AcsAnimal): boolean {
-  const key = normalizeStatusKey(a.status_key);
-  return key === "b6spt" || key === "immediate" || key === "atrisk";
-}
+// ============================================================
+// Live euthanasia timer badge — an escalating urgency chip plus a ticking
+// countdown, layered ON TOP of (never replacing) the category status pill.
+//
+//   b6spt      → "In progress — act now" (no numeric timer; they're in the room)
+//   immediate  → countdown to today's Central euthanasia start
+//   scheduled  → countdown to the euth date's Central start
+//   all others → no badge (handled by the callers)
+//
+// `variant="compact"` renders a single inline pill (used on the hero + CTA);
+// `variant="block"` renders the fuller labeled block (the Time-left card).
+// ============================================================
+function EuthTimerBadge({
+  animal,
+  variant,
+}: {
+  animal: AcsAnimal;
+  variant: "compact" | "block";
+}) {
+  const key = normalizeStatusKey(animal.status_key);
+  const inRoom = key === "b6spt";
+  const target = useMemo(
+    () => (inRoom ? null : deadlineForAnimal(animal)),
+    [animal, inRoom],
+  );
+  const { msLeft, hasTarget } = useEuthCountdown(target);
 
-// ============================================================
-// Countdown to today's capacity deadline (UPDATED June 30, 2026)
-//   Mon–Fri 5:00 PM, Sat 12:30 PM, Sun closed (rolls to Monday 5:00 PM)
-//   Previous (now wrong): Mon–Fri 12:30 PM, Sat 11:00 AM
-// ============================================================
-function nextDeadline(now = new Date()): Date {
-  const d = new Date(now);
-  for (let i = 0; i < 7; i++) {
-    const day = d.getDay(); // 0 Sun .. 6 Sat
-    const target = new Date(d);
-    if (day === 0) {
-      // Sunday — ACS closed; roll to Monday 5:00 PM
-      target.setDate(d.getDate() + 1);
-      target.setHours(17, 0, 0, 0);
-    } else if (day === 6) {
-      // Saturday — capacity deadline 12:30 PM
-      target.setHours(12, 30, 0, 0);
-    } else {
-      // Mon–Fri — capacity deadline 5:00 PM
-      target.setHours(17, 0, 0, 0);
-    }
-    if (target.getTime() > now.getTime()) return target;
-    d.setDate(d.getDate() + 1);
-    d.setHours(0, 0, 0, 0);
+  // b6spt: they're in the room now — always the deep-red "in progress" state.
+  const chip = inRoom
+    ? { label: "In progress — act now", bg: "#7F1D1D", text: "#FFFFFF", pulse: true }
+    : urgencyFor(msLeft);
+  const showCountdown = !inRoom && hasTarget;
+  const countdown = showCountdown ? formatCountdown(msLeft) : null;
+
+  const pulseClass = chip.pulse ? "motion-safe:animate-pulse" : "";
+
+  if (variant === "compact") {
+    return (
+      <span
+        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-extrabold shadow-lg ${pulseClass}`}
+        style={{ background: chip.bg, color: chip.text }}
+        role="status"
+        aria-live="polite"
+      >
+        <span>{chip.label}</span>
+        {countdown && <span className="tabular-nums">⏳ {countdown}</span>}
+      </span>
+    );
   }
-  return now;
-}
 
-function useCountdown(): string {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
-  const ms = Math.max(0, nextDeadline(new Date(now)).getTime() - now);
-  const h = Math.floor(ms / 3_600_000);
-  const m = Math.floor((ms % 3_600_000) / 60_000);
-  const s = Math.floor((ms % 60_000) / 1000);
-  const pad = (n: number) => n.toString().padStart(2, "0");
-  return `${pad(h)}:${pad(m)}:${pad(s)}`;
+  return (
+    <div
+      className={`rounded-xl border-l-[4px] px-3.5 py-3 ${pulseClass}`}
+      style={{ background: "#FEF2F2", borderColor: chip.bg }}
+      role="status"
+      aria-live="polite"
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <span
+          className="rounded-full px-2.5 py-1 text-[10.5px] font-extrabold uppercase tracking-[0.1em]"
+          style={{ background: chip.bg, color: chip.text }}
+        >
+          {chip.label}
+        </span>
+        {countdown && (
+          <span className="font-mono text-[20px] font-extrabold tabular-nums" style={{ color: RED2 }}>
+            ⏳ {countdown}
+          </span>
+        )}
+      </div>
+      <p className="mt-1.5 text-[11.5px] text-[#6B7280]">
+        {inRoom
+          ? "In the euthanasia room now — email or call ACS immediately."
+          : "ACS euthanasia starts 12:30 PM Mon–Fri / 11:00 AM Sat (Central) · confirm with ACS"}
+      </p>
+    </div>
+  );
 }
 
 // ============================================================
@@ -172,7 +207,6 @@ export function AcsShareCard({
   animal: AcsAnimal;
   onContinue: () => void;
 }) {
-  const countdown = useCountdown();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRole, setModalRole] = useState<NetworkRole | undefined>();
   const [shareMoreOpen, setShareMoreOpen] = useState(false);
@@ -188,7 +222,11 @@ export function AcsShareCard({
   const statusKey = normalizeStatusKey(animal.status_key);
   const statusMeta = statusKey === "left" ? ACS_STATUS_MODEL.atrisk : ACS_STATUS_MODEL[statusKey];
   const badgeLabel = statusLabel(animal);
-  const timeCritical = isTimeCritical(animal);
+
+  // Whether this animal shows the live euthanasia timer. b6spt (in the room),
+  // immediate (today), and scheduled (a set date) get the timer/urgency chip.
+  // atrisk / adoption / foster / secured / euthanized do NOT.
+  const showTimer = statusKey === "b6spt" || statusKey === "immediate" || statusKey === "scheduled";
 
   const id = animal.id;
   const NAME = animal.name.toUpperCase();
@@ -284,21 +322,18 @@ export function AcsShareCard({
             <span className="absolute left-3 top-3 rounded-full bg-black/80 px-3 py-1 text-[11px] font-bold text-white shadow-lg">
               {daysText(animal)}
             </span>
-            {/* status badge */}
+            {/* category status badge (unchanged — the timer is layered on top) */}
             <span
               className="absolute right-3 top-3 rounded-full px-3 py-1 text-[10.5px] font-extrabold uppercase tracking-[0.12em] text-white shadow-lg"
               style={{ background: `linear-gradient(135deg, ${RED1} 0%, ${RED2} 100%)` }}
             >
               {badgeLabel}
             </span>
-            {/* countdown — only for genuinely time-critical statuses */}
-            {timeCritical && (
-              <span
-                className="absolute bottom-3 right-3 rounded-full px-3 py-1 text-[12px] font-extrabold text-white shadow-lg tabular-nums"
-                style={{ background: `linear-gradient(135deg, ${RED1} 0%, ${RED2} 100%)` }}
-              >
-                ⏳ {countdown}
-              </span>
+            {/* live urgency chip + countdown — time-critical statuses only */}
+            {showTimer && (
+              <div className="absolute bottom-3 left-3 right-3 flex justify-end">
+                <EuthTimerBadge animal={animal} variant="compact" />
+              </div>
             )}
           </div>
 
@@ -319,17 +354,12 @@ export function AcsShareCard({
           </div>
 
           {/* ===== 3. TIME LEFT CARD — only for time-critical statuses ===== */}
-          {timeCritical && (
-            <div className="mx-5 my-4 rounded-xl border-l-[4px] px-3.5 py-3" style={{ background: "#FEF2F2", borderColor: RED1 }}>
-              <p className="text-[10.5px] font-extrabold uppercase tracking-[0.12em]" style={{ color: RED2 }}>
-                ⏳ Time left before today's capacity deadline
+          {showTimer && (
+            <div className="mx-5 my-4">
+              <p className="mb-1.5 text-[10.5px] font-extrabold uppercase tracking-[0.12em]" style={{ color: RED2 }}>
+                ⏳ Time left before euthanasia begins
               </p>
-              <p className="mt-1 font-mono text-[22px] font-extrabold tabular-nums" style={{ color: RED2 }}>
-                {countdown}
-              </p>
-              <p className="mt-1 text-[11.5px] text-[#6B7280]">
-                ACS capacity euthanasia · 5:00 PM Mon–Fri / 12:30 PM Sat · confirm with ACS
-              </p>
+              <EuthTimerBadge animal={animal} variant="block" />
             </div>
           )}
 
@@ -490,7 +520,7 @@ export function AcsShareCard({
             </p>
           </a>
 
-          {/* ===== 10. VOYCE APP CTA with countdown ===== */}
+          {/* ===== 10. VOYCE APP CTA with live urgency chip ===== */}
           <button
             onClick={() => openModal("animal_lover")}
             className="mx-5 mb-4 flex w-[calc(100%-2.5rem)] items-center justify-between gap-3 rounded-xl px-4 py-3 text-left shadow-md transition active:scale-[0.99]"
@@ -500,11 +530,7 @@ export function AcsShareCard({
               <p className="text-[10.5px] font-extrabold uppercase tracking-[0.14em]">🎯 The Voyce App</p>
               <p className="mt-0.5 truncate text-[13px] font-bold">Help {animal.name} the moment we launch</p>
             </div>
-            {timeCritical && (
-              <span className="flex-none rounded-full bg-black/85 px-2.5 py-1 text-[11px] font-extrabold tabular-nums" style={{ color: GOLD }}>
-                {countdown}
-              </span>
-            )}
+            {showTimer && <EuthTimerBadge animal={animal} variant="compact" />}
           </button>
 
           {/* ===== 11. I CAN HELP AS pills ===== */}
