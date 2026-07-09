@@ -1,5 +1,13 @@
-import { useEffect, useState } from "react";
-import { listAcsAnimals, type AcsAnimal, type AcsListResult } from "@/lib/acs.functions";
+import { useEffect, useMemo, useState } from "react";
+import {
+  listAcsAnimals,
+  ACS_STATUS_MODEL,
+  normalizeStatusKey,
+  statusLabel,
+  type AcsAnimal,
+  type AcsListResult,
+  type AcsSectionId,
+} from "@/lib/acs.functions";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
 
 const GOLD = "#FFDF3B";
@@ -12,12 +20,124 @@ type Props = {
   onBack: () => void;
 };
 
-function urgencyPill(a: AcsAnimal): { label: string; bg: string; text: string } {
-  if (a.tags?.includes("SENIOR")) return { label: "SENIOR", bg: "#FCD34D", text: "#7C2D12" };
-  if (a.tags?.includes("BONDED")) return { label: "BONDED", bg: "#FBCFE8", text: "#831843" };
-  if (a.status === "pm_cutoff") return { label: "URGENT", bg: "#FECACA", text: "#7F1D1D" };
-  if (a.status === "med_foster") return { label: "MED FOSTER", bg: "#BAE6FD", text: "#075985" };
-  return { label: "AT RISK", bg: "#FDE68A", text: "#78350F" };
+// ============================================================
+// Section presentation — ordered most-urgent first. Each section carries a
+// plain-language header, the action a reader can take, and a badge style.
+// ACS Foster Hold is folded under the same chip/section as Foster Pending
+// keeps the UI clean while staying honest via the per-card badge label.
+// ============================================================
+type SectionDef = {
+  id: AcsSectionId;
+  title: string;
+  action: string;
+  badgeBg: string;
+  badgeText: string;
+  accent: string; // left border / header tint
+};
+
+const SECTIONS: SectionDef[] = [
+  {
+    id: "critical_now",
+    title: "Critical · final minutes",
+    action: "In the euthanasia room now — email or call ACS immediately.",
+    badgeBg: "#7F1D1D",
+    badgeText: "#FFFFFF",
+    accent: "#7F1D1D",
+  },
+  {
+    id: "critical_today",
+    title: "Critical · today",
+    action: "On today's euthanasia list — email ACS before 5 PM to foster or rescue.",
+    badgeBg: "#FECACA",
+    badgeText: "#7F1D1D",
+    accent: "#DC2626",
+  },
+  {
+    id: "urgent",
+    title: "Urgent",
+    action: "Could be euthanized if the shelter fills — adopt, foster, or share.",
+    badgeBg: "#FDE68A",
+    badgeText: "#78350F",
+    accent: "#F59E0B",
+  },
+  {
+    id: "rescue_hold",
+    title: "Rescue Hold",
+    action: "A rescue or adopter claimed them — share as backup.",
+    badgeBg: "#BAE6FD",
+    badgeText: "#075985",
+    accent: "#0EA5E9",
+  },
+  {
+    id: "foster_pending",
+    title: "Foster Pending",
+    action: "A family is coming but not confirmed — keep watching.",
+    badgeBg: "#DDD6FE",
+    badgeText: "#5B21B6",
+    accent: "#8B5CF6",
+  },
+  {
+    id: "acs_foster_hold",
+    title: "ACS Foster Hold",
+    action: "Official ACS foster hold in place — share as backup.",
+    badgeBg: "#C7F9E5",
+    badgeText: "#065F46",
+    accent: "#10B981",
+  },
+  {
+    id: "secured",
+    title: "Secured",
+    action: "Placement confirmed — they're safe. Celebrate and share.",
+    badgeBg: "#D1FAE5",
+    badgeText: "#065F46",
+    accent: "#22C55E",
+  },
+  {
+    id: "in_memoriam",
+    title: "In Memoriam",
+    action: "Confirmed euthanized. Remembered here permanently.",
+    badgeBg: "#E5E7EB",
+    badgeText: "#374151",
+    accent: "#9CA3AF",
+  },
+];
+
+const SECTION_BY_ID = SECTIONS.reduce<Record<AcsSectionId, SectionDef>>(
+  (acc, s) => {
+    acc[s.id] = s;
+    return acc;
+  },
+  {} as Record<AcsSectionId, SectionDef>,
+);
+
+// Filter chips. `all` shows everything; each other chip maps to one or more
+// sections. "Foster Pending" chip covers both the pending watch state and the
+// official ACS foster hold, keeping the chip row short.
+type ChipDef = { id: string; label: string; sections: AcsSectionId[] | "all" };
+const CHIPS: ChipDef[] = [
+  { id: "all", label: "All", sections: "all" },
+  { id: "critical", label: "Critical", sections: ["critical_now", "critical_today"] },
+  { id: "urgent", label: "Urgent", sections: ["urgent"] },
+  { id: "rescue", label: "Rescue Hold", sections: ["rescue_hold"] },
+  { id: "foster", label: "Foster Pending", sections: ["foster_pending", "acs_foster_hold"] },
+  { id: "secured", label: "Secured", sections: ["secured"] },
+  { id: "memoriam", label: "In Memoriam", sections: ["in_memoriam"] },
+];
+
+function sectionOf(a: AcsAnimal): AcsSectionId {
+  const key = normalizeStatusKey(a.status_key);
+  if (key === "left") return "urgent"; // never reaches UI (filtered server-side)
+  return ACS_STATUS_MODEL[key].section;
+}
+
+function firstPhoto(a: AcsAnimal): string | null {
+  if (a.thumb && a.thumb.trim()) return a.thumb.trim();
+  if (a.photos && a.photos.length > 0) return a.photos[0];
+  return null;
+}
+
+function specLine(a: AcsAnimal): string {
+  return [a.breed, a.age, a.sex, a.color].filter(Boolean).join(" · ");
 }
 
 function fmtDate(iso: string | null): string {
@@ -34,14 +154,129 @@ function fmtDate(iso: string | null): string {
   }
 }
 
+// Graceful photo placeholder — a paw glyph on a soft gold tile. Never breaks
+// layout when thumb/photos are empty (the common case right now).
+function PhotoThumb({ a }: { a: AcsAnimal }) {
+  const src = firstPhoto(a);
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) {
+    return (
+      <div
+        className="grid h-[60px] w-[60px] flex-none place-items-center rounded-lg text-[22px]"
+        style={{ background: "linear-gradient(135deg, #FFF3C4 0%, #F5E3A0 100%)", color: GOLD_DEEP }}
+        aria-hidden
+      >
+        🐾
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt={a.name}
+      width={60}
+      height={60}
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className="h-[60px] w-[60px] flex-none rounded-lg object-cover"
+    />
+  );
+}
+
+function AnimalRow({ a, onPick }: { a: AcsAnimal; onPick: (a: AcsAnimal) => void }) {
+  const [showNote, setShowNote] = useState(false);
+  const key = normalizeStatusKey(a.status_key);
+  const section = SECTION_BY_ID[sectionOf(a)];
+  const badge = statusLabel(a);
+  const spec = specLine(a);
+  const note = (a.story ?? "").trim();
+  const euth = (a.euth_date ?? "").trim();
+  const hasContext = !!note || !!euth;
+
+  return (
+    <div
+      className="rounded-xl border border-border bg-white shadow-sm"
+      style={{ borderLeft: `4px solid ${section.accent}` }}
+    >
+      <button
+        onClick={() => onPick(a)}
+        className="group flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition hover:-translate-y-px hover:shadow-md active:scale-[0.99]"
+      >
+        <PhotoThumb a={a} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline gap-1.5">
+            <span className="font-serif text-[15px] font-semibold leading-tight" style={{ color: INK }}>
+              {a.name}
+            </span>
+            {a.kennel && (
+              <span className="text-[10.5px] text-muted-foreground">· kennel {a.kennel}</span>
+            )}
+          </div>
+          {spec && <div className="truncate text-[12px] text-muted-foreground">{spec}</div>}
+          {typeof a.days === "number" && (
+            <div className="mt-0.5 text-[11px]" style={{ color: GOLD_DEEP }}>
+              {a.days} days at shelter
+            </div>
+          )}
+        </div>
+        <span
+          className="flex-none rounded-full px-2.5 py-1 text-center text-[10px] font-bold leading-tight tracking-wide"
+          style={{ background: section.badgeBg, color: section.badgeText }}
+        >
+          {badge}
+        </span>
+      </button>
+
+      <div className="flex flex-wrap items-center gap-2 border-t border-border/60 px-2.5 py-2">
+        {a.pet_search_url && (
+          <a
+            href={a.pet_search_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="rounded-full border border-[#D9D2C2] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#1A1611] transition active:scale-95"
+          >
+            🔗 View on ACS
+          </a>
+        )}
+        {hasContext && (
+          <button
+            onClick={() => setShowNote((v) => !v)}
+            className="rounded-full border border-[#D9D2C2] bg-white px-2.5 py-1 text-[11px] font-semibold text-muted-foreground transition active:scale-95"
+            aria-expanded={showNote}
+          >
+            {showNote ? "Hide ACS note" : "See ACS's exact note"}
+          </button>
+        )}
+        <span className="ml-auto text-[10.5px] italic text-muted-foreground">
+          {ACS_STATUS_MODEL[key].meaning}
+        </span>
+      </div>
+
+      {showNote && hasContext && (
+        <div className="mx-2.5 mb-2.5 rounded-lg bg-[#FFFBEB] px-3 py-2 text-[12px] leading-snug text-[#3A2A07] ring-1 ring-[#F3E5B6]">
+          {euth && (
+            <p className="font-semibold">
+              ACS euth date: <span className="font-normal">{euth}</span>
+            </p>
+          )}
+          {note && <p className={euth ? "mt-1" : ""}>{note}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ShelterPicker({ onPick, onBack }: Props) {
   const [state, setState] = useState<{ loading: boolean; error: string | null; data: AcsListResult | null }>(
     { loading: true, error: null, data: null },
   );
+  const [chip, setChip] = useState<string>("all");
 
   useEffect(() => {
     let alive = true;
-    listAcsAnimals({ data: { shelterId: "san_antonio_acs", limit: 10 } })
+    // No limit — the reader returns all non-`left` rows; we group them below.
+    listAcsAnimals({ data: { shelterId: "san_antonio_acs" } })
       .then((d) => {
         if (alive) setState({ loading: false, error: null, data: d });
       })
@@ -60,6 +295,29 @@ export function ShelterPicker({ onPick, onBack }: Props) {
 
   const d = state.data;
 
+  // Group visible animals into sections (already urgency-ordered by the reader).
+  const grouped = useMemo(() => {
+    const map = new Map<AcsSectionId, AcsAnimal[]>();
+    for (const a of d?.animals ?? []) {
+      const sid = sectionOf(a);
+      const arr = map.get(sid) ?? [];
+      arr.push(a);
+      map.set(sid, arr);
+    }
+    return map;
+  }, [d]);
+
+  const activeChip = CHIPS.find((c) => c.id === chip) ?? CHIPS[0];
+  const visibleSections = SECTIONS.filter((s) => {
+    if (activeChip.sections !== "all" && !activeChip.sections.includes(s.id)) return false;
+    return (grouped.get(s.id)?.length ?? 0) > 0;
+  });
+
+  const shownCount = visibleSections.reduce(
+    (n, s) => n + (grouped.get(s.id)?.length ?? 0),
+    0,
+  );
+
   return (
     <div style={{ minHeight: "100dvh", background: PAPER }}>
       <BrandHeader />
@@ -77,17 +335,11 @@ export function ShelterPicker({ onPick, onBack }: Props) {
         </p>
 
         {/* Live auto-feed banner */}
-        <div
-          className="mb-4 rounded-2xl px-4 py-3"
-          style={{ background: "#1A1611", color: "#F4ECD8" }}
-        >
+        <div className="mb-4 rounded-2xl px-4 py-3" style={{ background: "#1A1611", color: "#F4ECD8" }}>
           <div className="flex items-center gap-2">
             <span
               className="inline-block h-2 w-2 rounded-full"
-              style={{
-                background: "#22C55E",
-                boxShadow: "0 0 0 4px rgba(34,197,94,0.25)",
-              }}
+              style={{ background: "#22C55E", boxShadow: "0 0 0 4px rgba(34,197,94,0.25)" }}
               aria-hidden
             />
             <span className="text-[11px] font-bold tracking-[0.18em]" style={{ color: "#FFE9A8" }}>
@@ -100,113 +352,94 @@ export function ShelterPicker({ onPick, onBack }: Props) {
           </div>
         </div>
 
-        {/* Stats row */}
+        {/* Stats row — the three at-risk tiers a reader acts on most */}
         <div className="mb-4 grid grid-cols-3 gap-2">
           {[
-            { label: "AT RISK", value: d?.counts.at_risk ?? 0 },
-            { label: "MED FOSTER", value: d?.counts.med_foster ?? 0 },
-            { label: "PM CUTOFF", value: d?.counts.pm_cutoff ?? 0 },
+            { label: "CRITICAL", value: (d?.counts.b6spt ?? 0) + (d?.counts.immediate ?? 0) },
+            { label: "URGENT", value: d?.counts.atrisk ?? 0 },
+            { label: "IN MEMORIAM", value: d?.counts.euthanized ?? 0 },
           ].map((s) => (
-            <div
-              key={s.label}
-              className="rounded-xl px-2 py-3 text-center"
-              style={{ background: "#1A1611" }}
-            >
-              <div
-                className="font-serif text-[22px] font-bold leading-none"
-                style={{ color: GOLD }}
-              >
+            <div key={s.label} className="rounded-xl px-2 py-3 text-center" style={{ background: "#1A1611" }}>
+              <div className="font-serif text-[22px] font-bold leading-none" style={{ color: GOLD }}>
                 {s.value}
               </div>
-              <div
-                className="mt-1 text-[10px] font-semibold tracking-[0.12em]"
-                style={{ color: "#B8AC92" }}
-              >
+              <div className="mt-1 text-[10px] font-semibold tracking-[0.12em]" style={{ color: "#B8AC92" }}>
                 {s.label}
               </div>
             </div>
           ))}
         </div>
 
-        <div className="mb-2 mt-5 text-[10.5px] font-bold tracking-[0.16em] text-muted-foreground">
-          AUTO-GENERATED CARDS · MOST URGENT
-        </div>
-
-        {/* List */}
-        <div className="space-y-2">
-          {state.loading && (
-            <>
-              {[0, 1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="h-[76px] animate-pulse rounded-xl bg-muted/50"
-                />
-              ))}
-            </>
-          )}
-          {state.error && (
-            <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-              {state.error}
-            </div>
-          )}
-          {!state.loading && d && d.animals.length === 0 && (
-            <div className="rounded-xl border border-border bg-white p-4 text-center text-sm text-muted-foreground">
-              No at-risk animals listed right now.
-            </div>
-          )}
-          {d?.animals.map((a) => {
-            const pill = urgencyPill(a);
+        {/* Filter chips */}
+        <div className="mb-4 flex flex-wrap gap-1.5" role="tablist" aria-label="Filter animals by status">
+          {CHIPS.map((c) => {
+            const active = c.id === chip;
             return (
               <button
-                key={a.id}
-                onClick={() => onPick(a)}
-                className="group flex w-full items-center gap-3 rounded-xl border border-border bg-white p-2.5 text-left shadow-sm transition hover:-translate-y-px hover:shadow-md active:scale-[0.99]"
+                key={c.id}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setChip(c.id)}
+                className="rounded-full px-3 py-1.5 text-[12px] font-semibold transition active:scale-95"
+                style={
+                  active
+                    ? { background: GOLD, color: "#3A2A07" }
+                    : { background: "#FFFFFF", color: "#6B5832", border: "1px solid #E3DAC4" }
+                }
               >
-                <img
-                  src={a.photo_url}
-                  alt={a.name}
-                  width={60}
-                  height={60}
-                  loading="lazy"
-                  className="h-[60px] w-[60px] flex-none rounded-lg object-cover"
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="font-serif text-[15px] font-semibold leading-tight" style={{ color: INK }}>
-                      {a.name}
-                    </span>
-                    {a.kennel_id && (
-                      <span className="text-[10.5px] text-muted-foreground">· {a.kennel_id}</span>
-                    )}
-                  </div>
-                  <div className="truncate text-[12px] text-muted-foreground">
-                    {[a.breed, a.age, a.sex].filter(Boolean).join(" · ")}
-                  </div>
-                  <div className="mt-0.5 text-[11px]" style={{ color: GOLD_DEEP }}>
-                    {a.days_at_shelter} days at shelter
-                  </div>
-                </div>
-                <span
-                  className="flex-none rounded-full px-2 py-1 text-[10px] font-bold tracking-wide"
-                  style={{ background: pill.bg, color: pill.text }}
-                >
-                  {pill.label}
-                </span>
+                {c.label}
               </button>
             );
           })}
         </div>
 
-        {d && d.total > d.animals.length && (
-          <button
-            className="mt-4 w-full rounded-full px-4 py-2.5 text-[13px] font-semibold"
-            style={{
-              background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_DEEP} 100%)`,
-              color: "#3A2A07",
-            }}
-          >
-            View all {d.total} {d.shelter_name} rescue cards →
-          </button>
+        {/* States */}
+        {state.loading && (
+          <div className="space-y-2">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-[92px] animate-pulse rounded-xl bg-muted/50" />
+            ))}
+          </div>
+        )}
+        {state.error && (
+          <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+            {state.error}
+          </div>
+        )}
+        {!state.loading && !state.error && shownCount === 0 && (
+          <div className="rounded-xl border border-border bg-white p-4 text-center text-sm text-muted-foreground">
+            No animals in this view right now.
+          </div>
+        )}
+
+        {/* Grouped sections */}
+        {!state.loading && !state.error && (
+          <div className="space-y-6">
+            {visibleSections.map((s) => {
+              const rows = grouped.get(s.id) ?? [];
+              return (
+                <section key={s.id} aria-label={s.title}>
+                  <div className="mb-2">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <h2
+                        className="font-serif text-[15px] font-bold leading-tight"
+                        style={{ color: s.accent }}
+                      >
+                        {s.title}
+                      </h2>
+                      <span className="text-[11px] font-semibold text-muted-foreground">{rows.length}</span>
+                    </div>
+                    <p className="text-[11.5px] leading-snug text-muted-foreground">{s.action}</p>
+                  </div>
+                  <div className="space-y-2">
+                    {rows.map((a) => (
+                      <AnimalRow key={a.id} a={a} onPick={onPick} />
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
         )}
 
         {/* 4-step explainer */}
@@ -218,7 +451,7 @@ export function ShelterPicker({ onPick, onBack }: Props) {
             {[
               { n: 1, t: "Shelter publishes list", b: "Capacity euthanasia / at-risk, updated daily." },
               { n: 2, t: "Voyce ingests it", b: "A scheduled job pulls and parses every animal." },
-              { n: 3, t: "Cards auto-generate", b: "One card per animal, with photo + vitals." },
+              { n: 3, t: "Cards auto-generate", b: "One card per animal, grouped by how urgent it is." },
               { n: 4, t: "Network gets alerted", b: "Rescues, fosters & adopters in range." },
             ].map((step) => (
               <li key={step.n} className="flex items-start gap-3">
