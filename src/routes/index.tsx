@@ -24,7 +24,12 @@ import { MissionPicker } from "@/components/voyce/MissionPicker";
 import { ShareCard } from "@/components/voyce/ShareCard";
 import { AcsShareCard } from "@/components/voyce/AcsShareCard";
 import { ShelterPicker } from "@/components/voyce/ShelterPicker";
-import type { AcsAnimal } from "@/lib/acs.functions";
+import {
+  normalizeStatusKey,
+  ACS_STATUS_MODEL,
+  statusLabel,
+  type AcsAnimal,
+} from "@/lib/acs.functions";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
 import { MISSIONS, isWildSpecies, type MissionId } from "@/lib/missions";
 
@@ -76,34 +81,54 @@ async function toDataUrl(src: string): Promise<string> {
   });
 }
 
+// Pick the best available photo for an ACS animal — the scraper doesn't
+// populate thumb/photos yet, so this is often null and the ACS card / picker
+// fall back to a graceful placeholder.
+function acsPhoto(a: AcsAnimal): string | null {
+  if (a.thumb && a.thumb.trim()) return a.thumb.trim();
+  if (a.photos && a.photos.length > 0) return a.photos[0];
+  return null;
+}
+
+// Build a rescue-card Assessment from an ACS row. Maps the plain-language
+// status model onto the card's urgency, and uses the shelter's own note
+// (story) as the "first look" so the card stays honest to ACS's listing.
 function assessmentFromAcs(a: AcsAnimal): Assessment {
-  const urgent = a.status === "pm_cutoff" || a.urgency >= 85;
+  const key = normalizeStatusKey(a.status_key);
+  const meta = key === "left" ? ACS_STATUS_MODEL.atrisk : ACS_STATUS_MODEL[key];
+  const urgent = key === "b6spt" || key === "immediate" || key === "atrisk";
+  const label = statusLabel(a);
+  const kennel = a.kennel ?? "—";
+  const days = typeof a.days === "number" ? a.days : null;
+  const daysLine = days !== null ? `${days} days in kennel` : "in kennel";
+  const shelter = "San Antonio ACS";
+
   return {
-    title: `${a.name} · ${a.shelter_name}`,
+    title: `${a.name} · ${shelter}`,
     status: urgent ? "Urgent" : "Stable",
-    status_reason: urgent
-      ? `On the shelter's at-risk list · ${a.days_at_shelter} days in kennel`
-      : `Listed at ${a.shelter_name}`,
-    species: a.species || "dog",
+    status_reason: `${label} · ${meta.meaning}`,
+    species: "dog",
     breed: a.breed || "Mixed",
-    age: a.age || "unknown",
-    weight: a.weight || "unknown",
+    age: a.age || a.age_raw || "unknown",
+    weight: typeof a.weight === "number" ? `${a.weight} lb` : "unknown",
+    size: "",
+    color: a.color || "",
     first_look:
       a.story ||
-      `${a.name} is listed at ${a.shelter_name}, kennel ${a.kennel_id ?? "—"}. ${a.days_at_shelter} days in shelter.`,
-    behavior: `Calm in kennel context · ${a.tags?.join(", ") || "standard intake"}`,
-    location_scene: `${a.shelter_name}, kennel ${a.kennel_id ?? "—"}`,
+      `${a.name} is listed at ${shelter}, kennel ${kennel}. ${daysLine}.`,
+    behavior: "Calm in kennel context · standard intake",
+    location_scene: `${shelter}, kennel ${kennel}`,
     noticed: [],
     next_steps: [
-      "Commit a foster bed tonight",
-      "Coordinate rescue pull with shelter",
+      meta.action,
+      "Coordinate a foster or rescue pull with ACS",
       "Share to grow the network",
     ],
     vet_notes: {
       bcs: "Not yet assessed",
       posture: "Kennel-stressed but responsive",
       hydration: "Provided in-kennel",
-      clinical: `Animal ID: ${a.kennel_id ?? "n/a"} · Intake info via ${a.shelter_name}.`,
+      clinical: `ACS ID: ${a.id} · Kennel ${kennel} · Intake info via ${shelter}.`,
     },
     is_likely_pet: false,
     setting_type: "Shelter/Kennel",
@@ -111,13 +136,15 @@ function assessmentFromAcs(a: AcsAnimal): Assessment {
     surrounding_objects: ["stainless water bowl", "kennel bars", "ID card"],
     lighting_conditions: "Fluorescent shelter lighting",
     safety_flags: ["None — controlled shelter environment"],
-    environment_text: `${a.shelter_name} kennel ${a.kennel_id ?? "—"}. ${a.name} has been waiting ${a.days_at_shelter} days.`,
+    environment_text: `${shelter} kennel ${kennel}. ${a.name} ${
+      days !== null ? `has been waiting ${days} days` : "is on the at-risk list"
+    }.`,
     health_signs: { sick: false, injured: false, lethargic: false, dehydrated: false },
     visible_condition: urgent ? "Concerning" : "Healthy",
     symptoms: [],
     clinical_actions: ["Intake exam", "Vaccinate per shelter protocol", "Spay/neuter pre-release"],
     differentials: [],
-    reportedAt: a.last_pulled_at,
+    reportedAt: a.updated_at ?? undefined,
   };
 }
 
@@ -352,7 +379,7 @@ function Home() {
         onBack={() => setStage("mission")}
         onPick={(animal: AcsAnimal) => {
           setMission("at-risk-shelter");
-          setCaptured(animal.photo_url);
+          setCaptured(acsPhoto(animal));
           setAssessment(assessmentFromAcs(animal));
           setAcsAnimal(animal);
           setStage("share");

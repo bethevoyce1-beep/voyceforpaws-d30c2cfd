@@ -1,36 +1,220 @@
 import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 
-export type AcsAnimal = {
-  id: string;
-  shelter_id: string;
-  shelter_name: string;
-  kennel_id: string | null;
-  kennel: string | null;
-  name: string;
-  species: string;
-  breed: string | null;
-  age: string | null;
-  sex: string | null;
-  weight: string | null;
-  color: string | null;
-  photo_url: string;
-  story: string | null;
-  status: "at_risk" | "med_foster" | "pm_cutoff" | string;
-  urgency: number;
-  days_at_shelter: number;
-  tags: string[];
-  last_pulled_at: string;
+// ============================================================
+// ACS status model — plain-language, grouped for non-technical users.
+//
+// The scraper writes a machine `status_key` and (usually) a human
+// `public_status` label. We prefer the stored `public_status` for display and
+// fall back to this mapping by `status_key`. Sections are ordered most-urgent
+// first; `euthanized` renders in its own memorial section at the bottom.
+//
+// `left` = the animal is no longer on ACS's list (outcome unknown). Those rows
+// are EXCLUDED from the app view entirely.
+// ============================================================
+
+export type AcsStatusKey =
+  | "b6spt"
+  | "immediate"
+  | "atrisk"
+  | "adoption"
+  | "foster"
+  | "watch"
+  | "secured"
+  | "euthanized"
+  | "left";
+
+export type AcsSectionId =
+  | "critical_now"
+  | "critical_today"
+  | "urgent"
+  | "rescue_hold"
+  | "acs_foster_hold"
+  | "foster_pending"
+  | "secured"
+  | "in_memoriam";
+
+export type AcsStatusMeta = {
+  key: Exclude<AcsStatusKey, "left">;
+  /** Section this status rolls up into. */
+  section: AcsSectionId;
+  /** Friendly badge label (used when the row has no stored public_status). */
+  label: string;
+  /** Plain-language meaning of this status. */
+  meaning: string;
+  /** What a reader can do about it. */
+  action: string;
+  /** Urgency rank — lower is more urgent; used for ordering. */
+  rank: number;
 };
 
+// Ordered most-urgent first.
+export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMeta> = {
+  b6spt: {
+    key: "b6spt",
+    section: "critical_now",
+    label: "Critical · final minutes",
+    meaning: "In the euthanasia room right now.",
+    action: "Email or call ACS immediately.",
+    rank: 0,
+  },
+  immediate: {
+    key: "immediate",
+    section: "critical_today",
+    label: "Critical · today",
+    meaning: "On today's euthanasia list.",
+    action: "Email ACS before 5 PM to foster or rescue.",
+    rank: 1,
+  },
+  atrisk: {
+    key: "atrisk",
+    section: "urgent",
+    label: "Urgent",
+    meaning: "Could be euthanized if the shelter fills.",
+    action: "Adopt, foster, or share.",
+    rank: 2,
+  },
+  adoption: {
+    key: "adoption",
+    section: "rescue_hold",
+    label: "Rescue Hold",
+    meaning: "A rescue or adopter has claimed them.",
+    action: "Share as backup in case the hold falls through.",
+    rank: 3,
+  },
+  foster: {
+    key: "foster",
+    section: "acs_foster_hold",
+    label: "ACS Foster Hold",
+    meaning: "Official ACS foster hold in place.",
+    action: "Share as backup.",
+    rank: 4,
+  },
+  watch: {
+    key: "watch",
+    section: "foster_pending",
+    label: "Foster Pending",
+    meaning: "A family is coming, but it isn't confirmed yet.",
+    action: "Keep watching in case plans change.",
+    rank: 5,
+  },
+  secured: {
+    key: "secured",
+    section: "secured",
+    label: "Secured",
+    meaning: "Placement confirmed — they're safe.",
+    action: "Celebrate and share the good news.",
+    rank: 6,
+  },
+  euthanized: {
+    key: "euthanized",
+    section: "in_memoriam",
+    label: "In Memoriam",
+    meaning: "Confirmed euthanized. Remembered here permanently.",
+    action: "Share their story so it doesn't happen again.",
+    rank: 7,
+  },
+};
+
+/** Resolve a raw status_key to a known key, defaulting to `atrisk`. */
+export function normalizeStatusKey(raw: string | null | undefined): AcsStatusKey {
+  const k = (raw ?? "").trim().toLowerCase();
+  if (
+    k === "b6spt" ||
+    k === "immediate" ||
+    k === "atrisk" ||
+    k === "adoption" ||
+    k === "foster" ||
+    k === "watch" ||
+    k === "secured" ||
+    k === "euthanized" ||
+    k === "left"
+  ) {
+    return k;
+  }
+  return "atrisk";
+}
+
+/** Urgency rank for ordering. `left` is not shown, so it sorts last. */
+export function statusRank(key: AcsStatusKey): number {
+  if (key === "left") return 99;
+  return ACS_STATUS_MODEL[key].rank;
+}
+
+/** Best display label — stored public_status wins, else the mapping. */
+export function statusLabel(a: Pick<AcsAnimal, "public_status" | "status_key">): string {
+  const stored = (a.public_status ?? "").trim();
+  if (stored) return stored;
+  const key = normalizeStatusKey(a.status_key);
+  if (key === "left") return "No longer listed";
+  return ACS_STATUS_MODEL[key].label;
+}
+
+// ============================================================
+// Row + result types — mirror the real acs_animals table.
+// ============================================================
+
+export type AcsAnimal = {
+  id: string;
+  name: string;
+  breed: string | null;
+  color: string | null;
+  age: string | null;
+  age_raw: string | null;
+  sex: string | null;
+  weight: number | null;
+  kennel: string | null;
+  days: number | null;
+  risk_since: string | null;
+  euth_date: string | null;
+  due_out: string | null;
+  status: string | null;
+  status_key: string | null;
+  public_status: string | null;
+  story: string | null;
+  pet_search_url: string | null;
+  thumb: string | null;
+  photos: string[] | null;
+  list_url: string | null;
+  last_listed_at: string | null;
+  updated_at: string | null;
+};
+
+export type AcsCounts = Partial<Record<Exclude<AcsStatusKey, "left">, number>>;
 
 export type AcsListResult = {
   animals: AcsAnimal[];
   total: number;
-  counts: { at_risk: number; med_foster: number; pm_cutoff: number };
+  counts: AcsCounts;
   shelter_name: string;
   last_pulled_at: string | null;
 };
+
+const SELECT_COLUMNS = [
+  "id",
+  "name",
+  "breed",
+  "color",
+  "age",
+  "age_raw",
+  "sex",
+  "weight",
+  "kennel",
+  "days",
+  "risk_since",
+  "euth_date",
+  "due_out",
+  "status",
+  "status_key",
+  "public_status",
+  "story",
+  "pet_search_url",
+  "thumb",
+  "photos",
+  "list_url",
+  "last_listed_at",
+  "updated_at",
+].join(", ");
 
 function serverClient() {
   return createClient(
@@ -46,12 +230,26 @@ function serverClient() {
   );
 }
 
+// `photos` is a jsonb column — normalize whatever shape comes back into a
+// clean string[] so the UI never has to guess.
+function normalizePhotos(raw: unknown): string[] {
+  if (Array.isArray(raw)) {
+    return raw.filter((p): p is string => typeof p === "string" && p.trim().length > 0);
+  }
+  if (typeof raw === "string" && raw.trim().length > 0) {
+    return [raw.trim()];
+  }
+  return [];
+}
+
 export const listAcsAnimals = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => {
+    // `shelterId` is kept for call-site compatibility but no longer filters —
+    // the acs_animals table is single-shelter (San Antonio ACS) today.
     const o = (input ?? {}) as { shelterId?: string; limit?: number };
     return {
       shelterId: o.shelterId || "san_antonio_acs",
-      limit: typeof o.limit === "number" ? o.limit : 10,
+      limit: typeof o.limit === "number" ? o.limit : undefined,
     };
   })
   .handler(async ({ data }): Promise<AcsListResult> => {
@@ -59,32 +257,73 @@ export const listAcsAnimals = createServerFn({ method: "GET" })
 
     const { data: rows, error } = await sb
       .from("acs_animals")
-      .select(
-        "id, shelter_id, shelter_name, kennel_id, kennel, name, species, breed, age, sex, weight, color, photo_url, story, status, urgency, days_at_shelter, tags, last_pulled_at",
-      )
-      .eq("shelter_id", data.shelterId)
-      .order("urgency", { ascending: false })
-      .order("days_at_shelter", { ascending: false });
+      .select(SELECT_COLUMNS);
 
     if (error) throw new Error(error.message);
 
-    const all = (rows ?? []) as AcsAnimal[];
-    const counts = {
-      at_risk: all.filter((a) => a.status === "at_risk").length,
-      med_foster: all.filter((a) => a.status === "med_foster").length,
-      pm_cutoff: all.filter((a) => a.status === "pm_cutoff").length,
-    };
+    const all: AcsAnimal[] = (rows ?? []).map((r) => {
+      const row = r as Record<string, unknown>;
+      return {
+        id: String(row.id),
+        name: (row.name as string | null) ?? "Unnamed",
+        breed: (row.breed as string | null) ?? null,
+        color: (row.color as string | null) ?? null,
+        age: (row.age as string | null) ?? null,
+        age_raw: (row.age_raw as string | null) ?? null,
+        sex: (row.sex as string | null) ?? null,
+        weight: (row.weight as number | null) ?? null,
+        kennel: (row.kennel as string | null) ?? null,
+        days: (row.days as number | null) ?? null,
+        risk_since: (row.risk_since as string | null) ?? null,
+        euth_date: (row.euth_date as string | null) ?? null,
+        due_out: (row.due_out as string | null) ?? null,
+        status: (row.status as string | null) ?? null,
+        status_key: (row.status_key as string | null) ?? null,
+        public_status: (row.public_status as string | null) ?? null,
+        story: (row.story as string | null) ?? null,
+        pet_search_url: (row.pet_search_url as string | null) ?? null,
+        thumb: (row.thumb as string | null) ?? null,
+        photos: normalizePhotos(row.photos),
+        list_url: (row.list_url as string | null) ?? null,
+        last_listed_at: (row.last_listed_at as string | null) ?? null,
+        updated_at: (row.updated_at as string | null) ?? null,
+      };
+    });
+
+    // Exclude `left` rows (no longer on the list, outcome unknown).
+    const visible = all.filter((a) => normalizeStatusKey(a.status_key) !== "left");
+
+    // Order by urgency rank, then days at shelter descending.
+    visible.sort((x, y) => {
+      const rx = statusRank(normalizeStatusKey(x.status_key));
+      const ry = statusRank(normalizeStatusKey(y.status_key));
+      if (rx !== ry) return rx - ry;
+      return (y.days ?? 0) - (x.days ?? 0);
+    });
+
+    // Count per status_key (visible rows only).
+    const counts: AcsCounts = {};
+    for (const a of visible) {
+      const key = normalizeStatusKey(a.status_key);
+      if (key === "left") continue;
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+
+    // Newest updated_at across ALL rows = last time the scraper touched data.
     const last = all.reduce<string | null>((acc, a) => {
-      if (!a.last_pulled_at) return acc;
-      if (!acc || a.last_pulled_at > acc) return a.last_pulled_at;
+      if (!a.updated_at) return acc;
+      if (!acc || a.updated_at > acc) return a.updated_at;
       return acc;
     }, null);
 
+    const animals =
+      typeof data.limit === "number" ? visible.slice(0, data.limit) : visible;
+
     return {
-      animals: all.slice(0, data.limit),
-      total: all.length,
+      animals,
+      total: visible.length,
       counts,
-      shelter_name: all[0]?.shelter_name ?? "San Antonio ACS",
+      shelter_name: "San Antonio ACS",
       last_pulled_at: last,
     };
   });
