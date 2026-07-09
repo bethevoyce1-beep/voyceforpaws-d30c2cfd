@@ -1,0 +1,36 @@
+name: ACS at-risk refresh
+
+on:
+  schedule:
+    # Every 15 minutes (matches the source PDF refresh). Times are UTC.
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      target_table:
+        description: "Table to write to (acs_animals_staging = safe, acs_animals = live)"
+        required: false
+        default: "acs_animals_staging"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: acs-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install deps
+        run: pip install -r acs-pull/requirements.txt
+      - name: Pull ACS at-risk animals
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TARGET_TABLE: ${{ github.event.inputs.target_table || 'acs_animals_staging' }}
+        run: python acs-pull/pull_acs.py
