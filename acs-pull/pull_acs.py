@@ -13,11 +13,18 @@ Status model (status_key -> public_status):
   adoption   -> Rescue Hold    foster -> ACS Foster Hold
   watch      -> Foster Pending    secured -> Secured
 
-Kennel signals (July 2026): "EUTHANASIA" = already euthanized (In Memoriam);
-"Office" = released to humane euthanasia, housed in staff offices (most urgent,
-still savable -> b6spt); "B6*"/"*SPT*" = moved to euthanasia prep (b6spt).
-Notice wording: "euthanized today" and "euthanized on {date}" -> immediate;
-"euthanized after {date}" -> at risk.
+Classification precedence (Option A - kennel wins, safest):
+  1. kennel EUTHANASIA / "has been euthanized"      -> euthanized (In Memoriam)
+  2. note "Placement has been secured"              -> secured (only note that
+     can beat a euthanasia kennel)
+  3. euthanasia-staging kennels:
+       Office / B6* / *SPT*                          -> b6spt (final minutes)
+       OUTSIDE*                                      -> immediate (euth today)
+     (these override adoption/foster holds)
+  4. notes: ADOPTION HOLD -> adoption; FOSTER HOLD -> foster;
+     "family is coming" -> watch
+  5. "euthanized today" / "euthanized on {date}"     -> immediate
+  6. otherwise (incl. "euthanized after {date}")     -> atrisk
 
 Env vars:
   SUPABASE_URL                (optional; host auto-detected/fixed)
@@ -94,6 +101,8 @@ PUBLIC = {
     "secured": "Secured",
 }
 
+CRITICAL_KEYS = ("b6spt", "immediate")
+
 
 def log(*a):
     print(*a, flush=True)
@@ -167,20 +176,21 @@ def split_demo(rest):
 
 
 def classify(kennel, euth_on, euth_today, block_text):
-    """Return (status_key, public_status). Kennel signals take precedence over
-    notice wording; among notices, euthanized today/on {date} = immediate."""
+    """Return (status_key, public_status). Option A: euthanasia-staging kennels
+    beat adoption/foster holds; only 'Placement has been secured' overrides a
+    euthanasia kennel."""
     k = (kennel or "").upper()
     bt = (block_text or "").upper()
     if k == "EUTHANASIA" or "HAS BEEN EUTHANIZED" in bt or "WAS EUTHANIZED" in bt:
         key = "euthanized"
-    elif "OFFICE" in k:
-        # July 2026: kennel "Office" = released to humane euthanasia, temporarily
-        # housed in staff offices. Most urgent living animals -> final minutes.
-        key = "b6spt"
-    elif k.startswith("B6") or "SPT" in k:
-        key = "b6spt"
     elif "PLACEMENT HAS BEEN SECURED" in bt:
         key = "secured"
+    elif "OFFICE" in k or k.startswith("B6") or "SPT" in k:
+        # Released to euthanasia / moved to euthanasia prep -> most urgent.
+        key = "b6spt"
+    elif "OUTSIDE" in k:
+        # ACS OUTSIDE kennels = scheduled for euthanasia today.
+        key = "immediate"
     elif "ADOPTION HOLD" in bt or "ADOPTION IN PROGRESS" in bt:
         key = "adoption"
     elif "FOSTER HOLD" in bt:
@@ -269,7 +279,11 @@ def parse_rows(raw_text):
         block_text = "\n".join(lines[b_start:b_end])
         euth_today = bool(EUTH_TODAY_RE.search(block_text))
         status_key, public_status = classify(kennel, euth_on, euth_today, block_text)
-        euth_date = euth_on or (today_mdy if euth_today else None)
+        # Critical animals always carry a deadline for the countdown; use the
+        # explicit euth date if present, otherwise today.
+        euth_date = euth_on or (
+            today_mdy if (euth_today or status_key in CRITICAL_KEYS) else None
+        )
 
         out[aid] = {
             "id": aid,
