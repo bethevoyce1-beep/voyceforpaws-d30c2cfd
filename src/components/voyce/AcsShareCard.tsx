@@ -2,7 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
 import { JoinNetworkModal } from "@/components/voyce/JoinNetworkModal";
 import { addAnimalMedia } from "@/lib/media.functions";
-import type { AcsAnimal } from "@/lib/acs.functions";
+import {
+  ACS_STATUS_MODEL,
+  normalizeStatusKey,
+  statusLabel,
+  type AcsAnimal,
+} from "@/lib/acs.functions";
 import type { NetworkRole } from "@/lib/signups.functions";
 
 // ============================================================
@@ -31,6 +36,28 @@ const RED2 = "#B91C1C";
 const CREAM = "#FFFBEB";
 const PAPER = "#FAF7F1";
 const INK = "#1A1611";
+
+// ============================================================
+// Small ACS helpers — the scraper doesn't populate every column, so each
+// accessor degrades gracefully (nulls become friendly fallbacks).
+// ============================================================
+function acsPhoto(a: AcsAnimal): string | null {
+  if (a.thumb && a.thumb.trim()) return a.thumb.trim();
+  if (a.photos && a.photos.length > 0) return a.photos[0];
+  return null;
+}
+
+function daysText(a: AcsAnimal): string {
+  return typeof a.days === "number" ? `${a.days} days at shelter` : "on the at-risk list";
+}
+
+// Whether this animal's status is genuinely time-critical (drives the red
+// countdown treatment). A secured / memoriam animal must NOT show a ticking
+// euthanasia clock.
+function isTimeCritical(a: AcsAnimal): boolean {
+  const key = normalizeStatusKey(a.status_key);
+  return key === "b6spt" || key === "immediate" || key === "atrisk";
+}
 
 // ============================================================
 // Countdown to today's capacity deadline (UPDATED June 30, 2026)
@@ -79,13 +106,15 @@ function useCountdown(): string {
 // ============================================================
 function buildShareText(a: AcsAnimal, deepLink: string): string {
   const story = (a.story || "").split(/[.!]/)[0].trim().slice(0, 100);
+  const label = statusLabel(a);
+  const id = a.id;
   return [
-    `🚨 URGENT — ${a.name} needs help at ${ACS.name}`,
+    `🚨 ${label} — ${a.name} needs help at ${ACS.name}`,
     ``,
-    `🐾 ${story || `${a.days_at_shelter} days in the kennel — needs out today.`}`,
+    `🐾 ${story || `${daysText(a)} — needs out today.`}`,
     ``,
-    `📍 ${ACS.name} · ID ${a.kennel_id ?? "—"}`,
-    `⏰ ${a.days_at_shelter} days at shelter · capacity deadline today`,
+    `📍 ${ACS.name} · ID ${id}`,
+    `⏰ ${daysText(a)} · capacity deadline today`,
     ``,
     `How you can help:`,
     `🏠 Foster · 🚑 Rescue · 💛 Adopt · 🤝 Pledge · 🚐 Transport`,
@@ -149,21 +178,29 @@ export function AcsShareCard({
   const [shareMoreOpen, setShareMoreOpen] = useState(false);
   const [addMediaOpen, setAddMediaOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [photoFailed, setPhotoFailed] = useState(false);
 
   const openModal = (role?: NetworkRole) => {
     setModalRole(role);
     setModalOpen(true);
   };
 
-  const id = animal.kennel_id ?? "—";
+  const statusKey = normalizeStatusKey(animal.status_key);
+  const statusMeta = statusKey === "left" ? ACS_STATUS_MODEL.atrisk : ACS_STATUS_MODEL[statusKey];
+  const badgeLabel = statusLabel(animal);
+  const timeCritical = isTimeCritical(animal);
+
+  const id = animal.id;
   const NAME = animal.name.toUpperCase();
-  const kennel = animal.kennel ?? id;
-  const specLine = [animal.breed, animal.age, animal.color, `kennel ${kennel}`, `${animal.days_at_shelter}d`]
+  const kennel = animal.kennel ?? "—";
+  const photo = acsPhoto(animal);
+  const specLine = [animal.breed, animal.age, animal.sex, animal.color, `kennel ${kennel}`, daysText(animal)]
     .filter(Boolean)
     .join(" · ");
 
-  const acsDeepLink = `${ACS.searchPage}?id=${encodeURIComponent(id)}`;
-  const pdfDeepLink = `${ACS.pdfList}#${encodeURIComponent(id)}`;
+  // Prefer ACS's own listing link; fall back to the ID-based search page.
+  const acsDeepLink = animal.pet_search_url || `${ACS.searchPage}?id=${encodeURIComponent(id)}`;
+  const pdfDeepLink = animal.list_url || `${ACS.pdfList}#${encodeURIComponent(id)}`;
   const shareUrl =
     typeof window !== "undefined" ? window.location.origin : "https://voyceforpaws.lovable.app";
   const shareText = useMemo(() => buildShareText(animal, acsDeepLink), [animal, acsDeepLink]);
@@ -191,9 +228,9 @@ export function AcsShareCard({
       whatsapp: `https://wa.me/?text=${enc(shareText + "\n" + shareUrl)}`,
       x: `https://twitter.com/intent/tweet?text=${enc(shareText)}&url=${enc(shareUrl)}`,
       telegram: `https://t.me/share/url?url=${enc(shareUrl)}&text=${enc(shareText)}`,
-      reddit: `https://www.reddit.com/submit?url=${enc(shareUrl)}&title=${enc(`URGENT — ${animal.name} at ${ACS.name}`)}`,
+      reddit: `https://www.reddit.com/submit?url=${enc(shareUrl)}&title=${enc(`${badgeLabel} — ${animal.name} at ${ACS.name}`)}`,
       pinterest: `https://pinterest.com/pin/create/button/?url=${enc(shareUrl)}&description=${enc(shareText)}`,
-      email: `mailto:?subject=${enc(`URGENT — ${animal.name} needs help at ${ACS.name}`)}&body=${enc(shareText + "\n" + shareUrl)}`,
+      email: `mailto:?subject=${enc(`${badgeLabel} — ${animal.name} needs help at ${ACS.name}`)}&body=${enc(shareText + "\n" + shareUrl)}`,
       sms: `sms:?&body=${enc(shareText + "\n" + shareUrl)}`,
       messenger: `https://www.facebook.com/dialog/send?link=${enc(shareUrl)}&app_id=0`,
       instagram: `https://www.instagram.com/`,
@@ -222,34 +259,47 @@ export function AcsShareCard({
           className="overflow-hidden rounded-2xl bg-white ring-1 ring-black/5"
           style={{ boxShadow: "0 22px 60px -28px rgba(20,15,5,0.45)" }}
         >
-          {/* ===== 1. HERO PHOTO ===== */}
-          <div className="relative w-full overflow-hidden bg-black" style={{ aspectRatio: "4/3" }}>
-            <img
-              src={animal.photo_url}
-              alt={animal.name}
-              className="absolute inset-0 h-full w-full object-cover"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).style.display = "none";
-              }}
-            />
+          {/* ===== 1. HERO PHOTO (graceful placeholder when none) ===== */}
+          <div className="relative w-full overflow-hidden" style={{ aspectRatio: "4/3", background: photo && !photoFailed ? "#000" : undefined }}>
+            {photo && !photoFailed ? (
+              <img
+                src={photo}
+                alt={animal.name}
+                className="absolute inset-0 h-full w-full object-cover"
+                onError={() => setPhotoFailed(true)}
+              />
+            ) : (
+              <div
+                className="absolute inset-0 flex flex-col items-center justify-center gap-2"
+                style={{ background: "linear-gradient(135deg, #FFF3C4 0%, #F5E3A0 100%)" }}
+                aria-label="No photo available yet"
+              >
+                <span className="text-[54px]" aria-hidden>🐾</span>
+                <span className="text-[12px] font-semibold" style={{ color: GOLD_DEEP }}>
+                  Photo pending — see ACS listing
+                </span>
+              </div>
+            )}
             {/* days */}
             <span className="absolute left-3 top-3 rounded-full bg-black/80 px-3 py-1 text-[11px] font-bold text-white shadow-lg">
-              {animal.days_at_shelter} days at shelter
+              {daysText(animal)}
             </span>
-            {/* IMMEDIATE RISK */}
+            {/* status badge */}
             <span
               className="absolute right-3 top-3 rounded-full px-3 py-1 text-[10.5px] font-extrabold uppercase tracking-[0.12em] text-white shadow-lg"
               style={{ background: `linear-gradient(135deg, ${RED1} 0%, ${RED2} 100%)` }}
             >
-              ⏰ Immediate Risk
+              {badgeLabel}
             </span>
-            {/* countdown */}
-            <span
-              className="absolute bottom-3 right-3 rounded-full px-3 py-1 text-[12px] font-extrabold text-white shadow-lg tabular-nums"
-              style={{ background: `linear-gradient(135deg, ${RED1} 0%, ${RED2} 100%)` }}
-            >
-              ⏳ {countdown}
-            </span>
+            {/* countdown — only for genuinely time-critical statuses */}
+            {timeCritical && (
+              <span
+                className="absolute bottom-3 right-3 rounded-full px-3 py-1 text-[12px] font-extrabold text-white shadow-lg tabular-nums"
+                style={{ background: `linear-gradient(135deg, ${RED1} 0%, ${RED2} 100%)` }}
+              >
+                ⏳ {countdown}
+              </span>
+            )}
           </div>
 
           {/* ===== 2. NAME BLOCK ===== */}
@@ -261,34 +311,48 @@ export function AcsShareCard({
               ID {id} · Kennel {kennel}
             </p>
             <p className="mt-1 text-[13px] font-medium text-[#4B5563]">{specLine}</p>
-          </div>
-
-          {/* ===== 3. TIME LEFT CARD ===== */}
-          <div className="mx-5 my-4 rounded-xl border-l-[4px] px-3.5 py-3" style={{ background: "#FEF2F2", borderColor: RED1 }}>
-            <p className="text-[10.5px] font-extrabold uppercase tracking-[0.12em]" style={{ color: RED2 }}>
-              ⏳ Time left before today's capacity deadline
-            </p>
-            <p className="mt-1 font-mono text-[22px] font-extrabold tabular-nums" style={{ color: RED2 }}>
-              {countdown}
-            </p>
-            <p className="mt-1 text-[11.5px] text-[#6B7280]">
-              ACS capacity euthanasia · 5:00 PM Mon–Fri / 12:30 PM Sat · confirm with ACS
+            {/* Plain-language status meaning + action */}
+            <p className="mt-2 text-[12.5px] leading-snug text-[#4B5563]">
+              <span className="font-bold">{badgeLabel}:</span> {statusMeta.meaning}{" "}
+              <span className="text-[#6B7280]">{statusMeta.action}</span>
             </p>
           </div>
 
-          {/* ===== 4. THEIR STORY ===== */}
+          {/* ===== 3. TIME LEFT CARD — only for time-critical statuses ===== */}
+          {timeCritical && (
+            <div className="mx-5 my-4 rounded-xl border-l-[4px] px-3.5 py-3" style={{ background: "#FEF2F2", borderColor: RED1 }}>
+              <p className="text-[10.5px] font-extrabold uppercase tracking-[0.12em]" style={{ color: RED2 }}>
+                ⏳ Time left before today's capacity deadline
+              </p>
+              <p className="mt-1 font-mono text-[22px] font-extrabold tabular-nums" style={{ color: RED2 }}>
+                {countdown}
+              </p>
+              <p className="mt-1 text-[11.5px] text-[#6B7280]">
+                ACS capacity euthanasia · 5:00 PM Mon–Fri / 12:30 PM Sat · confirm with ACS
+              </p>
+            </div>
+          )}
+
+          {/* ===== 4. THEIR STORY (ACS's exact note) ===== */}
           <div className="mx-5 mb-4 overflow-hidden rounded-xl ring-1 ring-black/5">
             <div
               className="flex items-center gap-2 px-4 py-2 text-[10.5px] font-bold uppercase tracking-[0.12em] text-white"
               style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_DEEP} 100%)` }}
             >
               <span>🐾</span>
-              <span>Their Story · from ACS / shelter volunteers</span>
+              <span>ACS's exact note · from the shelter listing</span>
             </div>
-            <p className="bg-[#FFFBEB] px-4 py-3 text-[14px] leading-[1.55] text-[#3A2A07]">
-              {animal.story ||
-                `${animal.name} has been waiting ${animal.days_at_shelter} days in kennel ${kennel}. ACS volunteers know this dog well — calm, kennel-stressed, ready for a soft place to land.`}
-            </p>
+            <div className="bg-[#FFFBEB] px-4 py-3 text-[14px] leading-[1.55] text-[#3A2A07]">
+              {animal.euth_date && (
+                <p className="mb-1 text-[12px] font-semibold text-[#7A1F1F]">
+                  ACS euth date: <span className="font-normal">{animal.euth_date}</span>
+                </p>
+              )}
+              <p>
+                {animal.story ||
+                  `${animal.name} is listed at ${ACS.name}, kennel ${kennel} (${daysText(animal)}). No shelter note yet — check the ACS listing for the latest.`}
+              </p>
+            </div>
           </div>
 
           {/* ===== 5. SHELTER CONTACT ===== */}
@@ -406,7 +470,7 @@ export function AcsShareCard({
               🏛 {ACS.name.toUpperCase()} · ID {id}
             </p>
             <p className="mt-0.5 text-[12.5px] font-semibold" style={{ color: GOLD }}>
-              🔗 See {animal.name}'s real photos & notes on ACS →
+              🔗 View {animal.name} on ACS →
             </p>
           </a>
 
@@ -436,9 +500,11 @@ export function AcsShareCard({
               <p className="text-[10.5px] font-extrabold uppercase tracking-[0.14em]">🎯 The Voyce App</p>
               <p className="mt-0.5 truncate text-[13px] font-bold">Help {animal.name} the moment we launch</p>
             </div>
-            <span className="flex-none rounded-full bg-black/85 px-2.5 py-1 text-[11px] font-extrabold tabular-nums" style={{ color: GOLD }}>
-              {countdown}
-            </span>
+            {timeCritical && (
+              <span className="flex-none rounded-full bg-black/85 px-2.5 py-1 text-[11px] font-extrabold tabular-nums" style={{ color: GOLD }}>
+                {countdown}
+              </span>
+            )}
           </button>
 
           {/* ===== 11. I CAN HELP AS pills ===== */}
