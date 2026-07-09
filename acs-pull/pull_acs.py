@@ -12,7 +12,7 @@ Safety design:
   inspected from outside the CI runner.
 
 Env vars:
-  SUPABASE_URL                (required)
+  SUPABASE_URL                (optional; host is auto-detected/fixed)
   SUPABASE_SERVICE_ROLE_KEY   (required)
   PDF_URL                     (default: ACS capacity euthanasia PDF)
   TARGET_TABLE                (default: acs_animals_staging)
@@ -28,15 +28,18 @@ from datetime import date, datetime, timezone
 import requests
 import pdfplumber
 
+# The Supabase project URL is not a secret; hardcode a correct fallback so a
+# mistyped SUPABASE_URL secret can never break the run.
+DEFAULT_SUPABASE_URL = "https://okmukfrhvqkxphzueqww.supabase.co"
+
 
 def _clean_url(raw):
-    raw = (raw or "").strip().rstrip("/")
-    if raw and not raw.startswith("http"):
-        raw = "https://" + raw
-    return raw
+    raw = (raw or "").strip()
+    m = re.search(r"([a-z0-9-]+\.supabase\.co)", raw, re.I)
+    return f"https://{m.group(1)}" if m else DEFAULT_SUPABASE_URL
 
 
-SUPABASE_URL = _clean_url(os.environ["SUPABASE_URL"])
+SUPABASE_URL = _clean_url(os.environ.get("SUPABASE_URL", ""))
 SERVICE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"].strip()
 PDF_URL = os.environ.get(
     "PDF_URL", "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf"
@@ -254,7 +257,7 @@ def write_debug(pdf_url, page_count, parsed_rows, raw_text, tables, notes):
 
 def main():
     started = datetime.now(timezone.utc).isoformat()
-    log(f"SUPABASE_URL resolved host present: {bool(SUPABASE_URL)} | target={TARGET_TABLE}")
+    log(f"Supabase target: {SUPABASE_URL} | table={TARGET_TABLE}")
     pdf_bytes = fetch_pdf(PDF_URL)
     raw_text, tables, page_count = extract(pdf_bytes)
     log(f"Extracted {page_count} pages, {len(tables)} table blocks, "
