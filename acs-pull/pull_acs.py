@@ -2,17 +2,30 @@
 """
 Voyce for Paws - ACS at-risk animal refresh.
 
-Downloads the City of San Antonio ACS "Capacity for Euthanasia" PDF, parses the
+Downloads the City of San Antonio ACS "Capacity Euthanasia List" PDF, parses the
 at-risk animals, and upserts them into a Supabase table.
+
+The PDF is a per-animal narrative layout (not a grid). Each animal block looks
+like:
+
+    A790268 Due to kennel capacity this pet will be
+    Animal ID Due Out Date Kennel
+    euthanized on 07/09/2026 without confirmed
+    A790268 07/02/2026 S4030 placement
+    (F) Estimated Age 2 Years and 6 Months, BLACK / WHITE, RETRIEVER / BLEND DOG
+    Size Days At Shelter At Risk Since        (or: Weight Days At Shelter ...)
+    MED 12 2026-07-07                          (or: 65 52 2026-07-07)
+    SHELBY
+    Evaluation Notes:
+    ...notes...
 
 Safety design:
 - Writes to TARGET_TABLE (default: acs_animals_staging) so the live table is
   never touched until the parse has been verified.
-- Always records the raw PDF extraction into acs_pull_debug so the parse can be
-  inspected from outside the CI runner.
+- Always records the raw PDF extraction into acs_pull_debug.
 
 Env vars:
-  SUPABASE_URL                (optional; host is auto-detected/fixed)
+  SUPABASE_URL                (optional; host auto-detected/fixed)
   SUPABASE_SERVICE_ROLE_KEY   (required)
   PDF_URL                     (default: ACS capacity euthanasia PDF)
   TARGET_TABLE                (default: acs_animals_staging)
@@ -28,8 +41,6 @@ from datetime import date, datetime, timezone
 import requests
 import pdfplumber
 
-# The Supabase project URL is not a secret; hardcode a correct fallback so a
-# mistyped SUPABASE_URL secret can never break the run.
 DEFAULT_SUPABASE_URL = "https://okmukfrhvqkxphzueqww.supabase.co"
 
 
@@ -54,25 +65,16 @@ HEADERS = {
     "Content-Type": "application/json",
 }
 
-ID_RE = re.compile(r"^A\d{6,8}$")
-
-# Map lowercased PDF header labels -> our acs_animals columns.
-# Extra synonyms are harmless; unknown headers are ignored.
-HEADER_MAP = {
-    "animal id": "id", "animal #": "id", "animal": "id", "id": "id",
-    "animal number": "id", "a#": "id",
-    "name": "name", "pet name": "name",
-    "kennel": "kennel", "location": "kennel", "cage": "kennel",
-    "days": "days", "days in shelter": "days", "los": "days", "length of stay": "days",
-    "breed": "breed", "primary breed": "breed", "type": "breed",
-    "color": "color", "colour": "color",
-    "sex": "sex", "gender": "sex",
-    "age": "age_raw",
-    "weight": "weight", "wt": "weight", "weight (lbs)": "weight",
-    "due out": "due_out", "dueout": "due_out", "due out date": "due_out",
-    "euth": "euth_date", "euth date": "euth_date", "euthanasia date": "euth_date",
-    "heartworm": "heartworm", "hw": "heartworm", "hw status": "heartworm",
+SPECIES = {
+    "DOG", "CAT", "PUPPY", "KITTEN", "RABBIT", "BIRD", "OTHER", "LIVESTOCK",
+    "REPTILE", "FERRET", "HAMSTER", "GUINEA", "PIG", "HORSE", "GOAT",
 }
+
+DEMO_RE = re.compile(r"^\(([A-Z])\)\s*Estimated Age\s+(.*)$")
+VAL_RE = re.compile(r"^(A\d{6,8})\s+(\d{1,2}/\d{1,2}/\d{4})\s+(\S+)")
+ID_RE = re.compile(r"\b(A\d{6,8})\b")
+EUTH_RE = re.compile(r"euthanized on\s+(\d{1,2}/\d{1,2}/\d{4})", re.I)
+SIZEHDR_RE = re.compile(r"^(Size|Weight)\s+Days At Shelter\s+At Risk Since", re.I)
 
 
 def log(*a):
@@ -111,7 +113,7 @@ def parse_date_iso(s):
 
 
 def short_age(age_raw):
-    """'2 Years and 1 Month' -> '2y 1m'; '7 Months' -> '7m'."""
+    """'2 Years and 6 Months' -> '2y 6m'; '7 Months' -> '7m'."""
     if not age_raw:
         return None
     yrs = re.search(r"(\d+)\s*year", age_raw, re.I)
@@ -127,6 +129,30 @@ def short_age(age_raw):
     return " ".join(parts) or None
 
 
+def split_demo(rest):
+    """'2 Years and 6 Months, BLACK / WHITE, RETRIEVER / BLEND DOG'
+    -> (age_raw, color, breed)."""
+    segs = [s.strip() for s in rest.split(",") if s.strip()]
+    if not segs:
+        return None, None, None
+    age_raw = segs[0]
+    color = segs[1] if len(segs) > 1 else None
+    breed_seg = segs[-1] if len(segs) > 2 else (segs[1] if len(segs) > 1 else None)
+    if len(segs) > 3:
+        color = ", ".join(segs[1:-1])
+    # Strip a leading single-letter flag from color (e.g. 'Y BRINDLE').
+    if color:
+        cm = re.match(r"^([A-Z])\s+(.+)$", color)
+        if cm:
+            color = cm.group(2)
+    breed = breed_seg
+    if breed_seg:
+        parts = breed_seg.split()
+        if parts and parts[-1].upper() in SPECIES:
+            breed = " ".join(parts[:-1]) or None
+    return age_raw, color, breed
+
+
 def fetch_pdf(url):
     log(f"Fetching PDF: {url}")
     r = requests.get(url, timeout=60, headers={"User-Agent": "VoyceForPaws-ACS/1.0"})
@@ -136,80 +162,105 @@ def fetch_pdf(url):
 
 
 def extract(pdf_bytes):
-    """Return (full_text, tables, page_count)."""
+    """Return (full_text, page_count)."""
     texts = []
-    tables = []
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
         page_count = len(pdf.pages)
-        for pi, page in enumerate(pdf.pages):
+        for page in pdf.pages:
             texts.append(page.extract_text() or "")
-            for t in (page.extract_tables() or []):
-                tables.append({"page": pi, "rows": t})
-    return "\n".join(texts), tables, page_count
+    return "\n".join(texts), page_count
 
 
-def build_header(row):
-    """Given a table row (list of cells), return {col_index: our_col} if it looks
-    like a header, else None."""
-    mapping = {}
-    for i, cell in enumerate(row):
-        key = norm(cell)
-        if not key:
-            continue
-        col = HEADER_MAP.get(key.lower())
-        if col:
-            mapping[i] = col
-    if "id" in mapping.values() and len(mapping) >= 3:
-        return mapping
-    return None
-
-
-def parse_rows(tables):
-    """Header-driven parse across all tables. Returns list of row dicts."""
+def parse_rows(raw_text):
+    lines = raw_text.split("\n")
+    n = len(lines)
     out = {}
-    for tbl in tables:
-        rows = tbl["rows"]
-        header = None
-        for row in rows:
-            if header is None:
-                header = build_header(row)
-                continue
-            rec = {}
-            for i, our_col in header.items():
-                if i < len(row):
-                    rec[our_col] = norm(row[i])
-            aid = rec.get("id")
-            if not aid or not ID_RE.match(aid):
-                continue
-            out[aid] = finalize(rec)
+    for i, line in enumerate(lines):
+        m = DEMO_RE.match(line.strip())
+        if not m:
+            continue
+        sex = m.group(1)
+        age_raw, color, breed = split_demo(m.group(2))
+
+        # id / due_out / kennel / euth: search a small window upward.
+        aid = due_out = kennel = euth = None
+        for j in range(i - 1, max(-1, i - 7), -1):
+            lj = lines[j].strip()
+            vm = VAL_RE.match(lj)
+            if vm and aid is None:
+                aid = vm.group(1)
+                due_out = parse_date_iso(vm.group(2))
+                kennel = vm.group(3)
+            em = EUTH_RE.search(lines[j])
+            if em and euth is None:
+                euth = em.group(1)
+            if aid is None:
+                idm = ID_RE.search(lj)
+                if idm:
+                    aid = idm.group(1)
+        if not aid:
+            continue
+
+        # Size/Weight + Days + At Risk Since (header then values), forward window.
+        weight = days = risk = None
+        for j in range(i + 1, min(n, i + 8)):
+            hm = SIZEHDR_RE.match(lines[j].strip())
+            if hm:
+                vals = lines[j + 1].split() if j + 1 < n else []
+                if hm.group(1).lower() == "weight" and vals:
+                    weight = to_int(vals[0])
+                if len(vals) >= 2:
+                    days = to_int(vals[1])
+                if len(vals) >= 3:
+                    risk = parse_date_iso(vals[2])
+                break
+
+        # Name = line just before 'Evaluation Notes:'; story = notes after it.
+        name = None
+        story = None
+        for k in range(i + 1, min(n, i + 14)):
+            if lines[k].strip().lower().startswith("evaluation notes"):
+                cand = lines[k - 1].strip()
+                if cand and not ID_RE.search(cand) and not cand[0].isdigit():
+                    name = cand
+                story = collect_story(lines, k + 1, n)
+                break
+
+        out[aid] = {
+            "id": aid,
+            "list_date": date.today().isoformat(),
+            "status": "AT RISK",
+            "status_key": "atrisk",
+            "name": name.upper() if name else None,
+            "breed": breed.upper() if breed else None,
+            "color": color.upper() if color else None,
+            "age": short_age(age_raw),
+            "age_raw": age_raw,
+            "sex": sex,
+            "weight": weight,
+            "kennel": kennel,
+            "days": days,
+            "risk_since": risk,
+            "euth_date": euth,
+            "due_out": due_out,
+            "heartworm": None,
+            "story": story,
+            "pet_search_url": f"https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id={aid}",
+            "list_url": PDF_URL,
+        }
     return list(out.values())
 
 
-def finalize(rec):
-    today = date.today().isoformat()
-    age_raw = rec.get("age_raw")
-    out = {
-        "id": rec["id"],
-        "list_date": today,
-        "status": "AT RISK",
-        "status_key": "atrisk",
-        "name": (rec.get("name") or "").upper() or None,
-        "breed": (rec.get("breed") or "").upper() or None,
-        "color": (rec.get("color") or "").upper() or None,
-        "age": short_age(age_raw),
-        "age_raw": age_raw,
-        "sex": (rec.get("sex") or "").upper()[:1] or None,
-        "weight": to_int(rec.get("weight")),
-        "kennel": rec.get("kennel"),
-        "days": to_int(rec.get("days")),
-        "risk_since": today,
-        "euth_date": rec.get("euth_date"),
-        "due_out": parse_date_iso(rec.get("due_out")),
-        "heartworm": rec.get("heartworm"),
-        "pet_search_url": f"https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id={rec['id']}",
-        "list_url": PDF_URL,
-    }
-    return out
+def collect_story(lines, start, n):
+    buf = []
+    for k in range(start, min(n, start + 120)):
+        s = lines[k].strip()
+        if VAL_RE.match(s) or DEMO_RE.match(s) or s.endswith("pet will be"):
+            break
+        if s:
+            buf.append(s)
+    text = " ".join(buf).strip()
+    return text[:4000] or None
 
 
 def supabase_upsert(rows):
@@ -229,7 +280,7 @@ def supabase_upsert(rows):
     return total
 
 
-def write_debug(pdf_url, page_count, parsed_rows, raw_text, tables, notes):
+def write_debug(pdf_url, page_count, parsed_rows, raw_text, notes):
     if not WRITE_DEBUG:
         return
     payload = [{
@@ -237,7 +288,6 @@ def write_debug(pdf_url, page_count, parsed_rows, raw_text, tables, notes):
         "page_count": page_count,
         "parsed_rows": parsed_rows,
         "raw_text": raw_text[:60000],
-        "tables_json": tables[:40],
         "notes": notes,
     }]
     try:
@@ -251,7 +301,7 @@ def write_debug(pdf_url, page_count, parsed_rows, raw_text, tables, notes):
             log(f"DEBUG WRITE ERROR {r.status_code}: {r.text[:300]}")
         else:
             log("Debug row written to acs_pull_debug")
-    except Exception as e:  # never let debug crash the run
+    except Exception as e:
         log(f"DEBUG WRITE EXCEPTION: {e}")
 
 
@@ -259,15 +309,13 @@ def main():
     started = datetime.now(timezone.utc).isoformat()
     log(f"Supabase target: {SUPABASE_URL} | table={TARGET_TABLE}")
     pdf_bytes = fetch_pdf(PDF_URL)
-    raw_text, tables, page_count = extract(pdf_bytes)
-    log(f"Extracted {page_count} pages, {len(tables)} table blocks, "
-        f"{len(raw_text)} chars of text")
-    rows = parse_rows(tables)
+    raw_text, page_count = extract(pdf_bytes)
+    log(f"Extracted {page_count} pages, {len(raw_text)} chars of text")
+    rows = parse_rows(raw_text)
     log(f"Parsed {len(rows)} animal rows")
     if rows[:2]:
-        log("Sample:", json.dumps(rows[:2], indent=2))
-    notes = f"run={started} target={TARGET_TABLE}"
-    write_debug(PDF_URL, page_count, len(rows), raw_text, tables, notes)
+        log("Sample:", json.dumps(rows[:2], indent=2)[:1500])
+    write_debug(PDF_URL, page_count, len(rows), raw_text, f"run={started} target={TARGET_TABLE}")
     n = supabase_upsert(rows)
     log(f"Upserted {n} rows into {TARGET_TABLE}")
     if not rows:
