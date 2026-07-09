@@ -13,6 +13,12 @@ Status model (status_key -> public_status):
   adoption   -> Rescue Hold    foster -> ACS Foster Hold
   watch      -> Foster Pending    secured -> Secured
 
+Kennel signals (July 2026): "EUTHANASIA" = already euthanized (In Memoriam);
+"Office" = released to humane euthanasia, housed in staff offices (most urgent,
+still savable -> b6spt); "B6*"/"*SPT*" = moved to euthanasia prep (b6spt).
+Notice wording: "euthanized today" and "euthanized on {date}" -> immediate;
+"euthanized after {date}" -> at risk.
+
 Env vars:
   SUPABASE_URL                (optional; host auto-detected/fixed)
   SUPABASE_SERVICE_ROLE_KEY   (required)
@@ -66,6 +72,7 @@ DEMO_RE = re.compile(r"^\(([A-Z])\)\s*Estimated Age\s+(.*)$")
 VAL_RE = re.compile(r"^(A\d{6,8})\s+(\d{1,2}/\d{1,2}/\d{4})\s+(\S+)")
 ID_RE = re.compile(r"\b(A\d{6,8})\b")
 EUTH_ON_RE = re.compile(r"euthanized on\s+(\d{1,2}/\d{1,2}/\d{4})", re.I)
+EUTH_TODAY_RE = re.compile(r"euthanized today", re.I)
 SIZEHDR_RE = re.compile(r"^(Size|Weight)\s+Days At Shelter\s+At Risk Since", re.I)
 
 OG_RE = re.compile(r'property=["\']og:image["\'][^>]*content=["\']([^"\']+)', re.I)
@@ -159,11 +166,17 @@ def split_demo(rest):
     return age_raw, color, breed
 
 
-def classify(kennel, euth_on, block_text):
+def classify(kennel, euth_on, euth_today, block_text):
+    """Return (status_key, public_status). Kennel signals take precedence over
+    notice wording; among notices, euthanized today/on {date} = immediate."""
     k = (kennel or "").upper()
     bt = (block_text or "").upper()
     if k == "EUTHANASIA" or "HAS BEEN EUTHANIZED" in bt or "WAS EUTHANIZED" in bt:
         key = "euthanized"
+    elif "OFFICE" in k:
+        # July 2026: kennel "Office" = released to humane euthanasia, temporarily
+        # housed in staff offices. Most urgent living animals -> final minutes.
+        key = "b6spt"
     elif k.startswith("B6") or "SPT" in k:
         key = "b6spt"
     elif "PLACEMENT HAS BEEN SECURED" in bt:
@@ -174,7 +187,7 @@ def classify(kennel, euth_on, block_text):
         key = "foster"
     elif "FAMILY IS COMING" in bt:
         key = "watch"
-    elif euth_on:
+    elif euth_today or euth_on:
         key = "immediate"
     else:
         key = "atrisk"
@@ -201,6 +214,7 @@ def extract(pdf_bytes):
 def parse_rows(raw_text):
     lines = raw_text.split("\n")
     n = len(lines)
+    today_mdy = date.today().strftime("%m/%d/%Y")
     demo_idx = [i for i, l in enumerate(lines) if DEMO_RE.match(l.strip())]
     out = {}
     for pos, i in enumerate(demo_idx):
@@ -253,7 +267,9 @@ def parse_rows(raw_text):
         b_end = (demo_idx[pos + 1] - 6) if pos + 1 < len(demo_idx) else n
         b_end = max(b_end, i + 1)
         block_text = "\n".join(lines[b_start:b_end])
-        status_key, public_status = classify(kennel, euth_on, block_text)
+        euth_today = bool(EUTH_TODAY_RE.search(block_text))
+        status_key, public_status = classify(kennel, euth_on, euth_today, block_text)
+        euth_date = euth_on or (today_mdy if euth_today else None)
 
         out[aid] = {
             "id": aid,
@@ -271,7 +287,7 @@ def parse_rows(raw_text):
             "kennel": kennel,
             "days": days,
             "risk_since": risk,
-            "euth_date": euth_on,
+            "euth_date": euth_date,
             "due_out": due_out,
             "heartworm": None,
             "story": story,
@@ -285,7 +301,7 @@ def collect_story(lines, start, n):
     buf = []
     for k in range(start, min(n, start + 120)):
         s = lines[k].strip()
-        if VAL_RE.match(s) or DEMO_RE.match(s) or s.endswith("pet will be"):
+        if VAL_RE.match(s) or DEMO_RE.match(s) or s.endswith("pet will be") or s.endswith("animal will be"):
             break
         if s:
             buf.append(s)
