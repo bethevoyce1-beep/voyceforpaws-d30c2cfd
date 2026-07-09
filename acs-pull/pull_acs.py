@@ -13,8 +13,8 @@ Status model (status_key -> public_status shown to people):
   immediate  -> Critical - today             'will be euthanized on {date}'
   atrisk     -> Urgent                       'could be euthanized after {date}'
   adoption   -> Rescue Hold                  'ACS ADOPTION hold'
-  foster     -> Foster Pending               'ACS FOSTER hold'
-  watch      -> Foster Pending (family)      'My family is coming for me'
+  foster     -> ACS Foster Hold              'ACS FOSTER hold'
+  watch      -> Foster Pending               'My family is coming for me'
   secured    -> Secured                      'Placement has been secured'
 
 Env vars:
@@ -74,8 +74,8 @@ PUBLIC = {
     "immediate": "Critical · today",
     "atrisk": "Urgent",
     "adoption": "Rescue Hold",
-    "foster": "Foster Pending",
-    "watch": "Foster Pending · family coming",
+    "foster": "ACS Foster Hold",
+    "watch": "Foster Pending",
     "secured": "Secured",
 }
 
