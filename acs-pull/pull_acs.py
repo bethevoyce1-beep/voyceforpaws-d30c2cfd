@@ -28,8 +28,16 @@ from datetime import date, datetime, timezone
 import requests
 import pdfplumber
 
-SUPABASE_URL = os.environ["SUPABASE_URL"].rstrip("/")
-SERVICE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+
+def _clean_url(raw):
+    raw = (raw or "").strip().rstrip("/")
+    if raw and not raw.startswith("http"):
+        raw = "https://" + raw
+    return raw
+
+
+SUPABASE_URL = _clean_url(os.environ["SUPABASE_URL"])
+SERVICE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"].strip()
 PDF_URL = os.environ.get(
     "PDF_URL", "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf"
 )
@@ -229,18 +237,24 @@ def write_debug(pdf_url, page_count, parsed_rows, raw_text, tables, notes):
         "tables_json": tables[:40],
         "notes": notes,
     }]
-    r = requests.post(
-        f"{REST}/acs_pull_debug",
-        headers={**HEADERS, "Prefer": "return=minimal"},
-        data=json.dumps(payload),
-        timeout=60,
-    )
-    if r.status_code >= 300:
-        log(f"DEBUG WRITE ERROR {r.status_code}: {r.text[:300]}")
+    try:
+        r = requests.post(
+            f"{REST}/acs_pull_debug",
+            headers={**HEADERS, "Prefer": "return=minimal"},
+            data=json.dumps(payload),
+            timeout=60,
+        )
+        if r.status_code >= 300:
+            log(f"DEBUG WRITE ERROR {r.status_code}: {r.text[:300]}")
+        else:
+            log("Debug row written to acs_pull_debug")
+    except Exception as e:  # never let debug crash the run
+        log(f"DEBUG WRITE EXCEPTION: {e}")
 
 
 def main():
     started = datetime.now(timezone.utc).isoformat()
+    log(f"SUPABASE_URL resolved host present: {bool(SUPABASE_URL)} | target={TARGET_TABLE}")
     pdf_bytes = fetch_pdf(PDF_URL)
     raw_text, tables, page_count = extract(pdf_bytes)
     log(f"Extracted {page_count} pages, {len(tables)} table blocks, "
