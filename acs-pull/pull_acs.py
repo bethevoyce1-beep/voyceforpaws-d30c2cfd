@@ -11,8 +11,7 @@ Status model (status_key -> public_status):
   euthanized -> In Memoriam        b6spt -> Critical - final minutes
   immediate  -> Critical - today   scheduled -> On the clock - {date}
   atrisk     -> Urgent             adoption  -> Rescue Hold
-  foster     -> ACS Foster Hold    watch     -> Foster Pending
-  secured    -> Secured
+  foster     -> ACS Foster Hold    secured   -> Secured
 
 Classification precedence:
   1. kennel EUTHANASIA / "has been euthanized"      -> euthanized (In Memoriam)
@@ -20,7 +19,7 @@ Classification precedence:
   3. kennel Office / B6* / *SPT* (euthanasia room)  -> b6spt (final minutes);
      a foster/adoption hold does NOT clear these — only "secured" does
   4. note ADOPTION HOLD -> adoption; FOSTER HOLD -> foster;
-     "family is coming" -> watch  (these override an OUTSIDE kennel)
+     "family is coming" -> foster (ACS Foster Hold; overrides an OUTSIDE kennel)
   5. kennel OUTSIDE* (euth today, no hold)          -> immediate
   6. "euthanized today"                             -> immediate (Critical today)
      "euthanized on {future date}"                  -> scheduled (On the clock)
@@ -89,7 +88,8 @@ GALLERY_RE = re.compile(
 )
 PETCONNECT_RE = re.compile(r'https://24petconnect\.com/image/[^\s"\'<>]+', re.I)
 
-# status_key -> friendly label shown to the public
+# status_key -> friendly label shown to the public. `watch` no longer occurs
+# (folded into `foster`/ACS Foster Hold) but is kept for defensive lookups.
 PUBLIC = {
     "euthanized": "In Memoriam",
     "b6spt": "Critical · final minutes",
@@ -197,7 +197,7 @@ def classify(kennel, euth_on, euth_today, block_text):
     elif "FOSTER HOLD" in bt:
         key = "foster"
     elif "FAMILY IS COMING" in bt:
-        key = "watch"
+        key = "foster"
     elif "OUTSIDE" in k:
         key = "immediate"
     elif euth_today or euth_on:
