@@ -1,16 +1,24 @@
 /**
- * Voyce for Paws brand header — mark + wordmark + AI disclosure.
+ * Voyce for Paws brand header — mark + wordmark + AI disclosure + Donate.
  * Appears at the top of every screen for consistent brand identity.
  *
  * A screen can surface a back button by wrapping itself in
  * <BackNavContext.Provider value={goBack}> — the header then shows a ← arrow.
+ *
+ * Likewise, wrapping in <DonateContext.Provider value={openDonate}> surfaces a
+ * gold "Donate" pill top-right. When no handler is provided the header falls
+ * back to the "AI is advisory" disclosure line. This keeps the Donate action
+ * available on every screen that renders its own BrandHeader (mission picker,
+ * shelter picker, capture) without threading a prop through each one.
  */
 import { createContext, useContext } from "react";
 
 export const BackNavContext = createContext<(() => void) | null>(null);
+export const DonateContext = createContext<(() => void) | null>(null);
 
 export function BrandHeader() {
   const onBack = useContext(BackNavContext);
+  const onDonate = useContext(DonateContext);
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-[#EAE6DE] bg-white/95 px-4 py-3 backdrop-blur-md">
       <div className="flex items-center gap-2.5">
@@ -39,9 +47,21 @@ export function BrandHeader() {
           Voyce <em>for</em> Paws
         </span>
       </div>
-      <div className="text-[11px] font-medium text-muted-foreground">
-        AI is advisory — not a diagnosis
-      </div>
+      {onDonate ? (
+        <button
+          type="button"
+          onClick={onDonate}
+          className="flex items-center gap-1 rounded-full px-3.5 py-1.5 text-[12.5px] font-bold text-[#3A2A07] shadow-sm transition hover:brightness-105 active:scale-95"
+          style={{ background: "linear-gradient(135deg, #FFDF3B 0%, #C9871A 100%)" }}
+        >
+          <span aria-hidden>💛</span>
+          <span>Donate</span>
+        </button>
+      ) : (
+        <div className="text-[11px] font-medium text-muted-foreground">
+          AI is advisory — not a diagnosis
+        </div>
+      )}
     </header>
   );
 }

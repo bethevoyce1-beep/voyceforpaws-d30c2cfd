@@ -13,7 +13,7 @@ import { ProcessingPipeline } from "@/components/voyce/ProcessingPipeline";
 import { readPhotoMeta, type PhotoMeta } from "@/lib/exif";
 import { ReportDetails } from "@/components/voyce/ReportDetails";
 import type { ReportDetails as ReportDetailsData } from "@/components/voyce/ReportDetails";
-import { BackNavContext } from "@/components/voyce/BrandHeader";
+import { BackNavContext, DonateContext } from "@/components/voyce/BrandHeader";
 import { RescueReport } from "@/components/voyce/RescueReport";
 import { ReviewSheet, type ReviewResult } from "@/components/voyce/ReviewSheet";
 import { NetworkAlerting } from "@/components/voyce/NetworkAlerting";
@@ -24,6 +24,9 @@ import { MissionPicker } from "@/components/voyce/MissionPicker";
 import { ShareCard } from "@/components/voyce/ShareCard";
 import { AcsShareCard } from "@/components/voyce/AcsShareCard";
 import { ShelterPicker } from "@/components/voyce/ShelterPicker";
+import { BottomTabBar, type BottomTab } from "@/components/voyce/BottomTabBar";
+import { JoinNetworkModal } from "@/components/voyce/JoinNetworkModal";
+import { DonateModal } from "@/components/voyce/DonateModal";
 import {
   normalizeStatusKey,
   ACS_STATUS_MODEL,
@@ -192,6 +195,9 @@ function Home() {
   const [aiPending, setAiPending] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [showReview, setShowReview] = useState(false);
+  // Global overlays reachable from the tab bar / header on any screen.
+  const [showJoin, setShowJoin] = useState(false);
+  const [showDonate, setShowDonate] = useState(false);
 
   // Analyze the photo as soon as it's captured — the AI goes first, then the
   // reporter refines details afterward ("what did Voyce miss?").
@@ -317,6 +323,30 @@ function Home() {
     setShowReview(false);
   };
 
+  // Bottom-tab navigation. Report is the camera-first home; At-Risk opens the
+  // shelter list; Join opens the signup modal as an overlay WITHOUT navigating
+  // away (so closing it returns to whatever tab was showing).
+  const handleTab = useCallback((tab: BottomTab) => {
+    switch (tab) {
+      case "report":
+        // Return to the capture intake — clears any half-started shelter/mission
+        // context so the camera-first flow is exactly as it is on a fresh load.
+        setMission("injured");
+        setCaptured(null);
+        setAssessment(null);
+        setAcsAnimal(null);
+        setStage("capture");
+        break;
+      case "atrisk":
+        setMission("at-risk-shelter");
+        setStage("shelter");
+        break;
+      case "join":
+        setShowJoin(true);
+        break;
+    }
+  }, []);
+
   // Back navigation — each step knows the step to return to. Surfaced as a ←
   // arrow in the shared header (via BackNavContext) on screens that don't
   // already have their own back control.
@@ -362,136 +392,167 @@ function Home() {
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
-  if (stage === "mission") {
-    return (
-      <MissionPicker
-        onPick={(id) => {
-          setMission(id);
-          setStage(id === "at-risk-shelter" ? "shelter" : "capture");
-        }}
-      />
-    );
-  }
+  // Render the current stage. The bottom tab bar lives ONLY on the two home
+  // screens (capture intake + shelter list) and is hidden throughout the report
+  // flow; on the capture screen it's rendered from inside CaptureScreen so it
+  // can also hide while the live camera / photo preview is open.
+  const renderStage = () => {
+    if (stage === "mission") {
+      return (
+        <MissionPicker
+          onPick={(id) => {
+            setMission(id);
+            setStage(id === "at-risk-shelter" ? "shelter" : "capture");
+          }}
+        />
+      );
+    }
 
-  if (stage === "shelter") {
-    return (
-      <ShelterPicker
-        onBack={() => setStage("mission")}
-        onPick={(animal: AcsAnimal) => {
-          setMission("at-risk-shelter");
-          setCaptured(acsPhoto(animal));
-          setAssessment(assessmentFromAcs(animal));
-          setAcsAnimal(animal);
-          setStage("share");
-        }}
-      />
-    );
-  }
+    if (stage === "shelter") {
+      return (
+        <>
+          <ShelterPicker
+            onBack={() => setStage("mission")}
+            onPick={(animal: AcsAnimal) => {
+              setMission("at-risk-shelter");
+              setCaptured(acsPhoto(animal));
+              setAssessment(assessmentFromAcs(animal));
+              setAcsAnimal(animal);
+              setStage("share");
+            }}
+          />
+          {/* Home screen — tab bar is the primary nav (no BackFab/RestartFab). */}
+          <BottomTabBar active="atrisk" onSelect={handleTab} />
+        </>
+      );
+    }
 
-  if (stage === "details" && captured && assessment) {
-    return withBack(
-      <ReportDetails
-        image={captured}
-        mission={mission}
-        assessment={assessment}
-        onContinue={startReport}
-      />
-    );
-  }
-
-  if (stage === "processing") {
-    return withBack(
-      <ProcessingPipeline
-        image={captured}
-        meta={captureMeta}
-        onLocate={setLocation}
-        aiPending={aiPending}
-        aiError={aiError}
-        assessment={assessment}
-        onComplete={() => assessment && setStage("alerting")}
-        onRetry={() => {
-          setCaptured(null);
-          setCaptureMeta(null);
-          setAssessment(null);
-          setAiError(null);
-          setStage("capture");
-        }}
-      />
-    );
-  }
-
-  if (stage === "alerting") {
-    return withBack(<NetworkAlerting onComplete={() => setStage("share")} />);
-  }
-
-  if (stage === "report" && assessment && captured) {
-    const animalsList = (assessment.animals && assessment.animals.length > 1
-      ? assessment.animals
-      : [assessment]
-    ).map((a) => ({ ...a, caseId: a.caseId ?? assessment.caseId }));
-    const idx = Math.min(animalIndex, animalsList.length - 1);
-    return withBack(
-      <>
-        <RescueReport
+    if (stage === "details" && captured && assessment) {
+      return withBack(
+        <ReportDetails
           image={captured}
-          data={animalsList[idx]}
+          mission={mission}
+          assessment={assessment}
+          onContinue={startReport}
+        />
+      );
+    }
+
+    if (stage === "processing") {
+      return withBack(
+        <ProcessingPipeline
+          image={captured}
+          meta={captureMeta}
+          onLocate={setLocation}
+          aiPending={aiPending}
+          aiError={aiError}
+          assessment={assessment}
+          onComplete={() => assessment && setStage("alerting")}
+          onRetry={() => {
+            setCaptured(null);
+            setCaptureMeta(null);
+            setAssessment(null);
+            setAiError(null);
+            setStage("capture");
+          }}
+        />
+      );
+    }
+
+    if (stage === "alerting") {
+      return withBack(<NetworkAlerting onComplete={() => setStage("share")} />);
+    }
+
+    if (stage === "report" && assessment && captured) {
+      const animalsList = (assessment.animals && assessment.animals.length > 1
+        ? assessment.animals
+        : [assessment]
+      ).map((a) => ({ ...a, caseId: a.caseId ?? assessment.caseId }));
+      const idx = Math.min(animalIndex, animalsList.length - 1);
+      return withBack(
+        <>
+          <RescueReport
+            image={captured}
+            data={animalsList[idx]}
+            mission={mission}
+            location={location}
+            situation={reportDetails?.situation}
+            animals={animalsList}
+            animalIndex={idx}
+            onSelectAnimal={setAnimalIndex}
+            onContinue={() => setStage("share")}
+            onDone={() => setStage("timeline")}
+            onSend={() => setShowReview(true)}
+            onEditDetails={() => setShowReview(true)}
+          />
+          {showReview && (
+            <ReviewSheet
+              mission={mission}
+              assessment={animalsList[idx]}
+              onCancel={() => setShowReview(false)}
+              onSend={handleReviewSend}
+            />
+          )}
+        </>
+      );
+    }
+    if (stage === "share" && mission === "at-risk-shelter" && acsAnimal) {
+      return withBack(
+        <AcsShareCard
+          animal={acsAnimal}
+          onContinue={() => setStage("timeline")}
+        />
+      );
+    }
+    if (stage === "share" && assessment && captured) {
+      return withBack(
+        <ShareCard
+          image={captured}
+          data={assessment}
           mission={mission}
           location={location}
-          situation={reportDetails?.situation}
-          animals={animalsList}
-          animalIndex={idx}
-          onSelectAnimal={setAnimalIndex}
-          onContinue={() => setStage("share")}
-          onDone={() => setStage("timeline")}
-          onSend={() => setShowReview(true)}
-          onEditDetails={() => setShowReview(true)}
+          onContinue={() => setStage("timeline")}
         />
-        {showReview && (
-          <ReviewSheet
-            mission={mission}
-            assessment={animalsList[idx]}
-            onCancel={() => setShowReview(false)}
-            onSend={handleReviewSend}
-          />
-        )}
-      </>
-    );
-  }
-  if (stage === "share" && mission === "at-risk-shelter" && acsAnimal) {
-    return withBack(
-      <AcsShareCard
-        animal={acsAnimal}
-        onContinue={() => setStage("timeline")}
-      />
-    );
-  }
-  if (stage === "share" && assessment && captured) {
-    return withBack(
-      <ShareCard
-        image={captured}
-        data={assessment}
+      );
+    }
+    if (stage === "timeline") {
+      return withBack(<StatusTimeline onContinue={() => setStage("gate")} />);
+    }
+    if (stage === "gate") {
+      return withBack(<DemoGate onDone={() => setStage("outcome")} />);
+    }
+    if (stage === "outcome") {
+      return withBack(<Outcome onRestart={reset} />);
+    }
+
+    return (
+      <CaptureScreen
+        onAnalyze={handleCaptured}
         mission={mission}
-        location={location}
-        onContinue={() => setStage("timeline")}
+        onBack={() => setStage("mission")}
+        renderTabBar={(visible) =>
+          visible ? <BottomTabBar active="report" onSelect={handleTab} /> : null
+        }
       />
     );
-  }
-  if (stage === "timeline") {
-    return withBack(<StatusTimeline onContinue={() => setStage("gate")} />);
-  }
-  if (stage === "gate") {
-    return withBack(<DemoGate onDone={() => setStage("outcome")} />);
-  }
-  if (stage === "outcome") {
-    return withBack(<Outcome onRestart={reset} />);
-  }
+  };
 
   return (
-    <CaptureScreen
-      onAnalyze={handleCaptured}
-      mission={mission}
-      onBack={() => setStage("mission")}
-    />
+    <DonateContext.Provider value={() => setShowDonate(true)}>
+      {renderStage()}
+
+      {/* Global overlays — reachable from the tab bar (Join) and header (Donate)
+          on any screen; they sit on top of the current tab without navigating. */}
+      <JoinNetworkModal open={showJoin} onClose={() => setShowJoin(false)} />
+      <DonateModal
+        open={showDonate}
+        onClose={() => setShowDonate(false)}
+        onJoin={() => {
+          setShowDonate(false);
+          setShowJoin(true);
+        }}
+      />
+    </DonateContext.Provider>
   );
 }
 
@@ -528,10 +589,15 @@ function CaptureScreen({
   onAnalyze,
   mission,
   onBack,
+  renderTabBar,
 }: {
   onAnalyze: (src: string, meta?: PhotoMeta | null) => void;
   mission: MissionId;
   onBack: () => void;
+  // Parent-supplied bottom tab bar. We only ask it to render on the "chooser"
+  // states (intake / samples) — never while the live camera or photo preview
+  // is open — so the nav doesn't cover the shutter or the retake/analyze bar.
+  renderTabBar: (visible: boolean) => React.ReactNode;
 }) {
   const m = MISSIONS[mission];
   const missionLabel = m.capturePillLabel;
@@ -757,6 +823,10 @@ function CaptureScreen({
     ctx.drawImage(video, 0, 0);
     setPreview(canvas.toDataURL("image/jpeg", 0.92));
   };
+
+  // The tab bar shows only on the "chooser" states and never while a preview is
+  // open — those are the moments this screen is a genuine home screen.
+  const tabBarVisible = (mode === "intake" || mode === "samples") && !preview;
 
   return (
     <div className="relative flex min-h-[100dvh] flex-col bg-background text-foreground">
@@ -1059,6 +1129,11 @@ function CaptureScreen({
           )}
         </div>
       </div>
+
+      {/* Persistent bottom nav — only on the intake/samples chooser (not while
+          the live camera or the photo preview is open). Rendered by the parent
+          so all three tabs share one navigation handler. */}
+      {renderTabBar(tabBarVisible)}
 
       {/* "Upload a Photo" file picker — gallery only, no camera.
           (Live camera capture has its own viewport in mode === "camera".) */}
