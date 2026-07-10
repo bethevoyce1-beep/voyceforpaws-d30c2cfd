@@ -34,6 +34,7 @@ export function JoinNetworkModal({
   const [zip, setZip] = useState("");
   const [phone, setPhone] = useState("");
   const [consent, setConsent] = useState(false);
+  const [betaTester, setBetaTester] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -46,6 +47,7 @@ export function JoinNetworkModal({
     setZip("");
     setPhone("");
     setConsent(false);
+    setBetaTester(false);
     setError(null);
     setDone(false);
     loadTurnstile().catch(() => {});
@@ -78,6 +80,7 @@ export function JoinNetworkModal({
           phone: phone.trim() || undefined,
           city,
           roles: selected,
+          betaTester,
           turnstileToken,
         },
       });
@@ -223,6 +226,16 @@ export function JoinNetworkModal({
                 />
               </label>
             </div>
+
+            <label className="mt-4 flex items-start gap-2.5 rounded-2xl border-2 border-[#EAE6DE] bg-[#FAF8F5] px-3.5 py-2.5 text-[12.5px] leading-snug text-foreground/80">
+              <input
+                type="checkbox"
+                checked={betaTester}
+                onChange={(e) => setBetaTester(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-[#C9871A]"
+              />
+              <span>🧪 <strong>Help test Voyce before launch.</strong> Add me to the early testing team.</span>
+            </label>
 
             <label className="mt-3 flex items-start gap-2.5 text-[12px] leading-snug text-foreground/70">
               <input
