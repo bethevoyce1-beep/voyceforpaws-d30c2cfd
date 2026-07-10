@@ -11,8 +11,9 @@ Status model (status_key -> public_status):
   euthanasia -> Euthanasia — happening now   euthanized -> In Memoriam
   b6spt      -> Critical - final minutes      immediate  -> Critical - today
   scheduled  -> On the clock - {date}         atrisk     -> Urgent
-  adoption   -> Rescue Hold                    foster     -> ACS Foster Hold
-  watch      -> Foster Pending                 secured    -> Secured
+  adopthold  -> ACS Adoption Hold              adoption   -> ACS Rescue Hold
+  foster     -> ACS Foster Hold                watch      -> Foster Pending
+  secured    -> Secured
 
   'euthanasia' means the dog is in the EUTHANASIA kennel right now (being
   euthanized). Once ACS drops them off the list, acs_apply_pull() moves them to
@@ -27,9 +28,9 @@ Classification precedence:
   2. kennel EUTHANASIA (in the room now)            -> euthanasia (happening now)
   3. note "Placement has been secured"              -> secured
   4. kennel Office / B6* / *SPT* (euthanasia room)  -> b6spt (final minutes);
-     a foster/adoption hold does NOT clear these — only "secured" does
-  5. note ADOPTION HOLD -> adoption; FOSTER HOLD -> foster (ACS Foster Hold);
-     "family is coming" -> watch (Foster Pending; overrides an OUTSIDE kennel)
+     a foster/adoption/rescue hold does NOT clear these — only "secured" does
+  5. note ADOPTION HOLD -> adopthold; RESCUE HOLD -> adoption (ACS Rescue Hold);
+     FOSTER HOLD -> foster; "family is coming" -> watch (Foster Pending)
   6. kennel OUTSIDE* (euth today, no hold)          -> immediate
   7. "euthanized today"                             -> immediate (Critical today)
      "euthanized on {future date}"                  -> scheduled (On the clock)
@@ -106,7 +107,9 @@ PETCONNECT_RE = re.compile(r'https://24petconnect\.com/image/[^\s"\'<>]+', re.I)
 # status_key -> friendly label shown to the public. `euthanasia` (in the room
 # now) is distinct from `euthanized` (In Memoriam, already gone). `watch`
 # (Foster Pending) is distinct from `foster` (ACS Foster Hold): a family is
-# coming, but the placement isn't confirmed yet.
+# coming, but the placement isn't confirmed yet. ACS lists three separate hold
+# types — an ADOPTION hold (someone is adopting -> adopthold), a RESCUE partner
+# hold (a rescue pulled -> adoption), and a FOSTER hold (-> foster).
 PUBLIC = {
     "euthanasia": "Euthanasia — happening now",
     "euthanized": "In Memoriam",
@@ -114,7 +117,8 @@ PUBLIC = {
     "immediate": "Critical · today",
     "scheduled": "On the clock",
     "atrisk": "Urgent",
-    "adoption": "Rescue Hold",
+    "adoption": "ACS Rescue Hold",
+    "adopthold": "ACS Adoption Hold",
     "foster": "ACS Foster Hold",
     "watch": "Foster Pending",
     "secured": "Secured",
@@ -201,8 +205,10 @@ def classify(kennel, euth_on, euth_today, block_text):
     acs_apply_pull() later moves them to 'euthanized' (In Memoriam) once they
     drop off the list. Explicit "has been euthanized" text is treated as already
     In Memoriam. Euthanasia-room kennels (Office/B6/SPT) are Critical regardless
-    of a hold — only 'Placement has been secured' clears them. An OUTSIDE kennel
-    means euthanized-today ONLY if no foster/adoption hold is present. A specific
+    of a hold — only 'Placement has been secured' clears them. ACS lists three
+    separate holds: ADOPTION HOLD (someone adopting -> adopthold), RESCUE HOLD (a
+    rescue partner pulled -> adoption) and FOSTER HOLD (-> foster). An OUTSIDE
+    kennel means euthanized-today ONLY if no hold is present. A specific
     "euthanized on {date}" is Critical; parse_rows splits today vs future.
     """
     k = (kennel or "").upper()
@@ -216,6 +222,8 @@ def classify(kennel, euth_on, euth_today, block_text):
     elif "OFFICE" in k or k.startswith("B6") or "SPT" in k:
         key = "b6spt"
     elif "ADOPTION HOLD" in bt or "ADOPTION IN PROGRESS" in bt:
+        key = "adopthold"
+    elif "RESCUE HOLD" in bt:
         key = "adoption"
     elif "FOSTER HOLD" in bt:
         key = "foster"
