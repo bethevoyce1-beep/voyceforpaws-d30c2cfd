@@ -9,6 +9,7 @@ export type SignupInput = {
   phone?: string;
   city?: string;
   roles: NetworkRole[];
+  betaTester?: boolean;
   turnstileToken: string;
 };
 
@@ -31,6 +32,7 @@ export const submitNetworkSignup = createServerFn({ method: "POST" })
           ALLOWED_ROLES.includes(r as NetworkRole),
         ))
       : [];
+    const betaTester = o.betaTester === true;
     const turnstileToken = String(o.turnstileToken ?? "");
 
     if (!isEmail(email) || email.length > 255) throw new Error("Invalid email");
@@ -38,7 +40,7 @@ export const submitNetworkSignup = createServerFn({ method: "POST" })
     // Roles are optional — supporters can join with no role selected.
     if (!turnstileToken) throw new Error("Missing verification");
 
-    return { name, email, zip, phone, city, roles, turnstileToken };
+    return { name, email, zip, phone, city, roles, betaTester, turnstileToken };
   })
   .handler(async ({ data }) => {
     // Verify Turnstile server-side
@@ -63,6 +65,7 @@ export const submitNetworkSignup = createServerFn({ method: "POST" })
       phone: data.phone ?? null,
       city: data.city ?? null,
       roles: data.roles,
+      beta_tester: data.betaTester ?? false,
       source: "shareable_card",
     });
     if (error) throw new Error(error.message);
