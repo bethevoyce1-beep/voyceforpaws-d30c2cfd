@@ -18,6 +18,7 @@ export type AcsStatusKey =
   | "immediate"
   | "scheduled"
   | "atrisk"
+  | "adopthold"
   | "adoption"
   | "foster"
   | "watch"
@@ -30,6 +31,7 @@ export type AcsSectionId =
   | "critical_today"
   | "on_the_clock"
   | "urgent"
+  | "acs_adoption_hold"
   | "rescue_hold"
   | "acs_foster_hold"
   | "foster_pending"
@@ -84,13 +86,21 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
     action: "Adopt, foster, or share.",
     rank: 3,
   },
+  adopthold: {
+    key: "adopthold",
+    section: "acs_adoption_hold",
+    label: "ACS Adoption Hold",
+    meaning: "Someone is adopting them.",
+    action: "Share as backup in case the adoption falls through.",
+    rank: 4,
+  },
   adoption: {
     key: "adoption",
     section: "rescue_hold",
-    label: "Rescue Hold",
-    meaning: "A rescue or adopter has claimed them.",
+    label: "ACS Rescue Hold",
+    meaning: "A rescue partner has placed a hold to pull them.",
     action: "Share as backup in case the hold falls through.",
-    rank: 4,
+    rank: 5,
   },
   foster: {
     key: "foster",
@@ -98,7 +108,7 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
     label: "ACS Foster Hold",
     meaning: "An ACS foster hold is in place.",
     action: "Share as backup in case the hold falls through.",
-    rank: 5,
+    rank: 6,
   },
   watch: {
     key: "watch",
@@ -106,7 +116,7 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
     label: "Foster Pending",
     meaning: "A family is coming, but it isn't confirmed yet.",
     action: "Keep watching in case plans change.",
-    rank: 6,
+    rank: 7,
   },
   secured: {
     key: "secured",
@@ -114,7 +124,7 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
     label: "Secured",
     meaning: "Placement confirmed — they're safe.",
     action: "Celebrate and share the good news.",
-    rank: 7,
+    rank: 8,
   },
   euthanized: {
     key: "euthanized",
@@ -122,7 +132,7 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
     label: "In Memoriam",
     meaning: "Confirmed euthanized. Remembered here.",
     action: "Share their story so it doesn't happen again.",
-    rank: 8,
+    rank: 9,
   },
 };
 
@@ -136,6 +146,7 @@ export function normalizeStatusKey(raw: string | null | undefined): AcsStatusKey
     k === "immediate" ||
     k === "scheduled" ||
     k === "atrisk" ||
+    k === "adopthold" ||
     k === "adoption" ||
     k === "foster" ||
     k === "watch" ||
