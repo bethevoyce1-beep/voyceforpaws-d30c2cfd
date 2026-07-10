@@ -214,7 +214,7 @@ export function JoinNetworkModal({
                 />
               </label>
               <label className="block">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground/60">Phone (optional)</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground/60">Phone (optional — for text alerts)</span>
                 <input
                   type="tel"
                   inputMode="tel"
