@@ -19,6 +19,9 @@ Status model (status_key -> public_status):
   'euthanized' (In Memoriam) permanently. A dog that leaves the list from any
   other kennel is treated as 'left' (saved/adopted/other), never memorialized.
 
+  All "today" logic uses San Antonio (Central) time — ACS's operating clock —
+  not the runner's UTC, so the list date and today/scheduled rollover are honest.
+
 Classification precedence:
   1. note "has been / was euthanized"               -> euthanized (In Memoriam)
   2. kennel EUTHANASIA (in the room now)            -> euthanasia (happening now)
@@ -46,9 +49,14 @@ import os
 import re
 import sys
 from datetime import date, datetime, timezone
+from zoneinfo import ZoneInfo
 
 import requests
 import pdfplumber
+
+# ACS operates on San Antonio (Central) time. All "today" logic is anchored here
+# so the list date and today/scheduled rollover don't drift on the UTC runner.
+CENTRAL = ZoneInfo("America/Chicago")
 
 DEFAULT_SUPABASE_URL = "https://okmukfrhvqkxphzueqww.supabase.co"
 
@@ -242,8 +250,10 @@ def extract(pdf_bytes):
 def parse_rows(raw_text):
     lines = raw_text.split("\n")
     n = len(lines)
-    today_iso = date.today().isoformat()
-    today_mdy = date.today().strftime("%m/%d/%Y")
+    now_ct = datetime.now(CENTRAL)
+    today = now_ct.date()
+    today_iso = today.isoformat()
+    today_mdy = today.strftime("%m/%d/%Y")
     demo_idx = [i for i, l in enumerate(lines) if DEMO_RE.match(l.strip())]
     out = {}
     for pos, i in enumerate(demo_idx):
@@ -448,6 +458,7 @@ def write_debug(pdf_url, page_count, parsed_rows, raw_text, notes):
 def main():
     started = datetime.now(timezone.utc).isoformat()
     log(f"Supabase target: {SUPABASE_URL} (live acs_animals via acs_apply_pull)")
+    log(f"ACS day (Central): {datetime.now(CENTRAL).date().isoformat()}")
     pdf_bytes = fetch_pdf(PDF_URL)
     raw_text, page_count = extract(pdf_bytes)
     log(f"Extracted {page_count} pages, {len(raw_text)} chars of text")
