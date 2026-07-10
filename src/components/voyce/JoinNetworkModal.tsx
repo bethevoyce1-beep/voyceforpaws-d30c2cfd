@@ -61,7 +61,8 @@ export function JoinNetworkModal({
   const submit = async () => {
     if (submitting) return;
     setError(null);
-    if (selected.length === 0) return setError("Pick at least one role.");
+    // Role is optional — someone can join just to follow along / get launch
+    // updates without committing to a role.
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError("Enter a valid email.");
     if (!zip.trim()) return setError("Enter your ZIP / postal code.");
 
@@ -128,11 +129,15 @@ export function JoinNetworkModal({
               Join the Voyce Pack{city ? ` in ${city}` : " in your area"}
             </h2>
             <p className="mt-1.5 text-[13.5px] leading-relaxed text-foreground/70">
-              We're building the network animal by animal. Your sign-up means
+              We're building the pack animal by animal. Your sign-up means
               the next {animalName || "rescue"} reaches someone — instead of no one.
             </p>
 
-            <div className="mt-4 space-y-1.5">
+            <p className="mt-4 text-[11px] font-semibold uppercase tracking-wider text-foreground/55">
+              How do you want to help?{" "}
+              <span className="font-normal normal-case text-foreground/45">(optional — you can just follow along)</span>
+            </p>
+            <div className="mt-1.5 space-y-1.5">
               {ROLES.map((r) => {
                 const on = selected.includes(r.id);
                 return (
