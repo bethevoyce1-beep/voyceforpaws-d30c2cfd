@@ -35,7 +35,7 @@ export const submitNetworkSignup = createServerFn({ method: "POST" })
 
     if (!isEmail(email) || email.length > 255) throw new Error("Invalid email");
     if (!zip || zip.length > 16) throw new Error("Invalid ZIP");
-    if (roles.length === 0) throw new Error("Pick at least one role");
+    // Roles are optional — supporters can join with no role selected.
     if (!turnstileToken) throw new Error("Missing verification");
 
     return { name, email, zip, phone, city, roles, turnstileToken };
