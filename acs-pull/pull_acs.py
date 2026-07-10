@@ -485,6 +485,14 @@ def main():
     res = apply_pull(rows)
     log(f"acs_apply_pull result: {res}")
 
+    # Per-dog ACS PDF crops — isolated so any failure here never affects the
+    # data pull above (which has already been written).
+    try:
+        import make_crops
+        make_crops.main()
+    except Exception as e:
+        log(f"per-dog PDF crops skipped (non-fatal): {e}")
+
 
 if __name__ == "__main__":
     main()
