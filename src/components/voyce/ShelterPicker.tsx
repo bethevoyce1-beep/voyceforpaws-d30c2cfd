@@ -520,7 +520,7 @@ export function ShelterPicker({ onPick, onBack }: Props) {
               { n: 1, t: "Shelter publishes list", b: "Capacity euthanasia / at-risk, updated daily." },
               { n: 2, t: "Voyce ingests it", b: "A scheduled job pulls and parses every animal." },
               { n: 3, t: "Cards auto-generate", b: "One card per animal, grouped by how urgent it is." },
-              { n: 4, t: "Network gets alerted", b: "Rescues, fosters & adopters in range." },
+              { n: 4, t: "Pack gets alerted", b: "Rescues, fosters & adopters in range." },
             ].map((step) => (
               <li key={step.n} className="flex items-start gap-3">
                 <span
