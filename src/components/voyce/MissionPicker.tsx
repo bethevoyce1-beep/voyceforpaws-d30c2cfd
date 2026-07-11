@@ -129,7 +129,7 @@ export function MissionPicker({ onPick }: { onPick: (id: MissionId) => void }) {
           style={{ color: "#5A4F44", marginBottom: 32 }}
         >
           <span aria-hidden style={{ color: GOLD, marginRight: 6 }}>✨</span>
-          Choose the closest match. Voyce AI will identify the situation and alert the appropriate rescue network.
+          Choose the closest match. Voyce AI will identify the situation and alert the appropriate rescue pack.
         </p>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

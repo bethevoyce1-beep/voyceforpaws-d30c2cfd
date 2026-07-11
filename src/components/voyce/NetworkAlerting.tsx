@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
 
 // Shown right after the reporter taps "Send to rescuers" on the rescue card —
-// the network-alert steps play here (AFTER the real send) so the "we alerted
-// the network" moment is accurate. Auto-advances to the share screen.
+// the pack-alert steps play here (AFTER the real send) so the "we alerted
+// the pack" moment is accurate. Auto-advances to the share screen.
 const STEPS = [
   {
     icon: "📢",
-    title: "Alerting the network",
+    title: "Alerting the pack",
     sub: "Closest rescuers, fosters, shelters, and animal lovers get it first — anyone willing to help. The alert keeps rippling outward until this animal is helped.",
   },
   {

@@ -82,7 +82,7 @@ export const MISSIONS: Record<MissionId, Mission> = {
     // instead of urgent-rescue framing.
     intakeTitle: "Try Voyce on your own pet — or any other animal",
     intakeDescription:
-      "Upload any animal photo — yours, a stray you've seen, anything. Voyce's AI builds a full rescue profile in seconds — and at launch, it will alert the closest helpers first, rippling outward until this animal is helped. We're not live yet — this is a preview. See how the network responds.",
+      "Upload any animal photo — yours, a stray you've seen, anything. Voyce's AI builds a full rescue profile in seconds — and at launch, it will alert the closest helpers first, rippling outward until this animal is helped. We're not live yet — this is a preview. See how the pack responds.",
     titleSub: "Needs medical attention",
     callout: {
       emoji: "❤",
@@ -124,11 +124,11 @@ export const MISSIONS: Record<MissionId, Mission> = {
     alertButtonLabel: "🆘 Save This Dog",
     intakeTitle: "At-Risk Shelter Animal",
     intakeDescription:
-      "Facing the shelter's capacity deadline. Pick an animal from the live ACS list — Voyce builds a full share card with countdown, shelter contacts, and direct ACS links. The whole network is alerted: rescuers, fosters, adopters, pledgers, transporters — every role that can save this life.",
+      "Facing the shelter's capacity deadline. Pick an animal from the live ACS list — Voyce builds a full share card with countdown, shelter contacts, and direct ACS links. The whole pack is alerted: rescuers, fosters, adopters, pledgers, transporters — every role that can save this life.",
     titleSub: "Needs foster or rescue pull TODAY",
     callout: {
       emoji: "🚨",
-      body: "Without a foster or rescue commitment by the deadline, this animal will be euthanized. Every role in the network matters.",
+      body: "Without a foster or rescue commitment by the deadline, this animal will be euthanized. Every role in the pack matters.",
       bg: "#FCE4E4",
       border: "#D14848",
       text: "#7E1F1F",
@@ -172,7 +172,7 @@ export const MISSIONS: Record<MissionId, Mission> = {
     alertButtonLabel: "🔔 Alert Neighbors",
     intakeTitle: "Lost or Found Pet",
     intakeDescription:
-      "Reuniting strays with their families — fast. One photo and Voyce AI checks for collar, tags, and signs of an owned pet, then alerts the neighborhood network: lost-pet groups, neighbors, and local shelters. The closest helpers see it first.",
+      "Reuniting strays with their families — fast. One photo and Voyce AI checks for collar, tags, and signs of an owned pet, then alerts the neighborhood pack: lost-pet groups, neighbors, and local shelters. The closest helpers see it first.",
     titleSub: "Helping reunite with family",
     callout: {
       emoji: "💛",
