@@ -113,7 +113,7 @@ export function DemoGate({ onDone }: { onDone: () => void }) {
           />
           <span className="text-sm leading-relaxed">
             <span className="mr-1">💛</span>
-            <span className="font-semibold">Yes, follow this animal's journey.</span> Get updates as the network responds, rescue progresses, and a happy ending unfolds.
+            <span className="font-semibold">Yes, follow this animal's journey.</span> Get updates as the pack responds, rescue progresses, and a happy ending unfolds.
           </span>
         </label>
 
