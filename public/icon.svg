@@ -1,11 +1,28 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Voyce for Paws">
-  <rect width="1024" height="1024" rx="210" fill="#0B0B0C"/>
-  <g fill="#FFD24A">
-    <ellipse cx="512" cy="755" rx="205" ry="145"/>
-    <ellipse cx="300" cy="500" rx="75" ry="100"/>
-    <ellipse cx="432" cy="398" rx="76" ry="107"/>
-    <ellipse cx="592" cy="398" rx="76" ry="107"/>
-    <ellipse cx="724" cy="500" rx="75" ry="100"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1A1A1A"/><stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+    <filter id="pawGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="17" result="b"/>
+      <feFlood flood-color="#FFDE2E" flood-opacity="0.8"/>
+      <feComposite in2="b" operator="in" result="g"/>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="dotGlow" x="-150%" y="-150%" width="400%" height="400%">
+      <feGaussianBlur stdDeviation="16"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" rx="230" fill="url(#bg)"/>
+  <g filter="url(#pawGlow)">
+    <g fill="#ffffff" transform="translate(512 520) scale(8) translate(-47 -52.5)">
+      <path d="M50,91 C33,91 24,80 24,68 C24,56 33,49 50,49 C67,49 76,56 76,68 C76,80 67,91 50,91 Z"/>
+      <ellipse cx="21" cy="40" rx="9.5" ry="13" transform="rotate(-18 21 40)"/>
+      <ellipse cx="39" cy="27" rx="9.5" ry="13" transform="rotate(-6 39 27)"/>
+      <ellipse cx="57" cy="27" rx="9.5" ry="13" transform="rotate(6 57 27)"/>
+      <ellipse cx="73" cy="40" rx="9.5" ry="13" transform="rotate(18 73 40)"/>
+    </g>
   </g>
-  <circle cx="805" cy="235" r="35" fill="#F0A516"/>
+  <circle cx="792" cy="214" r="78" fill="#FFDE2E" opacity="0.45" filter="url(#dotGlow)"/>
+  <circle cx="792" cy="214" r="72" fill="#FFDE2E"/>
 </svg>
