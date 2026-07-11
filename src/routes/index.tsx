@@ -84,6 +84,54 @@ async function toDataUrl(src: string): Promise<string> {
   });
 }
 
+// Shrink + re-encode a captured photo before it's sent to the AI. Full-res
+// phone photos produce multi-megabyte base64 data URLs that make analysis slow
+// and sometimes fail on mobile with "Load failed" (oversized request / timeout).
+// If the largest dimension exceeds maxDim, draw the image to a canvas scaled to
+// fit and export as JPEG at `quality`. This NEVER throws — on any failure, or if
+// the image is already small, it resolves with the original dataUrl unchanged.
+// Non-data: inputs (bundled sample images) are returned as-is.
+async function downscaleDataUrl(
+  dataUrl: string,
+  maxDim = 1280,
+  quality = 0.82,
+): Promise<string> {
+  if (!dataUrl.startsWith("data:")) return dataUrl;
+  return await new Promise<string>((resolve) => {
+    try {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const w = img.naturalWidth || img.width;
+          const h = img.naturalHeight || img.height;
+          const largest = Math.max(w, h);
+          if (!largest || largest <= maxDim) {
+            resolve(dataUrl);
+            return;
+          }
+          const scale = maxDim / largest;
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.round(w * scale);
+          canvas.height = Math.round(h * scale);
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            resolve(dataUrl);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        } catch {
+          resolve(dataUrl);
+        }
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    } catch {
+      resolve(dataUrl);
+    }
+  });
+}
+
 // Pick the best available photo for an ACS animal — the scraper doesn't
 // populate thumb/photos yet, so this is often null and the ACS card / picker
 // fall back to a graceful placeholder.
@@ -207,13 +255,19 @@ function Home() {
       setAiError(null);
       setAssessment(null);
       try {
+        // Downscale + compress before anything leaves the device. Full-res phone
+        // photos are multi-megabyte and made analysis slow / fail on mobile with
+        // "Load failed". Sample images (non data: URLs) pass through untouched.
+        // The full-res `captured` is kept for on-screen display; only `small`
+        // feeds the hash and the AI request.
+        const small = await downscaleDataUrl(dataUrl);
         // Anti-scam Tier 2 (July 5, 2026): real captures carry a perceptual
         // hash (30-day dedup) and time-on-page. Sample photos are exempt —
         // they're the demo flow and repeat by design.
-        const photoHash = isSample ? undefined : (await dhashFromDataUrl(dataUrl)) ?? undefined;
+        const photoHash = isSample ? undefined : (await dhashFromDataUrl(small)) ?? undefined;
         const elapsedMs = isSample ? undefined : Date.now() - appLoadedAt;
         const result = await analyzeImage({
-          data: { imageDataUrl: dataUrl, mission: missionOverride ?? mission, context: {}, photoHash, elapsedMs },
+          data: { imageDataUrl: small, mission: missionOverride ?? mission, context: {}, photoHash, elapsedMs },
         });
         // Camera-first: on the first read, adopt the situation the AI saw in the
         // photo so the card opens in the right mission. Skipped on an explicit
