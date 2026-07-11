@@ -3,7 +3,7 @@ import type { MissionId } from "@/lib/missions";
 import type { Assessment } from "@/lib/analyze.functions";
 
 // Bottom-sheet pop-up: shows what Voyce read from the photo (pre-selected), lets
-// the reporter confirm or fix it, then sends to the network. Opened from the
+// the reporter confirm or fix it, then sends to the pack. Opened from the
 // rescue card. "Send" is the single confirm-and-send action.
 
 export type ReviewResult = {
@@ -144,10 +144,10 @@ export function ReviewSheet({
             className="w-full rounded-2xl py-3.5 text-[15px] font-bold uppercase tracking-wide shadow-md transition active:scale-[0.99]"
             style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${DEEP_GOLD} 100%)`, color: "#3A2A07" }}
           >
-            {changed ? "✨ Update & send to network" : "🔔 Send to network"}
+            {changed ? "✨ Update & send to pack" : "🔔 Send to pack"}
           </button>
           <p className="mt-2 text-center text-[11px] italic text-foreground/55">
-            Sends instantly to the nearby network. Pre-launch: this is a preview of launch alerts.
+            Sends instantly to the nearby pack. Pre-launch: this is a preview of launch alerts.
           </p>
         </div>
       </div>
