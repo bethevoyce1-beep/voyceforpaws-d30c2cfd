@@ -62,8 +62,9 @@ const GOLD = "#FFDF3B";
 const DEEP_GOLD = "#C9871A";
 const GREEN = "oklch(0.6 0.17 145)";
 
-// Step durations in ms (steps 2 and 4 are the wow moments)
-const STEP_MS = [1000, 2500, 1000, 3000, 1000];
+// Step durations in ms. Kept short so the flow is only gated by the real AI
+// call (step index 3 waits for aiPending) — no artificial waiting for rescuers.
+const STEP_MS = [250, 400, 250, 500, 250];
 
 export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment, onComplete, onRetry, onLocate }: Props) {
   const [elapsed, setElapsed] = useState(0);
@@ -134,7 +135,7 @@ export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment
   useEffect(() => {
     if (step >= 5 && !aiPending && !aiError) {
       setFrozen(true);
-      const t = setTimeout(onComplete, 900);
+      const t = setTimeout(onComplete, 200);
       return () => clearTimeout(t);
     }
   }, [step, aiPending, aiError, onComplete]);
@@ -427,10 +428,10 @@ function StateIndicator({ done, active }: { done: boolean; active: boolean }) {
 function LocationReveal({ geo }: { geo: Geo | null }) {
   const [show, setShow] = useState({ acc: false, approx: false, map: false, pin: false });
   useEffect(() => {
-    const t1 = setTimeout(() => setShow((s) => ({ ...s, acc: true })), 400);
-    const t2 = setTimeout(() => setShow((s) => ({ ...s, approx: true })), 900);
-    const t3 = setTimeout(() => setShow((s) => ({ ...s, map: true })), 1400);
-    const t4 = setTimeout(() => setShow((s) => ({ ...s, pin: true })), 1800);
+    const t1 = setTimeout(() => setShow((s) => ({ ...s, acc: true })), 150);
+    const t2 = setTimeout(() => setShow((s) => ({ ...s, approx: true })), 300);
+    const t3 = setTimeout(() => setShow((s) => ({ ...s, map: true })), 450);
+    const t4 = setTimeout(() => setShow((s) => ({ ...s, pin: true })), 600);
     return () => [t1, t2, t3, t4].forEach(clearTimeout);
   }, []);
 
@@ -544,7 +545,7 @@ function AIReveal({
   useEffect(() => {
     if (!ready) return;
     setRevealed(0);
-    const timers = [500, 1000, 1500].map((d, i) =>
+    const timers = [150, 300, 450].map((d, i) =>
       setTimeout(() => setRevealed(i + 1), d),
     );
     return () => timers.forEach(clearTimeout);

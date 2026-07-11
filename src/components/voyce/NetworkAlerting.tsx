@@ -21,9 +21,9 @@ export function NetworkAlerting({ onComplete }: { onComplete: () => void }) {
   const [step, setStep] = useState(0);
 
   useEffect(() => {
-    const t1 = window.setTimeout(() => setStep(1), 1200);
-    const t2 = window.setTimeout(() => setStep(2), 2700);
-    const t3 = window.setTimeout(onComplete, 3600);
+    const t1 = window.setTimeout(() => setStep(1), 500);
+    const t2 = window.setTimeout(() => setStep(2), 1000);
+    const t3 = window.setTimeout(onComplete, 1400);
     return () => {
       window.clearTimeout(t1);
       window.clearTimeout(t2);
