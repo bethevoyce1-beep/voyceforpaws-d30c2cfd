@@ -528,6 +528,67 @@ export function ShareCard({
   const [witnessed, setWitnessed] = useState<string[]>([]);
   const [sentUpdate, setSentUpdate] = useState(false);
 
+  // Confirm / add-or-correct the location. A photo often lacks GPS and the map
+  // may show the reporter's own location, not the animal's — so let the reporter
+  // type an exact address or cross-streets. When set, `manualLoc` overrides the
+  // incoming `location` prop everywhere the card builds its map / directions.
+  const [manualLoc, setManualLoc] = useState<
+    { lat: number; lon: number; label: string } | null
+  >(null);
+  const [addrInput, setAddrInput] = useState("");
+  const [geocoding, setGeocoding] = useState(false);
+
+  // Effective location the card renders from — manual override wins, else prop.
+  const effectiveLoc = manualLoc ?? location ?? null;
+
+  // Forward-geocode the typed address with OpenStreetMap Nominatim. If it
+  // resolves, use its coords + display_name; if not (or the fetch fails), still
+  // keep the typed text as the displayed label so a hand-typed address is never
+  // lost. Coords stay NaN in that case so map links fall back to an address search.
+  const setLocationFromInput = async () => {
+    const q = addrInput.trim();
+    if (!q || geocoding) return;
+    setGeocoding(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`,
+        { headers: { Accept: "application/json" } },
+      );
+      const results = (await res.json()) as Array<{
+        lat: string;
+        lon: string;
+        display_name: string;
+      }>;
+      const hit = Array.isArray(results) ? results[0] : undefined;
+      if (hit) {
+        setManualLoc({
+          lat: parseFloat(hit.lat),
+          lon: parseFloat(hit.lon),
+          label: hit.display_name || q,
+        });
+      } else {
+        setManualLoc({ lat: NaN, lon: NaN, label: q });
+      }
+    } catch {
+      // Network / parse failure — accept the typed text as the label anyway.
+      setManualLoc({ lat: NaN, lon: NaN, label: q });
+    } finally {
+      setGeocoding(false);
+    }
+  };
+
+  // Effective coords are only usable for a coordinate map link if both are real
+  // numbers; a hand-typed address with no geocode falls back to a search link.
+  const hasCoords =
+    !!effectiveLoc &&
+    Number.isFinite(effectiveLoc.lat) &&
+    Number.isFinite(effectiveLoc.lon);
+  const mapHref = effectiveLoc
+    ? hasCoords
+      ? `https://www.google.com/maps/dir/?api=1&destination=${effectiveLoc.lat},${effectiveLoc.lon}`
+      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(effectiveLoc.label)}`
+    : null;
+
   const openModal = (role?: NetworkRole) => {
     setModalRole(role);
     setModalOpen(true);
@@ -666,32 +727,23 @@ export function ShareCard({
               <p className="mt-2 text-[14px] font-medium text-[#6B7280]">{speciesLine}</p>
             )}
 
-            {/* ============ ANIMAL INFO — compact pills + View Map + report-detail pills ============ */}
-            {(infoPills.length > 0 || location) && (
+            {/* ============ ANIMAL INFO — compact pills + report-detail pills ============ */}
+            {(infoPills.length > 0 || effectiveLoc) && (
               <div className="mt-3">
-                {/* Chips: one per available animal-info field, plus a View Map link if located */}
-                <div className="flex flex-wrap gap-1.5">
-                  {infoPills.map((p) => (
-                    <span
-                      key={p.label}
-                      className="inline-flex items-center gap-1 rounded-full border border-[#EDE5D8] bg-white px-2.5 py-1 text-[13px]"
-                    >
-                      <span className="text-[#9CA3AF]">{p.label}</span>
-                      <span className="font-bold text-[#374151]">{p.value}</span>
-                    </span>
-                  ))}
-
-                  {location && (
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${location.lat},${location.lon}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 rounded-full border border-[#C7DBFF] bg-[#EFF6FF] px-2.5 py-1 text-[13px] font-bold text-[#1D4ED8] transition active:scale-95 hover:brightness-105"
-                    >
-                      📍 View Map
-                    </a>
-                  )}
-                </div>
+                {/* Chips: one per available animal-info field */}
+                {infoPills.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {infoPills.map((p) => (
+                      <span
+                        key={p.label}
+                        className="inline-flex items-center gap-1 rounded-full border border-[#EDE5D8] bg-white px-2.5 py-1 text-[13px]"
+                      >
+                        <span className="text-[#9CA3AF]">{p.label}</span>
+                        <span className="font-bold text-[#374151]">{p.value}</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 {/* Report-detail chips: Case # · AI confidence · Reported by · Date */}
                 <div className="mt-2 flex flex-wrap gap-1.5">
@@ -721,11 +773,70 @@ export function ShareCard({
               </div>
             )}
 
-            {/* Location */}
-            <p className="mt-1 flex items-center gap-1.5 text-[14px] font-medium text-[#374151]">
-              <span style={{ color: "#FFDF3B" }}>📍</span>
-              <span>Near {street} · {city}</span>
-            </p>
+            {/* ============ LOCATION — most important control for a rescuer ============ */}
+            <div className="mt-4">
+              {/* 1. View Map first + most prominent — a rescuer needs the map above all */}
+              {mapHref && (
+                <a
+                  href={mapHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex w-full items-center justify-center gap-2 rounded-[14px] px-4 py-3.5 text-[14px] font-extrabold uppercase tracking-wide text-white shadow-md transition active:scale-[0.99] hover:brightness-105"
+                  style={{ background: `linear-gradient(135deg, ${BLUE1} 0%, ${BLUE2} 100%)` }}
+                >
+                  <span>🗺️</span>
+                  <span>View Map &amp; Directions</span>
+                </a>
+              )}
+
+              {/* Current location label */}
+              <p className="mt-2 flex items-start gap-1.5 text-[14px] font-medium text-[#374151]">
+                <span style={{ color: "#FFDF3B" }}>📍</span>
+                <span>{effectiveLoc?.label || `Near ${street} · ${city}`}</span>
+              </p>
+
+              {/* 2. Confirm / add / correct the address — always visible */}
+              <div className="mt-2 rounded-xl border border-[#C7DBFF] bg-[#EFF6FF] px-3.5 py-3">
+                <p className="text-[13.5px] leading-relaxed text-[#1E3A8A]">
+                  📍 Is this where the animal is? If the map is off, add the exact
+                  address or nearest cross-streets.
+                </p>
+                <div className="mt-2.5 flex flex-col gap-2 sm:flex-row">
+                  <label htmlFor="voyce-address" className="sr-only">
+                    Exact address or nearest cross-streets
+                  </label>
+                  <input
+                    id="voyce-address"
+                    type="text"
+                    inputMode="text"
+                    value={addrInput}
+                    onChange={(e) => setAddrInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void setLocationFromInput();
+                      }
+                    }}
+                    placeholder="e.g. 5th Ave & Main St, Springfield"
+                    className="min-w-0 flex-1 rounded-[10px] border border-[#C7DBFF] bg-white px-3 py-2.5 text-[14px] text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#93C5FD]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void setLocationFromInput()}
+                    disabled={geocoding || !addrInput.trim()}
+                    className="shrink-0 rounded-[10px] px-4 py-2.5 text-[13px] font-extrabold uppercase tracking-wide text-white shadow-sm transition active:scale-95 hover:brightness-105 disabled:opacity-50"
+                    style={{ background: `linear-gradient(135deg, ${BLUE1} 0%, ${BLUE2} 100%)` }}
+                  >
+                    {geocoding ? "Setting…" : "Set location"}
+                  </button>
+                </div>
+                {manualLoc && (
+                  <p className="mt-2 text-[12.5px] font-semibold text-[#047857]">
+                    ✓ Location updated for the map and directions.
+                  </p>
+                )}
+              </div>
+            </div>
 
             {/* Story */}
             {story && (
