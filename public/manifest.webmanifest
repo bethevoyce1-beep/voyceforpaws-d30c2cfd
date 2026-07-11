@@ -1,0 +1,16 @@
+{
+  "name": "Voyce for Paws",
+  "short_name": "Voyce",
+  "description": "Snap a photo of an animal in need — Voyce builds a rescue card in seconds and alerts the closest helpers.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B0B0C",
+  "theme_color": "#0B0B0C",
+  "icons": [
+    { "src": "/icon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any" },
+    { "src": "/icon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "maskable" },
+    { "src": "https://okmukfrhvqkxphzueqww.supabase.co/storage/v1/object/public/acs-pdf/icons/apple-touch-icon.png", "type": "image/png", "sizes": "180x180", "purpose": "any" }
+  ]
+}
