@@ -157,7 +157,7 @@ function buildShareText(a: AcsAnimal, deepLink: string): string {
     `📞 Contact ACS: ${ACS.phone}`,
     `🔗 Real ACS listing: ${deepLink}`,
     ``,
-    `Voyce is pre-launch — every share grows the rescue community network. Real alerts go to nearest helpers when we launch.`,
+    `Voyce is pre-launch — every share grows the pack. Real alerts go to nearest helpers when we launch.`,
     `→ voyceforpaws.lovable.app`,
   ].join("\n");
 }
@@ -639,14 +639,14 @@ export function AcsShareCard({
             Be the first Rescue Partner in San Antonio
           </h3>
           <p className="mt-1.5 text-[13px] leading-[1.45]">
-            Join the network so the next at-risk shelter animal reaches you — not no one.
+            Join the pack so the next at-risk shelter animal reaches you — not no one.
           </p>
           <button
             onClick={() => openModal("rescuer")}
             className="mt-3 w-full rounded-full bg-black px-5 py-3 text-[12.5px] font-extrabold uppercase tracking-wider"
             style={{ color: GOLD }}
           >
-            Join the Network →
+            Join the Pack →
           </button>
         </div>
 
