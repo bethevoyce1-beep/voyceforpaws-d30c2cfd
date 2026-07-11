@@ -173,7 +173,7 @@ function assessmentFromAcs(a: AcsAnimal): Assessment {
     next_steps: [
       meta.action,
       "Coordinate a foster or rescue pull with ACS",
-      "Share to grow the network",
+      "Share to grow the pack",
     ],
     vet_notes: {
       bcs: "Not yet assessed",
@@ -318,9 +318,9 @@ function Home() {
   );
 
   // Reporter finished the "Tell us about them" form → show the rescue card so
-  // they can review it. The network-alerting animation now plays AFTER they tap
+  // they can review it. The pack-alerting animation now plays AFTER they tap
   // "Send to rescuers" on the card (see the report stage below), so the "we
-  // alerted the network" moment only happens once it's actually true.
+  // alerted the pack" moment only happens once it's actually true.
   const startReport = useCallback(
     (details: ReportDetailsData) => {
       setReportDetails(details);
@@ -343,7 +343,7 @@ function Home() {
 
   // Card-first: the review pop-up is the single confirm-and-send step. Applying
   // the reporter's confirmed situation sets the mission, then sends instantly to
-  // the network (the "Notifying the network" animation).
+  // the pack (the "Notifying the pack" animation).
   const handleReviewSend = useCallback(
     (r: ReviewResult) => {
       setReportDetails({
@@ -1005,7 +1005,7 @@ function CaptureScreen({
               <div className="mt-4 rounded-xl border border-dashed border-[#E0D6BB] bg-[#FBF7EC] px-4 py-3 text-center text-[12px] leading-relaxed text-[#6B5832]">
                 Try Voyce on a stray or injured animal you&apos;ve seen — photo or
                 video, either works. <strong>We&apos;re not live yet</strong> — this is a
-                preview of how Voyce will alert the network when we launch.
+                preview of how Voyce will alert the pack when we launch.
               </div>
 
               {/* Fallback: try a sample */}
