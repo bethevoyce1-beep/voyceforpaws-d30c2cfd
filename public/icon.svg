@@ -4,22 +4,33 @@
       <stop offset="0" stop-color="#1A1A1A"/><stop offset="1" stop-color="#000000"/>
     </linearGradient>
     <filter id="pawGlow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="16" result="b"/>
+      <feGaussianBlur in="SourceAlpha" stdDeviation="15" result="b"/>
       <feFlood flood-color="#FFDE2E" flood-opacity="0.85"/>
       <feComposite in2="b" operator="in" result="g"/>
       <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
+    <filter id="dotHalo" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="14"/></filter>
   </defs>
   <rect width="1024" height="1024" rx="230" fill="url(#bg)"/>
   <g filter="url(#pawGlow)">
-    <g fill="#ffffff" transform="translate(512 512) scale(8) translate(-47 -52.5)">
-      <path d="M50,91 C33,91 24,80 24,68 C24,56 33,49 50,49 C67,49 76,56 76,68 C76,80 67,91 50,91 Z"/>
-      <ellipse cx="21" cy="40" rx="9.5" ry="13" transform="rotate(-18 21 40)"/>
-      <ellipse cx="39" cy="27" rx="9.5" ry="13" transform="rotate(-6 39 27)"/>
-      <ellipse cx="57" cy="27" rx="9.5" ry="13" transform="rotate(6 57 27)"/>
-      <ellipse cx="73" cy="40" rx="9.5" ry="13" transform="rotate(18 73 40)"/>
+    <g fill="#ffffff" transform="translate(512 485) scale(7.6) translate(-50 -53)">
+      <path d="M50,49 C68,49 80,60 80,74 C80,87 67,93 50,93 C33,93 20,87 20,74 C20,60 32,49 50,49 Z"/>
+      <ellipse cx="20" cy="41" rx="10" ry="14" transform="rotate(-20 20 41)"/>
+      <ellipse cx="39" cy="27" rx="10" ry="15" transform="rotate(-7 39 27)"/>
+      <ellipse cx="61" cy="27" rx="10" ry="15" transform="rotate(7 61 27)"/>
+      <ellipse cx="80" cy="41" rx="10" ry="14" transform="rotate(20 80 41)"/>
     </g>
   </g>
-  <circle cx="800" cy="224" r="50" fill="none" stroke="#FFDE2E" stroke-width="5" opacity="0.4"/>
-  <circle cx="800" cy="224" r="38" fill="#FFDE2E"/>
+  <circle cx="836" cy="150" r="46" fill="#FFDE2E" filter="url(#dotHalo)">
+    <animate attributeName="opacity" values="0.4;0;0.4" dur="1.5s" repeatCount="indefinite"/>
+    <animate attributeName="r" values="34;64;34" dur="1.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="836" cy="150" r="34" fill="none" stroke="#FFDE2E" stroke-width="6" opacity="0.7">
+    <animate attributeName="r" values="34;82;34" dur="1.5s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.7;0;0.7" dur="1.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="836" cy="150" r="32" fill="#FFDE2E">
+    <animate attributeName="r" values="28;37;28" dur="1.5s" repeatCount="indefinite"/>
+  </circle>
+  <text x="323" y="915" text-anchor="start" font-family="Georgia, 'Times New Roman', serif" font-size="46" font-weight="700"><tspan fill="#ffffff">Voyce</tspan> <tspan font-style="italic" font-weight="400" fill="#FFDE2E">for</tspan> <tspan fill="#ffffff">Paws</tspan></text>
 </svg>
