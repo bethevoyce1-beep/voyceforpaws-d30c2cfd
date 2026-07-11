@@ -59,7 +59,7 @@ const TEAL2 = "#0E7490";
 // =============================================================
 // "Correct this" editor data (module scope)
 // The reporter can re-categorize the report and flag what a photo
-// couldn't show, then send a simulated (pre-launch) network update.
+// couldn't show, then send a simulated (pre-launch) pack update.
 // =============================================================
 const CATEGORIES = [
   { key: "injured",   icon: "🚨", label: "Injured / Sick",              examples: ["Hit by car","Wounded","Sick","Abandoned","Immediate concern"] },
@@ -173,7 +173,7 @@ function variantFor(mission: MissionId, data: Assessment): Variant {
           body: "Looks like an owned pet at home — no rescue needed.",
         },
         alertBtn: {
-          label: "🔔 SHARE TO NETWORK",
+          label: "🔔 SHARE TO PACK",
           gradient: `linear-gradient(135deg, ${GREEN1} 0%, ${GREEN2} 100%)`,
         },
         actionRow: [
@@ -206,7 +206,7 @@ function variantFor(mission: MissionId, data: Assessment): Variant {
           body: "Appears healthy with no visible injury or distress.",
         },
         alertBtn: {
-          label: "🔔 SHARE TO NETWORK",
+          label: "🔔 SHARE TO PACK",
           gradient: `linear-gradient(135deg, ${GREEN1} 0%, ${GREEN2} 100%)`,
         },
         actionRow: [
@@ -270,7 +270,7 @@ function variantFor(mission: MissionId, data: Assessment): Variant {
           bg: "#FFFBEB", border: GOLD1, icon: "⏳",
           title: "Time Sensitive:", body: "At risk of euthanasia",
         },
-        alertBtn: { label: "🔔 SEND ALERT TO NETWORK",
+        alertBtn: { label: "🔔 SEND ALERT TO PACK",
           gradient: `linear-gradient(135deg, ${GOLD1} 0%, ${GOLD2} 100%)` },
         actionRow: [
           { icon: "🏠", label: "Foster" },
@@ -305,7 +305,7 @@ function variantFor(mission: MissionId, data: Assessment): Variant {
           title: kind === "FOUND" ? "Safe & Secure:" : "Last seen:",
           body: kind === "FOUND" ? "Seen by good samaritan" : "Neighbors please look",
         },
-        alertBtn: { label: "🔔 NOTIFY LOST PET NETWORK",
+        alertBtn: { label: "🔔 NOTIFY THE PACK",
           gradient: `linear-gradient(135deg, ${BLUE1} 0%, ${BLUE2} 100%)` },
         actionRow: [
           { icon: "👁", label: "I've Seen" },
@@ -431,7 +431,7 @@ function buildShareText(data: Assessment, v: Variant, city: string): string {
     `How you can help:`,
     `🏠 Foster · 🚑 Rescue · 💛 Adopt · 🤝 Pledge · 🚐 Transport`,
     ``,
-    `Voyce is pre-launch — every share grows the rescue community network. Real alerts go to nearest helpers when we launch.`,
+    `Voyce is pre-launch — every share grows the pack. Real alerts go to nearest helpers when we launch.`,
     `→ voyceforpaws.lovable.app`,
   ].join("\n");
 }
@@ -1175,7 +1175,7 @@ export function ShareCard({
                           className="mt-4 w-full rounded-[14px] px-4 py-3 text-[13px] font-extrabold uppercase tracking-wide shadow-md transition active:scale-[0.99]"
                           style={{ background: "linear-gradient(135deg,#FFDF3B,#C9871A)", color: "#3A2A07" }}
                         >
-                          🔔 Update &amp; notify the network
+                          🔔 Update &amp; notify the pack
                         </button>
                         <button
                           onClick={() => setShowRead(false)}
@@ -1187,7 +1187,7 @@ export function ShareCard({
                     ) : (
                       /* e. Green confirmation banner (simulated, pre-launch) */
                       <div className="rounded-xl border border-[#A7F3D0] bg-[#ECFDF5] px-3.5 py-3.5">
-                        <p className="text-[15px] font-extrabold text-[#065F46]">✅ Update sent to the network</p>
+                        <p className="text-[15px] font-extrabold text-[#065F46]">✅ Update sent to the pack</p>
                         <p className="mt-1 text-[14px] leading-relaxed text-[#047857]">
                           Updated to {selectedCat?.label ?? "Injured / Sick"}
                           {examples.length > 0 ? `, ${examples.join(", ")}` : ""}
@@ -1241,13 +1241,13 @@ export function ShareCard({
             Be the first {v.ctaRole} in {city}
           </h3>
           <p className="mt-1.5 text-[15px] leading-relaxed">
-            Join the network so the next animal in need reaches you — not no one.
+            Join the pack so the next animal in need reaches you — not no one.
           </p>
           <button
             onClick={() => openModal()}
             className="mt-3 w-full rounded-full bg-black px-5 py-3 text-[12.5px] font-extrabold uppercase tracking-wider text-[#FFDF3B] transition active:scale-[0.99]"
           >
-            Join the Network →
+            Join the Pack →
           </button>
         </div>
 
