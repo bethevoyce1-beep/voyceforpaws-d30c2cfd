@@ -38,7 +38,7 @@ export function NetworkAlerting({ onComplete }: { onComplete: () => void }) {
         <h1 className="font-serif text-[24px] font-semibold tracking-tight">
           Sending your report
         </h1>
-        <p class="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-sm text-muted-foreground">
           Reaching the closest helpers first.
         </p>
 
