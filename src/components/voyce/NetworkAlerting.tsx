@@ -21,9 +21,9 @@ export function NetworkAlerting({ onComplete }: { onComplete: () => void }) {
   const [step, setStep] = useState(0);
 
   useEffect(() => {
-    const t1 = window.setTimeout(() => setStep(1), 1200);
-    const t2 = window.setTimeout(() => setStep(2), 2700);
-    const t3 = window.setTimeout(onComplete, 3600);
+    const t1 = window.setTimeout(() => setStep(1), 500);
+    const t2 = window.setTimeout(() => setStep(2), 1000);
+    const t3 = window.setTimeout(onComplete, 1400);
     return () => {
       window.clearTimeout(t1);
       window.clearTimeout(t2);
@@ -38,7 +38,7 @@ export function NetworkAlerting({ onComplete }: { onComplete: () => void }) {
         <h1 className="font-serif text-[24px] font-semibold tracking-tight">
           Sending your report
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p class="mt-1 text-sm text-muted-foreground">
           Reaching the closest helpers first.
         </p>
 
