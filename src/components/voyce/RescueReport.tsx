@@ -739,7 +739,7 @@ function CountdownBlock() {
         <span className="text-[22px] opacity-80">{String(s).padStart(2, "0")}s</span>
       </div>
       <div className="mt-1.5 text-[12px] text-[#7E1F1F]/80">
-        Every commitment in the network buys time.
+        Every commitment in the pack buys time.
       </div>
     </div>
   );
@@ -1175,7 +1175,7 @@ function ReportSentDialog({
         </h3>
         <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">
           {offline
-            ? "We couldn't auto-notify the network. Share manually to reach people nearby — we'll send it automatically once you're back online."
+            ? "We couldn't auto-notify the pack. Share manually to reach people nearby — we'll send it automatically once you're back online."
             : "The closest rescuers and NGOs get it first — the alert keeps rippling outward until this animal is helped. Your report is being processed — you'll see it on your home screen shortly."}
         </p>
         <div className="mt-5 flex flex-col gap-2">
