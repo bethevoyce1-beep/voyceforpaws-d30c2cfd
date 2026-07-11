@@ -184,6 +184,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "theme-color", content: "#0B0B0C" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "Voyce" },
+      { name: "application-name", content: "Voyce for Paws" },
       { title: "Voyce for Paws App — Animal Rescue Network" },
       { name: "description", content: "Connecting animals in need with the people who can help — instantly. Voyce AI alerts the closest  network first  and then ripple outwards. 501(c)(3)." },
       { name: "author", content: "Lovable" },
@@ -198,6 +204,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/a22290e8-4720-442b-aa62-697e9e9cf7cb" },
     ],
     links: [
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "icon", type: "image/svg+xml", href: "/icon.svg" },
+      { rel: "apple-touch-icon", href: "https://okmukfrhvqkxphzueqww.supabase.co/storage/v1/object/public/acs-pdf/icons/apple-touch-icon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
