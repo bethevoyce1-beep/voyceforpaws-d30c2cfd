@@ -791,7 +791,7 @@ export function ShareCard({
                   style={{ background: `linear-gradient(135deg, ${BLUE1} 0%, ${BLUE2} 100%)` }}
                 >
                   <span>🗺️</span>
-                  <span>View Map &amp; Directions</span>
+                  <span>View Map</span>
                 </a>
               )}
 
