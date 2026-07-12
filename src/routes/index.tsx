@@ -823,13 +823,13 @@ function CaptureScreen({
   }, [preview]);
 
   const startCameraFlow = useCallback(async () => {
-    const mobile = isLikelyMobile();
     const hasCamera =
       typeof navigator !== "undefined" &&
       !!navigator.mediaDevices &&
       typeof navigator.mediaDevices.getUserMedia === "function";
-    if (!mobile || !hasCamera) {
-      // Desktop or browser without a camera — fall back to sample picker.
+    if (!hasCamera) {
+      // Browser with no camera API at all — fall back to sample picker.
+      // (Laptops/iPads with a webcam now go through getUserMedia below.)
       setMode("samples");
       return;
     }
