@@ -200,6 +200,7 @@ export type AcsAnimal = {
   thumb: string | null;
   photos: string[] | null;
   list_url: string | null;
+  list_date: string | null;
   last_listed_at: string | null;
   updated_at: string | null;
 };
@@ -236,6 +237,7 @@ const SELECT_COLUMNS = [
   "thumb",
   "photos",
   "list_url",
+  "list_date",
   "last_listed_at",
   "updated_at",
 ].join(", ");
@@ -316,13 +318,27 @@ export const listAcsAnimals = createServerFn({ method: "GET" })
         thumb: (row.thumb as string | null) ?? null,
         photos: normalizePhotos(row.photos),
         list_url: (row.list_url as string | null) ?? null,
+        list_date: (row.list_date as string | null) ?? null,
         last_listed_at: (row.last_listed_at as string | null) ?? null,
         updated_at: (row.updated_at as string | null) ?? null,
       };
     });
 
     // Exclude `left` rows (no longer on the list, outcome unknown).
-    const visible = all.filter((a) => normalizeStatusKey(a.status_key) !== "left");
+    const visibleAll = all.filter((a) => normalizeStatusKey(a.status_key) !== "left");
+
+    // Supabase accumulates every day's animals (old rows are never deleted), so
+    // counting all of them inflates totals and grows a stale In Memoriam list.
+    // Match the public board: keep only the NEWEST list date — the current
+    // at-risk list, including today's outcomes (e.g. today's euthanized). Older
+    // rows stay in the database but are not shown or counted here.
+    const newestListDate = visibleAll.reduce<string | null>((acc, a) => {
+      if (!a.list_date) return acc;
+      return !acc || a.list_date > acc ? a.list_date : acc;
+    }, null);
+    const visible = newestListDate
+      ? visibleAll.filter((a) => a.list_date === newestListDate)
+      : visibleAll;
 
     // Order by urgency rank, then days at shelter descending.
     visible.sort((x, y) => {

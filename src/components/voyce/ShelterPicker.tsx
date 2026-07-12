@@ -387,12 +387,21 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
     0,
   );
 
+  // "All" mirrors the public board's "on the list" total: only animals actively
+  // facing euthanasia. Holds, Secured, and In Memoriam appear in their own pills
+  // but are not part of the "All / on list" count.
+  const ON_LIST_SECTIONS: AcsSectionId[] = [
+    "critical_now",
+    "critical_today",
+    "on_the_clock",
+    "urgent",
+    "foster_pending",
+  ];
   // Per-chip live counts — shown on each filter pill, including 0 for empty
-  // categories. `all` counts every visible animal; other chips sum the animal
-  // groups for the section(s) they represent.
+  // categories. Each chip sums the animal groups for its section(s).
   const chipCount = (c: ChipDef): number => {
-    if (c.sections === "all") return d?.animals.length ?? 0;
-    return c.sections.reduce((n, sid) => n + (grouped.get(sid)?.length ?? 0), 0);
+    const sections = c.sections === "all" ? ON_LIST_SECTIONS : c.sections;
+    return sections.reduce((n, sid) => n + (grouped.get(sid)?.length ?? 0), 0);
   };
 
   return (
