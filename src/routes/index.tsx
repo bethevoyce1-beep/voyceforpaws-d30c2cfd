@@ -467,6 +467,7 @@ function Home() {
         <>
           <ShelterPicker
             onBack={() => setStage("mission")}
+            onTakePhoto={() => handleTab("report")}
             onPick={(animal: AcsAnimal) => {
               setMission("at-risk-shelter");
               setCaptured(acsPhoto(animal));
