@@ -386,6 +386,14 @@ export function ShelterPicker({ onPick, onBack }: Props) {
     0,
   );
 
+  // Per-chip live counts — shown on each filter pill, including 0 for empty
+  // categories. `all` counts every visible animal; other chips sum the animal
+  // groups for the section(s) they represent.
+  const chipCount = (c: ChipDef): number => {
+    if (c.sections === "all") return d?.animals.length ?? 0;
+    return c.sections.reduce((n, sid) => n + (grouped.get(sid)?.length ?? 0), 0);
+  };
+
   return (
     <div style={{ minHeight: "100dvh", background: PAPER }}>
       <BrandHeader />
@@ -448,14 +456,26 @@ export function ShelterPicker({ onPick, onBack }: Props) {
                 role="tab"
                 aria-selected={active}
                 onClick={() => setChip(c.id)}
-                className="rounded-full px-3 py-1.5 text-[12px] font-semibold transition active:scale-95"
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold transition active:scale-95"
                 style={
                   active
                     ? { background: GOLD, color: "#3A2A07" }
                     : { background: "#FFFFFF", color: "#6B5832", border: "1px solid #E3DAC4" }
                 }
               >
-                {c.label}
+                <span>{c.label}</span>
+                {d && (
+                  <span
+                    className="rounded-full px-1.5 text-[10px] font-bold leading-[1.45] tabular-nums"
+                    style={
+                      active
+                        ? { background: "rgba(58,42,7,0.18)", color: "#3A2A07" }
+                        : { background: "#F1EAD6", color: "#6B5832" }
+                    }
+                  >
+                    {chipCount(c)}
+                  </span>
+                )}
               </button>
             );
           })}
