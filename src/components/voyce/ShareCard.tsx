@@ -775,25 +775,25 @@ export function ShareCard({
 
             {/* ============ LOCATION — most important control for a rescuer ============ */}
             <div className="mt-4">
-              {/* 1. View Map first + most prominent — a rescuer needs the map above all */}
+              {/* Current location label — shown first, directly under the info chips */}
+              <p className="flex items-start gap-1.5 text-[14px] font-medium text-[#374151]">
+                <span style={{ color: "#FFDF3B" }}>📍</span>
+                <span>{effectiveLoc?.label || `Near ${street} · ${city}`}</span>
+              </p>
+
+              {/* View Map & Directions — below the address line */}
               {mapHref && (
                 <a
                   href={mapHref}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex w-full items-center justify-center gap-2 rounded-[14px] px-4 py-3.5 text-[14px] font-extrabold uppercase tracking-wide text-white shadow-md transition active:scale-[0.99] hover:brightness-105"
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-[14px] px-4 py-3.5 text-[14px] font-extrabold uppercase tracking-wide text-white shadow-md transition active:scale-[0.99] hover:brightness-105"
                   style={{ background: `linear-gradient(135deg, ${BLUE1} 0%, ${BLUE2} 100%)` }}
                 >
                   <span>🗺️</span>
                   <span>View Map &amp; Directions</span>
                 </a>
               )}
-
-              {/* Current location label */}
-              <p className="mt-2 flex items-start gap-1.5 text-[14px] font-medium text-[#374151]">
-                <span style={{ color: "#FFDF3B" }}>📍</span>
-                <span>{effectiveLoc?.label || `Near ${street} · ${city}`}</span>
-              </p>
 
               {/* 2. Confirm / add / correct the address — always visible */}
               <div className="mt-2 rounded-xl border border-[#C7DBFF] bg-[#EFF6FF] px-3.5 py-3">
