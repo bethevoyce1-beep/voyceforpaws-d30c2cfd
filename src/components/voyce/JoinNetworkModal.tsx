@@ -269,6 +269,16 @@ export function JoinNetworkModal({
             <p className="mt-3 text-center text-[11px] italic text-foreground/55">
               Protected by silent verification. No spam — launch announcements only.
             </p>
+
+            {/* Always-visible way back — the top ✕ scrolls out of view on this
+                long form, so offer a clear exit at the bottom too. */}
+            <button
+              type="button"
+              onClick={onClose}
+              className="mt-3 w-full rounded-2xl border border-[#D9D2C2] bg-white px-5 py-2.5 text-[13px] font-semibold text-foreground/70 transition hover:bg-[#FAF8F5] active:scale-[0.99]"
+            >
+              ← Maybe later
+            </button>
           </div>
         )}
       </div>
