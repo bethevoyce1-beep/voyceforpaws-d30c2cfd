@@ -25,6 +25,7 @@ const INK = "#1A1611";
 type Props = {
   onPick: (animal: AcsAnimal) => void;
   onBack: () => void;
+  onTakePhoto: () => void;
 };
 
 // ============================================================
@@ -335,7 +336,7 @@ function AnimalRow({ a, onPick }: { a: AcsAnimal; onPick: (a: AcsAnimal) => void
   );
 }
 
-export function ShelterPicker({ onPick, onBack }: Props) {
+export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
   const [state, setState] = useState<{ loading: boolean; error: string | null; data: AcsListResult | null }>(
     { loading: true, error: null, data: null },
   );
@@ -399,12 +400,21 @@ export function ShelterPicker({ onPick, onBack }: Props) {
       <BrandHeader />
 
       <main className="mx-auto w-full max-w-[420px] px-4 pt-3 pb-12" style={{ color: INK }}>
-        <button
-          onClick={onBack}
-          className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-3 py-1 text-[12px] font-medium text-muted-foreground"
-        >
-          ← Change mission
-        </button>
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <button
+            onClick={onBack}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-3 py-1 text-[12px] font-medium text-muted-foreground"
+          >
+            ← Change mission
+          </button>
+          <button
+            onClick={onTakePhoto}
+            className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12px] font-bold"
+            style={{ background: GOLD, borderColor: GOLD, color: "#3A2A07" }}
+          >
+            📷 Take a Photo
+          </button>
+        </div>
 
         <p className="mb-3 text-center text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
           AI is advisory — not a diagnosis
