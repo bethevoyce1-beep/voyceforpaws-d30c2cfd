@@ -9,8 +9,7 @@
   "background_color": "#0B0B0C",
   "theme_color": "#0B0B0C",
   "icons": [
-    { "src": "/icon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any" },
-    { "src": "/icon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "maskable" },
-    { "src": "https://okmukfrhvqkxphzueqww.supabase.co/storage/v1/object/public/acs-pdf/icons/apple-touch-icon.png", "type": "image/png", "sizes": "180x180", "purpose": "any" }
+    { "src": "/apple-touch-icon.png", "type": "image/png", "sizes": "512x512", "purpose": "any" },
+    { "src": "/icon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "maskable" }
   ]
 }
