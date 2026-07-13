@@ -235,6 +235,11 @@ function Home() {
   const [captured, setCaptured] = useState<string | null>(null);
   const [captureMeta, setCaptureMeta] = useState<PhotoMeta | null>(null);
   const [capturedIsSample, setCapturedIsSample] = useState(false);
+  // Batch capture (Phase 1: multi-upload) — extra images wait here and each
+  // becomes its own rescue card, processed one after the next.
+  const [queue, setQueue] = useState<{ src: string; meta: PhotoMeta | null }[]>([]);
+  const [batchTotal, setBatchTotal] = useState(0);
+  const [batchIndex, setBatchIndex] = useState(0);
   const [location, setLocation] = useState<{ lat: number; lon: number; label: string } | null>(null);
   const [animalIndex, setAnimalIndex] = useState(0);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
@@ -317,6 +322,30 @@ function Home() {
     [runAnalysis],
   );
 
+  // Phase 1 — start a batch: run the first image now, queue the rest.
+  const handleBatch = useCallback(
+    async (items: { src: string; meta: PhotoMeta | null }[]) => {
+      if (items.length === 0) return;
+      const [first, ...rest] = items;
+      setQueue(rest);
+      setBatchTotal(items.length);
+      setBatchIndex(1);
+      setAnimalIndex(0);
+      await handleCaptured(first.src, first.meta);
+    },
+    [handleCaptured],
+  );
+
+  // Advance to the next queued image — it gets its own rescue card.
+  const handleNextInBatch = useCallback(async () => {
+    if (queue.length === 0) return;
+    const [next, ...rest] = queue;
+    setQueue(rest);
+    setBatchIndex((i) => i + 1);
+    setAnimalIndex(0);
+    await handleCaptured(next.src, next.meta);
+  }, [queue, handleCaptured]);
+
   // Reporter finished the "Tell us about them" form → show the rescue card so
   // they can review it. The pack-alerting animation now plays AFTER they tap
   // "Send to rescuers" on the card (see the report stage below), so the "we
@@ -375,6 +404,9 @@ function Home() {
     setReportDetails(null);
     setAiError(null);
     setShowReview(false);
+    setQueue([]);
+    setBatchTotal(0);
+    setBatchIndex(0);
   };
 
   // Bottom-tab navigation. Report is the camera-first home; At-Risk opens the
@@ -389,6 +421,9 @@ function Home() {
         setCaptured(null);
         setAssessment(null);
         setAcsAnimal(null);
+        setQueue([]);
+        setBatchTotal(0);
+        setBatchIndex(0);
         setStage("capture");
         break;
       case "atrisk":
@@ -427,7 +462,11 @@ function Home() {
     <BackNavContext.Provider value={goBack}>
       {el}
       {canGoBack && <BackFab onClick={goBack} />}
-      <RestartFab onClick={reset} />
+      {queue.length > 0 ? (
+        <NextBatchFab index={batchIndex} total={batchTotal} onClick={() => void handleNextInBatch()} />
+      ) : (
+        <RestartFab onClick={reset} />
+      )}
     </BackNavContext.Provider>
   );
 
@@ -583,6 +622,7 @@ function Home() {
     return (
       <CaptureScreen
         onAnalyze={handleCaptured}
+        onBatch={handleBatch}
         mission={mission}
         onBack={() => setStage("mission")}
         renderTabBar={(visible) =>
@@ -640,13 +680,29 @@ function RestartFab({ onClick }: { onClick: () => void }) {
   );
 }
 
+function NextBatchFab({ index, total, onClick }: { index: number; total: number; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Next photo in batch"
+      className="fixed bottom-4 left-[8.5rem] z-40 flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-bold shadow-lg transition active:scale-95"
+      style={{ background: "#FFDF3B", color: "#3A2A07" }}
+    >
+      Next ({Math.min(index + 1, total)} of {total}) →
+    </button>
+  );
+}
+
 function CaptureScreen({
   onAnalyze,
+  onBatch,
   mission,
   onBack,
   renderTabBar,
 }: {
   onAnalyze: (src: string, meta?: PhotoMeta | null) => void;
+  onBatch: (items: { src: string; meta: PhotoMeta | null }[]) => void;
   mission: MissionId;
   onBack: () => void;
   // Parent-supplied bottom tab bar. We only ask it to render on the "chooser"
@@ -670,6 +726,8 @@ function CaptureScreen({
   const [mode, setMode] = useState<"intake" | "loading" | "camera" | "samples" | "permission">("intake");
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  // Phase 2 — "take another": shots captured before analyzing, each becomes its own card.
+  const [shots, setShots] = useState<{ src: string; meta: PhotoMeta | null }[]>([]);
   // Visible notice while a video is being processed into a still frame for the AI.
   const [videoProcessing, setVideoProcessing] = useState(false);
 
@@ -815,13 +873,9 @@ function CaptureScreen({
     };
   }, []);
 
-  // Auto-start analysis the moment a photo/frame is captured or selected, so the
-  // user doesn't have to tap "Analyze" separately. onAnalyze advances to the
-  // analysis stage, so this runs once per capture.
-  useEffect(() => {
-    if (preview) onAnalyze(preview, captureMetaRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preview]);
+  // Phase 2: a captured/selected photo now waits on the preview overlay so the
+  // reporter can Retake, "+ Add another" (batch), or Analyze — instead of the
+  // first shot auto-advancing straight to analysis.
 
   const startCameraFlow = useCallback(async () => {
     const hasCamera =
@@ -988,7 +1042,7 @@ function CaptureScreen({
 
               {/* Privacy helper — same wording as landing-page modal */}
               <p className="mt-3 text-center text-[11px] leading-relaxed text-foreground/55">
-                📱 Camera opens automatically on mobile &amp; tablet · 🔒 Stays on your device until you tap Send
+                📱 Camera opens automatically on mobile &amp; tablet · 🔒 Stays on your device until you tap Send · Upload lets you pick several at once
               </p>
 
               {/* Voyce AI ready indicator — pulsing dot */}
@@ -1142,19 +1196,46 @@ function CaptureScreen({
             <div className="relative flex-1">
               <img src={preview} alt="Captured" className="absolute inset-0 h-full w-full object-contain" />
             </div>
-            <div className="flex items-center justify-center gap-3 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4">
-              <button
-                onClick={() => setPreview(null)}
-                className="rounded-full border border-border bg-card px-5 py-2.5 text-sm font-medium"
-              >
-                Retake
-              </button>
-              <button
-                onClick={() => onAnalyze(preview)}
-                className="rounded-full bg-gradient-to-b from-[oklch(0.90_0.16_85)] to-[oklch(0.78_0.15_70)] px-6 py-2.5 text-sm font-semibold text-[oklch(0.25_0.04_60)] shadow-md"
-              >
-                Analyze →
-              </button>
+            <div className="flex flex-col items-center justify-center gap-2 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4">
+              {shots.length > 0 && (
+                <div className="text-[12px] font-semibold text-muted-foreground">
+                  {shots.length + 1} photos ready — each becomes its own card
+                </div>
+              )}
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={() => setPreview(null)}
+                  className="rounded-full border border-border bg-card px-5 py-2.5 text-sm font-medium"
+                >
+                  Retake
+                </button>
+                <button
+                  onClick={() => {
+                    if (!preview) return;
+                    setShots((prev) => [...prev, { src: preview, meta: captureMetaRef.current }]);
+                    setPreview(null);
+                    setMode("intake");
+                  }}
+                  className="rounded-full border-2 border-[#C9871A] bg-white px-4 py-2.5 text-sm font-semibold text-[#8A5A0E]"
+                >
+                  + Add another
+                </button>
+                <button
+                  onClick={() => {
+                    if (!preview) return;
+                    const all = [...shots, { src: preview, meta: captureMetaRef.current }];
+                    setShots([]);
+                    if (all.length === 1) {
+                      onAnalyze(all[0].src, all[0].meta);
+                    } else {
+                      onBatch(all);
+                    }
+                  }}
+                  className="rounded-full bg-gradient-to-b from-[oklch(0.90_0.16_85)] to-[oklch(0.78_0.15_70)] px-6 py-2.5 text-sm font-semibold text-[oklch(0.25_0.04_60)] shadow-md"
+                >
+                  {shots.length > 0 ? `Analyze all (${shots.length + 1}) →` : "Analyze →"}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -1190,20 +1271,39 @@ function CaptureScreen({
           so all three tabs share one navigation handler. */}
       {renderTabBar(tabBarVisible)}
 
-      {/* "Upload a Photo" file picker — gallery only, no camera.
-          (Live camera capture has its own viewport in mode === "camera".) */}
+      {/* "Upload a Photo" file picker — gallery only, no camera. Accepts several
+          files at once; each becomes its own rescue card (batch). */}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        multiple
         className="hidden"
         onChange={async (e) => {
-          const f = e.target.files?.[0];
-          if (!f) return;
-          captureMetaRef.current = await readPhotoMeta(f);
-          const reader = new FileReader();
-          reader.onload = () => setPreview(String(reader.result));
-          reader.readAsDataURL(f);
+          const files = Array.from(e.target.files ?? []);
+          if (files.length === 0) return;
+          if (files.length === 1) {
+            // Single photo — keep the fast capture → analyze path.
+            const f = files[0];
+            captureMetaRef.current = await readPhotoMeta(f);
+            const reader = new FileReader();
+            reader.onload = () => setPreview(String(reader.result));
+            reader.readAsDataURL(f);
+            return;
+          }
+          // Multiple photos — each becomes its own rescue card (batch).
+          const items = await Promise.all(
+            files.map(async (f) => {
+              const meta = await readPhotoMeta(f);
+              const src = await new Promise<string>((resolve) => {
+                const r = new FileReader();
+                r.onload = () => resolve(String(r.result));
+                r.readAsDataURL(f);
+              });
+              return { src, meta };
+            }),
+          );
+          onBatch(items);
         }}
       />
 
