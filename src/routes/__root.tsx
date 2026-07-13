@@ -207,7 +207,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     links: [
       { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "icon", type: "image/svg+xml", href: "/icon.svg" },
-      { rel: "apple-touch-icon", href: "https://okmukfrhvqkxphzueqww.supabase.co/storage/v1/object/public/acs-pdf/icons/apple-touch-icon.png" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
