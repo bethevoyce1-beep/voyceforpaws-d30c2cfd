@@ -267,7 +267,7 @@ function AnimalRow({ a, onPick }: { a: AcsAnimal; onPick: (a: AcsAnimal) => void
         className="group flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition hover:-translate-y-px hover:shadow-md active:scale-[0.99]"
       >
         <PhotoThumb a={a} />
-        <div class="min-w-0 flex-1" className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-1.5">
             <span className="font-serif text-[15px] font-semibold leading-tight" style={{ color: INK }}>
               {a.name}
