@@ -341,24 +341,51 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
     { loading: true, error: null, data: null },
   );
   const [chip, setChip] = useState<string>("all");
+  const [refreshing, setRefreshing] = useState(false);
 
+  // Keep the at-risk list live: load on mount, then auto-refresh every 2
+  // minutes, whenever the tab becomes visible again, and on window focus — so
+  // it never sits on a stale snapshot while the scraper keeps pulling.
   useEffect(() => {
     let alive = true;
-    // No limit — the reader returns all non-`left` rows; we group them below.
-    listAcsAnimals({ data: { shelterId: "san_antonio_acs" } })
-      .then((d) => {
-        if (alive) setState({ loading: false, error: null, data: d });
-      })
-      .catch((e) => {
-        if (alive)
-          setState({
-            loading: false,
-            error: e instanceof Error ? e.message : "Failed to load shelter list.",
-            data: null,
-          });
-      });
+
+    const load = (background: boolean) => {
+      if (background) setRefreshing(true);
+      // No limit — the reader returns all non-`left` rows; we group them below.
+      listAcsAnimals({ data: { shelterId: "san_antonio_acs" } })
+        .then((d) => {
+          if (alive) setState({ loading: false, error: null, data: d });
+        })
+        .catch((e) => {
+          if (!alive) return;
+          // On a background refresh, keep the last good data rather than blanking.
+          setState((prev) =>
+            background && prev.data
+              ? prev
+              : {
+                  loading: false,
+                  error: e instanceof Error ? e.message : "Failed to load shelter list.",
+                  data: null,
+                },
+          );
+        })
+        .finally(() => {
+          if (alive) setRefreshing(false);
+        });
+    };
+
+    load(false);
+    const id = window.setInterval(() => load(true), 120000);
+    const onVisible = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") load(true);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
     return () => {
       alive = false;
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
     };
   }, []);
 
@@ -444,6 +471,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
           <div className="mt-1 text-[13px]" style={{ color: "#F4ECD8" }}>
             <span className="font-semibold">{d?.shelter_name ?? "San Antonio ACS"}</span>
             <span style={{ color: "#B8AC92" }}> · last pull {fmtDate(d?.last_pulled_at ?? null)}</span>
+            {refreshing && <span style={{ color: "#FFE9A8" }}> · refreshing…</span>}
           </div>
         </div>
 
