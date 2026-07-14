@@ -6,9 +6,9 @@ import { normalizeStatusKey, type AcsAnimal } from "@/lib/acs.functions";
 //
 // The euthanasia procedure *starts* at a fixed wall-clock time on the animal's
 // day, in US Central (America/Chicago):
-//   Mon–Fri  12:30 PM
-//   Sat      11:00 AM
-//   Sun      closed  → rolls forward to Monday 12:30 PM
+//   Mon–Fri  5:30 PM
+//   Sat      12:30 PM
+//   Sun      closed  → rolls forward to Monday 5:30 PM
 //
 // Everything below is timezone-correct regardless of the viewer's device zone:
 // we read the Central calendar date, decide the start hour/minute, then convert
@@ -20,8 +20,8 @@ const CENTRAL_TZ = "America/Chicago";
 /** Central-time start-of-euthanasia for a given weekday. `null` = closed (Sun). */
 function startTimeForWeekday(weekday: number): { h: number; m: number } | null {
   if (weekday === 0) return null; // Sunday — closed
-  if (weekday === 6) return { h: 11, m: 0 }; // Saturday 11:00 AM
-  return { h: 12, m: 30 }; // Mon–Fri 12:30 PM
+  if (weekday === 6) return { h: 12, m: 30 }; // Saturday 12:30 PM
+  return { h: 17, m: 30 }; // Mon–Fri 5:30 PM
 }
 
 /** Central-time calendar parts for an instant. */
@@ -79,7 +79,7 @@ function weekdayOf(y: number, mo: number, d: number): number {
 
 /**
  * Euthanasia start instant for the Central calendar day that `dayAnchor`
- * falls on. Sundays roll forward to Monday 12:30 PM Central.
+ * falls on. Sundays roll forward to Monday 5:30 PM Central.
  */
 export function euthDeadlineFor(dayAnchor: Date): Date {
   let { y, mo, d } = centralParts(dayAnchor);
@@ -148,6 +148,21 @@ export function deadlineForAnimal(a: AcsAnimal, now = new Date()): Date | null {
     return anchor ? euthDeadlineFor(anchor) : null;
   }
   return null;
+}
+
+/**
+ * The euthanasia deadline as a short Central wall-clock label, e.g. "5:30 PM CT".
+ * Shown next to the countdown so no one has to do timezone math on their own
+ * device clock.
+ */
+export function formatDeadlineClock(target: Date): string {
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: CENTRAL_TZ,
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+  return `${fmt.format(target)} CT`;
 }
 
 // ============================================================
