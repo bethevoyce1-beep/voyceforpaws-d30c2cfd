@@ -3,6 +3,7 @@ import type { Assessment } from "@/lib/analyze.functions";
 import { animalWord, type MissionId } from "@/lib/missions";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
 import { JoinNetworkModal } from "@/components/voyce/JoinNetworkModal";
+import { SaveCardControls } from "@/components/voyce/SaveCardControls";
 import type { NetworkRole } from "@/lib/signups.functions";
 
 // =============================================================
@@ -965,6 +966,9 @@ export function ShareCard({
             >
               ⋯  More share options
             </button>
+
+            {/* SAVE / DOWNLOAD THIS CARD — keep a copy as an image or PDF */}
+            <SaveCardControls image={image} data={data} name={name} city={city} v={v} />
 
             {/* ============ SEE WHAT VOYCE READ (collapsible full AI read) ============ */}
             <div className="mt-4">
