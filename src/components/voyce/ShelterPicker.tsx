@@ -14,6 +14,7 @@ import {
   useEuthCountdown,
   urgencyFor,
   formatCountdown,
+  formatDeadlineClock,
 } from "@/lib/acs.timer";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
 
@@ -29,8 +30,9 @@ type Props = {
 };
 
 // ============================================================
-// Section presentation — ordered most-urgent first. Each section carries a
-// plain-language header, the action a reader can take, and a badge style.
+// Section presentation — one per status, ordered most-urgent first. Each
+// carries a plain-language header, the action a reader can take, and a badge
+// style. Colors are kept close to the earlier board taxonomy.
 // ============================================================
 type SectionDef = {
   id: AcsSectionId;
@@ -38,29 +40,45 @@ type SectionDef = {
   action: string;
   badgeBg: string;
   badgeText: string;
-  accent: string; // left border / header tint
+  accent: string;
 };
 
 const SECTIONS: SectionDef[] = [
   {
-    id: "critical_now",
-    title: "Critical · final minutes",
+    id: "euthanasia_now",
+    title: "Euthanasia in progress",
     action: "In the euthanasia room now — email or call ACS immediately.",
-    badgeBg: "#7F1D1D",
-    badgeText: "#FFFFFF",
-    accent: "#7F1D1D",
+    badgeBg: "#501313",
+    badgeText: "#F7C1C1",
+    accent: "#501313",
+  },
+  {
+    id: "critical_now",
+    title: "Critical · save now",
+    action: "Moved to a euthanasia-prep kennel (B6-SPT) — act now.",
+    badgeBg: "#791F1F",
+    badgeText: "#F7C1C1",
+    accent: "#791F1F",
+  },
+  {
+    id: "critical_office",
+    title: "Critical · Office",
+    action: "In an office kennel and marked for euthanasia today — act now.",
+    badgeBg: "#A32D2D",
+    badgeText: "#FCEBEB",
+    accent: "#A32D2D",
   },
   {
     id: "critical_today",
-    title: "Critical · today",
+    title: "High risk · save today",
     action: "On today's euthanasia list — email ACS before the deadline to foster or rescue.",
-    badgeBg: "#FECACA",
-    badgeText: "#7F1D1D",
-    accent: "#DC2626",
+    badgeBg: "#F09595",
+    badgeText: "#501313",
+    accent: "#C8362B",
   },
   {
     id: "on_the_clock",
-    title: "On the clock",
+    title: "Euthanasia date set",
     action: "A euthanasia date is set — foster, rescue, or adopt before the date.",
     badgeBg: "#FED7AA",
     badgeText: "#9A3412",
@@ -68,11 +86,19 @@ const SECTIONS: SectionDef[] = [
   },
   {
     id: "urgent",
-    title: "Urgent",
+    title: "At risk",
     action: "Could be euthanized if the shelter fills — adopt, foster, or share.",
     badgeBg: "#FDE68A",
     badgeText: "#78350F",
     accent: "#F59E0B",
+  },
+  {
+    id: "office",
+    title: "Office",
+    action: "In an office kennel — not marked for euthanasia right now. Keep an eye out.",
+    badgeBg: "#F1EFE8",
+    badgeText: "#444441",
+    accent: "#B4B2A9",
   },
   {
     id: "acs_adoption_hold",
@@ -122,6 +148,14 @@ const SECTIONS: SectionDef[] = [
     badgeText: "#374151",
     accent: "#9CA3AF",
   },
+  {
+    id: "unknown",
+    title: "Unknown",
+    action: "A status Voyce didn't recognize — open the ACS record to check.",
+    badgeBg: "#F1EFE8",
+    badgeText: "#5F5E5A",
+    accent: "#B4B2A9",
+  },
 ];
 
 const SECTION_BY_ID = SECTIONS.reduce<Record<AcsSectionId, SectionDef>>(
@@ -132,24 +166,27 @@ const SECTION_BY_ID = SECTIONS.reduce<Record<AcsSectionId, SectionDef>>(
   {} as Record<AcsSectionId, SectionDef>,
 );
 
-// Filter chips. `all` shows everything; each other chip maps to one or more
-// sections. Critical folds the two most-urgent tiers into one scannable chip;
-// Foster covers both the ACS Foster Hold and Foster Pending tiers.
+// Filter chips — one per section, always shown (even at count 0). `all` shows
+// every animal.
 type ChipDef = { id: string; label: string; sections: AcsSectionId[] | "all" };
 const CHIPS: ChipDef[] = [
   { id: "all", label: "All", sections: "all" },
-  { id: "critical", label: "Critical", sections: ["critical_now", "critical_today"] },
-  { id: "ontheclock", label: "On the clock", sections: ["on_the_clock"] },
-  { id: "urgent", label: "Urgent", sections: ["urgent"] },
-  { id: "adoption", label: "Adoption Hold", sections: ["acs_adoption_hold"] },
-  { id: "rescue", label: "Rescue Hold", sections: ["rescue_hold"] },
-  { id: "foster", label: "Foster", sections: ["acs_foster_hold", "foster_pending"] },
+  { id: "euthanasia_now", label: "Euthanasia in progress", sections: ["euthanasia_now"] },
+  { id: "critical_now", label: "Critical · save now", sections: ["critical_now"] },
+  { id: "critical_office", label: "Critical · Office", sections: ["critical_office"] },
+  { id: "critical_today", label: "High risk · save today", sections: ["critical_today"] },
+  { id: "on_the_clock", label: "Euthanasia date set", sections: ["on_the_clock"] },
+  { id: "urgent", label: "At risk", sections: ["urgent"] },
+  { id: "office", label: "Office", sections: ["office"] },
+  { id: "adoption", label: "ACS Adoption Hold", sections: ["acs_adoption_hold"] },
+  { id: "rescue", label: "ACS Rescue Hold", sections: ["rescue_hold"] },
+  { id: "foster", label: "ACS Foster Hold", sections: ["acs_foster_hold"] },
+  { id: "pending", label: "Foster Pending", sections: ["foster_pending"] },
   { id: "secured", label: "Secured", sections: ["secured"] },
   { id: "memoriam", label: "In Memoriam", sections: ["in_memoriam"] },
+  { id: "unknown", label: "Unknown", sections: ["unknown"] },
 ];
 
-// `left` rows are filtered out server-side and never reach the UI, but the type
-// includes it — fall back to the `atrisk` meta so lookups stay type-safe.
 function metaOf(a: AcsAnimal): AcsStatusMeta {
   const key = normalizeStatusKey(a.status_key);
   return key === "left" ? ACS_STATUS_MODEL.atrisk : ACS_STATUS_MODEL[key];
@@ -162,7 +199,13 @@ function sectionOf(a: AcsAnimal): AcsSectionId {
 // Which rows get the live euthanasia timer/urgency badge.
 function showsTimer(a: AcsAnimal): boolean {
   const key = normalizeStatusKey(a.status_key);
-  return key === "b6spt" || key === "immediate" || key === "scheduled";
+  return (
+    key === "euthanasia" ||
+    key === "b6spt" ||
+    key === "office_crit" ||
+    key === "immediate" ||
+    key === "scheduled"
+  );
 }
 
 function firstPhoto(a: AcsAnimal): string | null {
@@ -175,7 +218,7 @@ function specLine(a: AcsAnimal): string {
   return [a.breed, a.age, a.sex, a.color].filter(Boolean).join(" · ");
 }
 
-function fmtDate(iso: string | null): string {
+function fmtDateTime(iso: string | null): string {
   if (!iso) return "—";
   try {
     return new Date(iso).toLocaleString(undefined, {
@@ -189,8 +232,33 @@ function fmtDate(iso: string | null): string {
   }
 }
 
-// Graceful photo placeholder — a paw glyph on a soft gold tile. Never breaks
-// layout when thumb/photos are empty (the common case right now).
+// Short date for the on-card ACS date chips (due out / at risk since / euth).
+function fmtDay(raw: string | null): string | null {
+  const s = (raw ?? "").trim();
+  if (!s) return null;
+  const iso = /^\d{4}-\d{2}-\d{2}$/.test(s)
+    ? s
+    : (() => {
+        const m = /(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(s);
+        return m ? `${m[3]}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}` : "";
+      })();
+  const d = iso ? new Date(iso + "T12:00:00") : new Date(s);
+  if (Number.isNaN(d.getTime())) return s;
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+// "3 min ago" / "2 hr ago" for the freshness heartbeat.
+function agoLabel(iso: string | null): string {
+  if (!iso) return "—";
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "—";
+  const mins = Math.max(0, Math.round((Date.now() - t) / 60000));
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.round(mins / 60);
+  return hrs === 1 ? "1 hr ago" : `${hrs} hr ago`;
+}
+
 function PhotoThumb({ a }: { a: AcsAnimal }) {
   const src = firstPhoto(a);
   const [failed, setFailed] = useState(false);
@@ -218,11 +286,12 @@ function PhotoThumb({ a }: { a: AcsAnimal }) {
   );
 }
 
-// Small live euthanasia badge for a list row — an escalating urgency chip with
-// a ticking countdown, layered on top of the category pill. b6spt shows the
-// "in progress" state (no numeric timer); immediate/scheduled tick down.
+// Small live euthanasia badge. `euthanasia`/`b6spt` show an "in progress" chip
+// (no numeric timer); office_crit/immediate/scheduled tick down toward the
+// Central-time deadline, with the wall-clock time shown so no one does tz math.
 function RowTimerBadge({ a }: { a: AcsAnimal }) {
-  const inRoom = normalizeStatusKey(a.status_key) === "b6spt";
+  const key = normalizeStatusKey(a.status_key);
+  const inRoom = key === "euthanasia" || key === "b6spt";
   const target = useMemo(() => (inRoom ? null : deadlineForAnimal(a)), [a, inRoom]);
   const { msLeft, hasTarget } = useEuthCountdown(target);
 
@@ -230,6 +299,7 @@ function RowTimerBadge({ a }: { a: AcsAnimal }) {
     ? { label: "In progress — act now", bg: "#7F1D1D", text: "#FFFFFF", pulse: true }
     : urgencyFor(msLeft);
   const countdown = !inRoom && hasTarget ? formatCountdown(msLeft) : null;
+  const clock = !inRoom && hasTarget && target ? formatDeadlineClock(target) : null;
 
   return (
     <span
@@ -241,7 +311,12 @@ function RowTimerBadge({ a }: { a: AcsAnimal }) {
       aria-live="polite"
     >
       <span>{chip.label}</span>
-      {countdown && <span className="tabular-nums">⏳ {countdown}</span>}
+      {countdown && (
+        <span className="tabular-nums">
+          ⏳ {countdown}
+          {clock && ` · by ${clock}`}
+        </span>
+      )}
     </span>
   );
 }
@@ -256,6 +331,10 @@ function AnimalRow({ a, onPick }: { a: AcsAnimal; onPick: (a: AcsAnimal) => void
   const euth = (a.euth_date ?? "").trim();
   const hasContext = !!note || !!euth;
   const hasTimer = showsTimer(a);
+
+  const dueOut = fmtDay(a.due_out);
+  const riskSince = fmtDay(a.risk_since);
+  const euthDay = fmtDay(a.euth_date);
 
   return (
     <div
@@ -295,6 +374,32 @@ function AnimalRow({ a, onPick }: { a: AcsAnimal; onPick: (a: AcsAnimal) => void
           {badge}
         </span>
       </button>
+
+      {/* ACS date chips — kennel + due out + at-risk-since + euth date */}
+      {(a.kennel || dueOut || riskSince || euthDay) && (
+        <div className="flex flex-wrap gap-1.5 px-2.5 pb-1">
+          {a.kennel && (
+            <span className="rounded-md bg-[#F3EFE4] px-1.5 py-0.5 text-[10px] font-semibold text-[#6B5832]">
+              Kennel {a.kennel}
+            </span>
+          )}
+          {dueOut && (
+            <span className="rounded-md bg-[#F3EFE4] px-1.5 py-0.5 text-[10px] font-semibold text-[#6B5832]">
+              Due out {dueOut}
+            </span>
+          )}
+          {riskSince && (
+            <span className="rounded-md bg-[#FDECEC] px-1.5 py-0.5 text-[10px] font-semibold text-[#9A3412]">
+              At risk since {riskSince}
+            </span>
+          )}
+          {euthDay && (
+            <span className="rounded-md bg-[#FBE3E3] px-1.5 py-0.5 text-[10px] font-semibold text-[#7F1D1D]">
+              Euth date {euthDay}
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-2 border-t border-border/60 px-2.5 py-2">
         {a.pet_search_url && (
@@ -342,23 +447,19 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
   );
   const [chip, setChip] = useState<string>("all");
   const [refreshing, setRefreshing] = useState(false);
+  const [query, setQuery] = useState("");
 
-  // Keep the at-risk list live: load on mount, then auto-refresh every 2
-  // minutes, whenever the tab becomes visible again, and on window focus — so
-  // it never sits on a stale snapshot while the scraper keeps pulling.
   useEffect(() => {
     let alive = true;
 
     const load = (background: boolean) => {
       if (background) setRefreshing(true);
-      // No limit — the reader returns all non-`left` rows; we group them below.
       listAcsAnimals({ data: { shelterId: "san_antonio_acs" } })
         .then((d) => {
           if (alive) setState({ loading: false, error: null, data: d });
         })
         .catch((e) => {
           if (!alive) return;
-          // On a background refresh, keep the last good data rather than blanking.
           setState((prev) =>
             background && prev.data
               ? prev
@@ -391,17 +492,29 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
 
   const d = state.data;
 
-  // Group visible animals into sections (already urgency-ordered by the reader).
+  // Search filter — name / animal id / breed / kennel.
+  const matched = useMemo(() => {
+    const list = d?.animals ?? [];
+    const q = query.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((a) =>
+      [a.name, a.id, a.breed, a.kennel]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(q)),
+    );
+  }, [d, query]);
+
+  // Group the (search-filtered) animals into sections.
   const grouped = useMemo(() => {
     const map = new Map<AcsSectionId, AcsAnimal[]>();
-    for (const a of d?.animals ?? []) {
+    for (const a of matched) {
       const sid = sectionOf(a);
       const arr = map.get(sid) ?? [];
       arr.push(a);
       map.set(sid, arr);
     }
     return map;
-  }, [d]);
+  }, [matched]);
 
   const activeChip = CHIPS.find((c) => c.id === chip) ?? CHIPS[0];
   const visibleSections = SECTIONS.filter((s) => {
@@ -414,22 +527,19 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
     0,
   );
 
-  // "All" mirrors the public board's "on the list" total: only animals actively
-  // facing euthanasia. Holds, Secured, and In Memoriam appear in their own pills
-  // but are not part of the "All / on list" count.
-  const ON_LIST_SECTIONS: AcsSectionId[] = [
-    "critical_now",
-    "critical_today",
-    "on_the_clock",
-    "urgent",
-    "foster_pending",
-  ];
-  // Per-chip live counts — shown on each filter pill, including 0 for empty
-  // categories. Each chip sums the animal groups for its section(s).
+  // Per-chip counts (reflect the current search). Every pill shows, even at 0.
   const chipCount = (c: ChipDef): number => {
-    const sections = c.sections === "all" ? ON_LIST_SECTIONS : c.sections;
-    return sections.reduce((n, sid) => n + (grouped.get(sid)?.length ?? 0), 0);
+    if (c.sections === "all") return matched.length;
+    return c.sections.reduce((n, sid) => n + (grouped.get(sid)?.length ?? 0), 0);
   };
+
+  // Freshness heartbeat: "checked X ago" from the scraper's last run. Amber
+  // warning only when a successful check hasn't happened in over 3 hours.
+  const lastChecked = d?.last_checked_at ?? null;
+  const checkedMins = lastChecked
+    ? Math.max(0, Math.round((Date.now() - new Date(lastChecked).getTime()) / 60000))
+    : null;
+  const stale = checkedMins !== null && checkedMins > 180;
 
   return (
     <div style={{ minHeight: "100dvh", background: PAPER }}>
@@ -456,30 +566,62 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
           AI is advisory — not a diagnosis
         </p>
 
-        {/* Live auto-feed banner */}
-        <div className="mb-4 rounded-2xl px-4 py-3" style={{ background: "#1A1611", color: "#F4ECD8" }}>
+        {/* Live auto-feed banner — honest freshness from the scraper heartbeat */}
+        <div
+          className="mb-4 rounded-2xl px-4 py-3"
+          style={{ background: stale ? "#3A2A07" : "#1A1611", color: "#F4ECD8" }}
+        >
           <div className="flex items-center gap-2">
             <span
               className="inline-block h-2 w-2 rounded-full"
-              style={{ background: "#22C55E", boxShadow: "0 0 0 4px rgba(34,197,94,0.25)" }}
+              style={{
+                background: stale ? "#F59E0B" : "#22C55E",
+                boxShadow: `0 0 0 4px ${stale ? "rgba(245,158,11,0.25)" : "rgba(34,197,94,0.25)"}`,
+              }}
               aria-hidden
             />
             <span className="text-[11px] font-bold tracking-[0.18em]" style={{ color: "#FFE9A8" }}>
-              LIVE · AUTO-FEED ACTIVE
+              {stale ? "⚠ MAY BE OUT OF DATE" : "LIVE · AUTO-UPDATES EVERY 15 MIN"}
             </span>
           </div>
           <div className="mt-1 text-[13px]" style={{ color: "#F4ECD8" }}>
             <span className="font-semibold">{d?.shelter_name ?? "San Antonio ACS"}</span>
-            <span style={{ color: "#B8AC92" }}> · last pull {fmtDate(d?.last_pulled_at ?? null)}</span>
+            {checkedMins !== null && (
+              <span style={{ color: stale ? "#FCD9A0" : "#B8AC92" }}> · checked {agoLabel(lastChecked)}</span>
+            )}
             {refreshing && <span style={{ color: "#FFE9A8" }}> · refreshing…</span>}
           </div>
+          {d?.last_pulled_at && (
+            <div className="mt-0.5 text-[11px]" style={{ color: "#8C8367" }}>
+              ACS last changed {fmtDateTime(d.last_pulled_at)}
+            </div>
+          )}
         </div>
 
-        {/* Stats row — the three at-risk tiers a reader acts on most */}
+        {/* Search */}
+        <div className="mb-3">
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by name, ID, breed, or kennel"
+            aria-label="Search animals"
+            className="w-full rounded-xl border border-[#E3DAC4] bg-white px-3 py-2 text-[13px] outline-none transition placeholder:text-[#B8AC92] focus:border-[#C9871A]"
+          />
+        </div>
+
+        {/* Stats row */}
         <div className="mb-4 grid grid-cols-3 gap-2">
           {[
-            { label: "CRITICAL", value: (d?.counts.b6spt ?? 0) + (d?.counts.immediate ?? 0) },
-            { label: "ON THE CLOCK", value: d?.counts.scheduled ?? 0 },
+            {
+              label: "CRITICAL",
+              value:
+                (d?.counts.euthanasia ?? 0) +
+                (d?.counts.b6spt ?? 0) +
+                (d?.counts.office_crit ?? 0) +
+                (d?.counts.immediate ?? 0),
+            },
+            { label: "DATE SET", value: d?.counts.scheduled ?? 0 },
             { label: "IN MEMORIAM", value: d?.counts.euthanized ?? 0 },
           ].map((s) => (
             <div key={s.label} className="rounded-xl px-2 py-3 text-center" style={{ background: "#1A1611" }}>
@@ -493,7 +635,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
           ))}
         </div>
 
-        {/* Filter chips */}
+        {/* Filter chips — every pill shows, even at 0 */}
         <div className="mb-4 flex flex-wrap gap-1.5" role="tablist" aria-label="Filter animals by status">
           {CHIPS.map((c) => {
             const active = c.id === chip;
@@ -543,7 +685,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
         )}
         {!state.loading && !state.error && shownCount === 0 && (
           <div className="rounded-xl border border-border bg-white p-4 text-center text-sm text-muted-foreground">
-            No animals in this view right now.
+            {query.trim() ? `No animals match “${query.trim()}”.` : "No animals in this view right now."}
           </div>
         )}
 
@@ -606,7 +748,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
             ))}
           </ol>
           <p className="mt-4 text-center text-[12px] italic text-muted-foreground">
-            No human had to upload these. Voyce's daily scheduled task ingests each partner shelter's at-risk list and turns each animal into a rescue card.
+            No human had to upload these. Voyce's scheduled task ingests each partner shelter's at-risk list and turns each animal into a rescue card.
           </p>
         </div>
       </main>
