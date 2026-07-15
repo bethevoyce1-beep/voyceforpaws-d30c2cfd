@@ -23,14 +23,16 @@ Status model (status_key -> public_status):
   All "today" logic uses San Antonio (Central) time — ACS's operating clock —
   not the runner's UTC, so the list date and today/scheduled rollover are honest.
 
-Classification precedence:
+Classification precedence (the right-side banner text beats a possibly-stale kennel):
   1. note "has been / was euthanized"               -> euthanized (In Memoriam)
   2. kennel EUTHANASIA (in the room now)            -> euthanasia (happening now)
   3. note "Placement has been secured"              -> secured
-  4. kennel Office / B6* / *SPT* (euthanasia room)  -> b6spt (final minutes);
-     a foster/adoption/rescue hold does NOT clear these — only "secured" does
-  5. note ADOPTION HOLD -> adopthold; RESCUE HOLD -> adoption (ACS Rescue Hold);
-     FOSTER HOLD -> foster; "family is coming" -> watch (Foster Pending)
+  4. note ADOPTION HOLD -> adopthold; RESCUE HOLD -> adoption (ACS Rescue Hold);
+     FOSTER HOLD -> foster; "family is coming" -> watch (Foster Pending).
+     A hold is respected even when the kennel still reads Office/B6/SPT — ACS
+     often does NOT move the animal out of that kennel when a hold is placed, so
+     the banner text is the more reliable signal than a possibly-stale kennel.
+  5. kennel Office / B6* / *SPT* (euthanasia room)  -> b6spt (final minutes)
   6. kennel OUTSIDE* (euth today, no hold)          -> immediate
   7. "euthanized today"                             -> immediate (Critical today)
      "euthanized on {future date}"                  -> scheduled (On the clock)
@@ -201,15 +203,18 @@ def split_demo(rest):
 def classify(kennel, euth_on, euth_today, block_text):
     """Return (status_key, public_status).
 
-    A dog in the EUTHANASIA kennel is being euthanized right now ('euthanasia');
-    acs_apply_pull() later moves them to 'euthanized' (In Memoriam) once they
-    drop off the list. Explicit "has been euthanized" text is treated as already
-    In Memoriam. Euthanasia-room kennels (Office/B6/SPT) are Critical regardless
-    of a hold — only 'Placement has been secured' clears them. ACS lists three
-    separate holds: ADOPTION HOLD (someone adopting -> adopthold), RESCUE HOLD (a
-    rescue partner pulled -> adoption) and FOSTER HOLD (-> foster). An OUTSIDE
-    kennel means euthanized-today ONLY if no hold is present. A specific
-    "euthanized on {date}" is Critical; parse_rows splits today vs future.
+    The right-side banner text ("I have an ACS FOSTER hold!", "…euthanized
+    today…", etc.) is the most reliable signal and is checked BEFORE the kennel:
+    ACS frequently leaves an animal in an Office/B6/SPT kennel even after a hold
+    is placed, so trusting the kennel alone produced false "euthanasia room"
+    alarms for animals that actually had a foster/adoption/rescue hold.
+
+    Order: already-euthanized text -> the EUTHANASIA kennel (being euthanized
+    now) -> "Placement has been secured" -> a hold banner (adoption/rescue/
+    foster) or "family is coming" -> Office/B6/SPT kennel (final minutes) ->
+    OUTSIDE kennel -> "euthanized today"/"on {date}" -> otherwise Urgent.
+    Only a real euthanasia (already done, or the EUTHANASIA kennel) outranks a
+    hold; parse_rows splits "immediate" into today vs a future scheduled date.
     """
     k = (kennel or "").upper()
     bt = (block_text or "").upper()
@@ -219,8 +224,6 @@ def classify(kennel, euth_on, euth_today, block_text):
         key = "euthanasia"
     elif "PLACEMENT HAS BEEN SECURED" in bt:
         key = "secured"
-    elif "OFFICE" in k or k.startswith("B6") or "SPT" in k:
-        key = "b6spt"
     elif "ADOPTION HOLD" in bt or "ADOPTION IN PROGRESS" in bt:
         key = "adopthold"
     elif "RESCUE HOLD" in bt:
@@ -229,6 +232,8 @@ def classify(kennel, euth_on, euth_today, block_text):
         key = "foster"
     elif "FAMILY IS COMING" in bt:
         key = "watch"
+    elif "OFFICE" in k or k.startswith("B6") or "SPT" in k:
+        key = "b6spt"
     elif "OUTSIDE" in k:
         key = "immediate"
     elif euth_today or euth_on:
