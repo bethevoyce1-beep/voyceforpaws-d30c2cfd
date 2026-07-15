@@ -27,16 +27,18 @@ Classification precedence (the right-side banner text beats a possibly-stale ken
   1. note "has been / was euthanized"               -> euthanized (In Memoriam)
   2. kennel EUTHANASIA (in the room now)            -> euthanasia (happening now)
   3. note "Placement has been secured"              -> secured
-  4. note ADOPTION HOLD -> adopthold; RESCUE HOLD -> adoption (ACS Rescue Hold);
-     FOSTER HOLD -> foster; "family is coming" -> watch (Foster Pending).
-     A hold is respected even when the kennel still reads Office/B6/SPT — ACS
-     often does NOT move the animal out of that kennel when a hold is placed, so
-     the banner text is the more reliable signal than a possibly-stale kennel.
-  5. kennel Office / B6* / *SPT* (euthanasia room)  -> b6spt (final minutes)
-  6. kennel OUTSIDE* (euth today, no hold)          -> immediate
-  7. "euthanized today"                             -> immediate (Critical today)
+  4. hold banner: ADOPTION HOLD -> adopthold; RESCUE HOLD -> adoption;
+     FOSTER HOLD -> foster; "family is coming" -> watch. A hold is respected
+     even when the kennel still reads Office/B6/SPT.
+  5. kennel B6* / *SPT* (staged for euthanasia)     -> b6spt (final minutes)
+  6. kennel OFFICE is a LOCATION, not automatically critical — read the banner:
+       "euthanized today" -> b6spt (critical); firm "euthanized on {date}" ->
+       immediate; otherwise (conditional "could be euthanized after {date}" or
+       no euthanasia wording) -> atrisk (Urgent, not final-minutes).
+  7. kennel OUTSIDE* (euth today, no hold)          -> immediate
+  8. "euthanized today"                             -> immediate (Critical today)
      "euthanized on {future date}"                  -> scheduled (On the clock)
-  8. otherwise (incl. "euthanized after {date}")    -> atrisk
+  9. otherwise (incl. "euthanized after {date}")    -> atrisk
 
 Env vars:
   SUPABASE_URL                (optional; host auto-detected/fixed)
@@ -203,21 +205,18 @@ def split_demo(rest):
 def classify(kennel, euth_on, euth_today, block_text):
     """Return (status_key, public_status).
 
-    The right-side banner text ("I have an ACS FOSTER hold!", "…euthanized
-    today…", etc.) is the most reliable signal and is checked BEFORE the kennel:
-    ACS frequently leaves an animal in an Office/B6/SPT kennel even after a hold
-    is placed, so trusting the kennel alone produced false "euthanasia room"
-    alarms for animals that actually had a foster/adoption/rescue hold.
-
-    Order: already-euthanized text -> the EUTHANASIA kennel (being euthanized
-    now) -> "Placement has been secured" -> a hold banner (adoption/rescue/
-    foster) or "family is coming" -> Office/B6/SPT kennel (final minutes) ->
-    OUTSIDE kennel -> "euthanized today"/"on {date}" -> otherwise Urgent.
-    Only a real euthanasia (already done, or the EUTHANASIA kennel) outranks a
-    hold; parse_rows splits "immediate" into today vs a future scheduled date.
+    Interim step toward the full taxonomy: the banner text is read before the
+    kennel, and an OFFICE kennel is treated as a LOCATION rather than an
+    automatic "final minutes." An OFFICE dog is critical only if its banner says
+    active euthanasia ("euthanized today"); a conditional "could be euthanized
+    after {date}" or no euthanasia wording makes it Urgent (atrisk), not
+    final-minutes. B6/SPT kennels stay critical. Only a real euthanasia (already
+    done, or the EUTHANASIA kennel) outranks a hold.
     """
     k = (kennel or "").upper()
     bt = (block_text or "").upper()
+    is_office = "OFFICE" in k
+    is_b6spt = k.startswith("B6") or "SPT" in k
     if "HAS BEEN EUTHANIZED" in bt or "WAS EUTHANIZED" in bt:
         key = "euthanized"
     elif k == "EUTHANASIA":
@@ -232,8 +231,15 @@ def classify(kennel, euth_on, euth_today, block_text):
         key = "foster"
     elif "FAMILY IS COMING" in bt:
         key = "watch"
-    elif "OFFICE" in k or k.startswith("B6") or "SPT" in k:
+    elif is_b6spt:
         key = "b6spt"
+    elif is_office:
+        if euth_today:
+            key = "b6spt"
+        elif euth_on:
+            key = "immediate"
+        else:
+            key = "atrisk"
     elif "OUTSIDE" in k:
         key = "immediate"
     elif euth_today or euth_on:
