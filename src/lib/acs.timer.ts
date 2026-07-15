@@ -136,13 +136,13 @@ function euthDayAnchor(a: AcsAnimal, now: Date): Date | null {
 
 /**
  * The countdown target for an animal, or null if this status shows no timer.
- * - immediate → today's Central start
+ * - immediate / office_crit → today's Central start
  * - scheduled → the euth date's Central start (from euth_date / public_status)
- * - everything else (incl. b6spt, which is "in progress") → null
+ * - everything else (incl. b6spt / euthanasia, which are "in progress") → null
  */
 export function deadlineForAnimal(a: AcsAnimal, now = new Date()): Date | null {
   const key = normalizeStatusKey(a.status_key);
-  if (key === "immediate") return euthDeadlineFor(now);
+  if (key === "immediate" || key === "office_crit") return euthDeadlineFor(now);
   if (key === "scheduled") {
     const anchor = euthDayAnchor(a, now);
     return anchor ? euthDeadlineFor(anchor) : null;
