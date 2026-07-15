@@ -8,12 +8,14 @@ photo from their ACS PetSearch page, and reconciles into the live acs_animals
 table via acs_apply_pull().
 
 Status model (status_key -> public_status):
-  euthanasia -> Euthanasia — happening now   euthanized -> In Memoriam
-  b6spt      -> Critical - final minutes      immediate  -> Critical - today
-  scheduled  -> On the clock - {date}         atrisk     -> Urgent
-  adopthold  -> ACS Adoption Hold              adoption   -> ACS Rescue Hold
-  foster     -> ACS Foster Hold                watch      -> Foster Pending
-  secured    -> Secured
+  euthanasia  -> Euthanasia in progress — act immediately
+  b6spt       -> Immediate risk · save now      office_crit -> Critical · Office
+  immediate   -> High risk · save today         scheduled   -> Euthanasia date set
+  atrisk      -> At risk                         office      -> Office (not critical)
+  adopthold   -> ACS Adoption Hold               adoption    -> ACS Rescue Hold
+  foster      -> ACS Foster Hold                 watch       -> Foster Pending
+  secured     -> Secured                         euthanized  -> In Memoriam
+  unknown     -> Unknown (tripwire for any status/banner we don't recognize)
 
   'euthanasia' means the dog is in the EUTHANASIA kennel right now (being
   euthanized). Once ACS drops them off the list, acs_apply_pull() moves them to
@@ -25,19 +27,21 @@ Status model (status_key -> public_status):
 
 Classification precedence (the right-side banner text beats a possibly-stale kennel):
   1. note "has been / was euthanized"               -> euthanized (In Memoriam)
-  2. kennel EUTHANASIA (in the room now)            -> euthanasia (happening now)
+  2. kennel EUTHANASIA (in the room now)            -> euthanasia
   3. note "Placement has been secured"              -> secured
   4. hold banner: ADOPTION HOLD -> adopthold; RESCUE HOLD -> adoption;
      FOSTER HOLD -> foster; "family is coming" -> watch. A hold is respected
-     even when the kennel still reads Office/B6/SPT.
-  5. kennel B6* / *SPT* (staged for euthanasia)     -> b6spt (final minutes)
+     even when the kennel still reads Office/B6/SPT (ACS often does not move the
+     animal), so the banner is the more reliable signal than a stale kennel.
+  5. kennel B6* / *SPT* (staged out of gen-pop for euthanasia) -> b6spt
   6. kennel OFFICE is a LOCATION, not automatically critical — read the banner:
-       "euthanized today" -> b6spt (critical); firm "euthanized on {date}" ->
-       immediate; otherwise (conditional "could be euthanized after {date}" or
-       no euthanasia wording) -> atrisk (Urgent, not final-minutes).
+       "euthanized today"            -> office_crit (Critical · Office)
+       firm "euthanized on {date}"   -> immediate (split to today/scheduled below)
+       otherwise (a conditional "could be euthanized after {date}", or no
+       euthanasia wording at all)    -> office (Office, not critical)
   7. kennel OUTSIDE* (euth today, no hold)          -> immediate
-  8. "euthanized today"                             -> immediate (Critical today)
-     "euthanized on {future date}"                  -> scheduled (On the clock)
+  8. "euthanized today"                             -> immediate (High risk today)
+     "euthanized on {future date}"                  -> scheduled (Euthanasia date set)
   9. otherwise (incl. "euthanized after {date}")    -> atrisk
 
 Env vars:
@@ -108,27 +112,29 @@ GALLERY_RE = re.compile(
 )
 PETCONNECT_RE = re.compile(r'https://24petconnect\.com/image/[^\s"\'<>]+', re.I)
 
-# status_key -> friendly label shown to the public. `euthanasia` (in the room
-# now) is distinct from `euthanized` (In Memoriam, already gone). `watch`
-# (Foster Pending) is distinct from `foster` (ACS Foster Hold): a family is
-# coming, but the placement isn't confirmed yet. ACS lists three separate hold
-# types — an ADOPTION hold (someone is adopting -> adopthold), a RESCUE partner
-# hold (a rescue pulled -> adoption), and a FOSTER hold (-> foster).
+# status_key -> friendly label shown to the public. This mirrors Voyce's earlier
+# board taxonomy: euthanasia now, the B6/SPT "immediate risk" prep group, the
+# OFFICE groups (critical vs not), a firm scheduled date, general at-risk, the
+# three ACS holds, foster pending, secured, In Memoriam, and an Unknown tripwire.
 PUBLIC = {
-    "euthanasia": "Euthanasia — happening now",
+    "euthanasia": "Euthanasia in progress — act immediately",
     "euthanized": "In Memoriam",
-    "b6spt": "Critical · final minutes",
-    "immediate": "Critical · today",
-    "scheduled": "On the clock",
-    "atrisk": "Urgent",
+    "b6spt": "Immediate risk · save now",
+    "office_crit": "Critical · Office",
+    "immediate": "High risk · save today",
+    "scheduled": "Euthanasia date set",
+    "atrisk": "At risk",
+    "office": "Office",
     "adoption": "ACS Rescue Hold",
     "adopthold": "ACS Adoption Hold",
     "foster": "ACS Foster Hold",
     "watch": "Foster Pending",
     "secured": "Secured",
+    "unknown": "Unknown",
 }
 
-CRITICAL_KEYS = ("b6spt", "immediate", "scheduled")
+# Keys that carry a euthanasia deadline for the live countdown.
+CRITICAL_KEYS = ("b6spt", "immediate", "scheduled", "office_crit")
 
 
 def log(*a):
@@ -205,13 +211,15 @@ def split_demo(rest):
 def classify(kennel, euth_on, euth_today, block_text):
     """Return (status_key, public_status).
 
-    Interim step toward the full taxonomy: the banner text is read before the
-    kennel, and an OFFICE kennel is treated as a LOCATION rather than an
-    automatic "final minutes." An OFFICE dog is critical only if its banner says
-    active euthanasia ("euthanized today"); a conditional "could be euthanized
-    after {date}" or no euthanasia wording makes it Urgent (atrisk), not
-    final-minutes. B6/SPT kennels stay critical. Only a real euthanasia (already
-    done, or the EUTHANASIA kennel) outranks a hold.
+    The right-side banner text is the most reliable signal and is checked before
+    the kennel, because ACS frequently leaves an animal in an Office/B6/SPT
+    kennel even after a hold is placed or when it is not actually being
+    euthanized. In particular an OFFICE kennel is only a LOCATION — a dog there
+    is Critical only if its banner says so ("euthanized today"); a conditional
+    "could be euthanized after {date}" or no euthanasia wording makes it the
+    non-critical 'office' bucket. B6/SPT kennels are ACS's genuine euthanasia
+    staging, so they stay 'b6spt' (Immediate risk). Only a real euthanasia
+    (already done, or the EUTHANASIA kennel) outranks a hold.
     """
     k = (kennel or "").upper()
     bt = (block_text or "").upper()
@@ -235,11 +243,11 @@ def classify(kennel, euth_on, euth_today, block_text):
         key = "b6spt"
     elif is_office:
         if euth_today:
-            key = "b6spt"
+            key = "office_crit"
         elif euth_on:
             key = "immediate"
         else:
-            key = "atrisk"
+            key = "office"
     elif "OUTSIDE" in k:
         key = "immediate"
     elif euth_today or euth_on:
@@ -329,14 +337,14 @@ def parse_rows(raw_text):
         euth_on_iso = parse_date_iso(euth_on)
         status_key, public_status = classify(kennel, euth_on, euth_today, block_text)
 
-        # Split "immediate" into today vs a set future date ("On the clock").
+        # Split "immediate" into today vs a set future date ("Euthanasia date set").
         if status_key == "immediate":
             if euth_today or not euth_on_iso or euth_on_iso <= today_iso:
-                public_status = "Critical · today"
+                public_status = "High risk · save today"
             else:
                 status_key = "scheduled"
                 d = datetime.strptime(euth_on_iso, "%Y-%m-%d")
-                public_status = f"On the clock · {d.strftime('%b')} {d.day}"
+                public_status = f"Euthanasia date set · {d.strftime('%b')} {d.day}"
 
         # Critical/scheduled animals carry a deadline for the countdown.
         euth_date = euth_on or (
