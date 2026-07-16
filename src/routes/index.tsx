@@ -1040,6 +1040,17 @@ function CaptureScreen({
                 </button>
               </div>
 
+              {/* Prominent multi-scan entry — reuses the multi-select photo input
+                  so it's impossible to miss that you can do several at once. */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#C9871A] bg-[#FFF8E1] py-3 text-[13.5px] font-bold text-[#7A4E0B] transition active:scale-[0.99] hover:bg-[#FFF1C4]"
+              >
+                <span className="text-[18px]" aria-hidden>🐾</span>
+                <span>Scan multiple animals at once</span>
+              </button>
+
               {/* Privacy helper — same wording as landing-page modal */}
               <p className="mt-3 text-center text-[11px] leading-relaxed text-foreground/55">
                 📱 Camera opens automatically on mobile &amp; tablet · 🔒 Stays on your device until you tap Send · Upload lets you pick several at once
