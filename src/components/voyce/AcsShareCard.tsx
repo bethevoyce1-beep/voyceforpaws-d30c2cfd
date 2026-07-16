@@ -114,6 +114,54 @@ function spayText(sex: string | null): { value: string; warn: boolean } {
   return { value: "Confirm with ACS", warn: false };
 }
 
+/** Title-case a shouty/lowercase value for warm prose ("GINNY" → "Ginny"). */
+function titleCase(s: string): string {
+  return s.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase());
+}
+
+/** "4y" → "4-year-old", "10m" → "10-month-old"; leaves anything else alone. */
+function humanAge(age: string): string {
+  return age
+    .replace(/(\d+)\s*y(?:rs?)?\b/i, "$1-year-old")
+    .replace(/(\d+)\s*m(?:os?|onths?)?\b/i, "$1-month-old")
+    .trim();
+}
+
+/**
+ * Pull ONLY the volunteer behavioral description out of ACS's raw notes — the
+ * warm part before any vet/medical section, with the leading date stripped.
+ * Returns up to two sentences. Never invents; returns "" when there's nothing.
+ */
+function behavioralFromNotes(story: string): string {
+  if (!story) return "";
+  let t = story.trim().replace(/^\s*\d{1,2}\/\d{1,2}\/\d{4}\s*/, "");
+  const cut = t.search(/vet exam notes|vet notes|medical (?:notes|history)|current medications/i);
+  if (cut > 0) t = t.slice(0, cut).trim();
+  // Stop at the next dated entry (a new day's note).
+  const nextDate = t.search(/\s\d{1,2}\/\d{1,2}\/\d{4}/);
+  if (nextDate > 0) t = t.slice(0, nextDate).trim();
+  const sentences = t.match(/[^.!?]+[.!?]*/g) || [t];
+  return sentences.slice(0, 2).join(" ").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * A warm 2–3 sentence "Their story" built ONLY from ACS's real data — the
+ * listing facts plus ACS's own behavioral words. Nothing is invented.
+ */
+function buildRescueStory(a: AcsAnimal): string {
+  const name = titleCase(a.name);
+  const age = humanAge((a.age || a.age_raw || "").trim());
+  const breed = a.breed ? titleCase(a.breed) : "dog";
+  const who = `${name} is ${age ? `a ${age} ` : "a "}${breed} at San Antonio ACS.`;
+  const waited =
+    typeof a.days === "number"
+      ? ` ${name} has been waiting ${a.days} day${a.days === 1 ? "" : "s"} for a foster or rescue.`
+      : "";
+  const behavioral = behavioralFromNotes(a.story || "");
+  const behaviorLine = behavioral ? ` In ACS's words: ${behavioral}` : "";
+  return `${who}${waited}${behaviorLine}`.trim();
+}
+
 // ============================================================
 // Live euthanasia timer — countdown for dated statuses; a pulsing
 // "in progress" state for b6spt / euthanasia (they're in the room now).
@@ -356,6 +404,7 @@ export function AcsShareCard({
 
   const story = (animal.story || "").trim();
   const storyPreview = story.length > 160 ? `${story.slice(0, 160)}…` : story;
+  const rescueStory = buildRescueStory(animal);
   const spay = spayText(animal.sex);
 
   const facts: { label: string; value: string; warn?: boolean }[] = [
@@ -590,8 +639,17 @@ export function AcsShareCard({
             Vaccines and microchip aren't on ACS's capacity list, so they stay "confirm with ACS."
           </p>
 
-          {/* ===== THEIR STORY (ACS's exact note) ===== */}
-          <SectionLabel>Their story · ACS's exact note</SectionLabel>
+          {/* ===== THEIR STORY (warm, built only from ACS's real data) ===== */}
+          <SectionLabel>Their story</SectionLabel>
+          <div className="mx-5 rounded-xl bg-white px-4 py-3 text-[13.5px] leading-[1.6] text-[#3A2A07] ring-1 ring-black/5">
+            {rescueStory}
+          </div>
+          <p className="mx-5 mt-1.5 text-[10.5px] italic text-[#9CA3AF]">
+            Voyce composed this from San Antonio ACS's listing and its own words — nothing invented.
+          </p>
+
+          {/* ===== ACS's EXACT NOTE (verbatim) ===== */}
+          <SectionLabel>ACS's exact note · from the shelter listing</SectionLabel>
           <div className="mx-5 overflow-hidden rounded-xl ring-1 ring-black/5">
             <div className="bg-[#FFFBEB] px-4 py-3 text-[13.5px] leading-[1.55] text-[#3A2A07]">
               {animal.euth_date && (
