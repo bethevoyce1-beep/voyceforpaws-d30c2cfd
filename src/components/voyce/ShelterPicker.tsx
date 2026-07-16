@@ -371,6 +371,9 @@ function AnimalRow({ a, onPick }: { a: AcsAnimal; onPick: (a: AcsAnimal) => void
               <RowTimerBadge a={a} />
             </div>
           )}
+          <div className="mt-1 text-[10.5px] font-semibold" style={{ color: GOLD_DEEP }}>
+            Tap for full details ›
+          </div>
         </div>
         <span
           className="flex-none rounded-full px-2.5 py-1 text-center text-[10px] font-bold leading-tight tracking-wide"
