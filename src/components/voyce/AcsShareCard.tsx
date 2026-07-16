@@ -439,6 +439,13 @@ export function AcsShareCard({
     { label: "FeLV / FIV", value: "N/A (canine)" },
   ];
 
+  // Quick-link pills shown up top by the address — small, clear, like View map.
+  const quickLinks: { href: string; label: string; bg: string; fg: string }[] = [
+    { href: ACS.mapsUrl, label: "📍 View map", bg: "#EEF3FB", fg: "#1E40AF" },
+    { href: acsDeepLink, label: "🏛 ACS listing", bg: "#FFF6DA", fg: "#7A5A0A" },
+    { href: pdfDeepLink, label: "📋 ACS PDF · this dog", bg: "#FFF6DA", fg: "#7A5A0A" },
+  ];
+
   return (
     <div style={{ minHeight: "100dvh", background: PAPER }}>
       <BrandHeader />
@@ -512,7 +519,7 @@ export function AcsShareCard({
             </p>
           </div>
 
-          {/* ===== ADDRESS + MAP ===== */}
+          {/* ===== ADDRESS + QUICK-LINK PILLS (View map · ACS listing · ACS PDF) ===== */}
           <div className="mx-5 mt-3">
             <div className="flex items-start gap-2 text-[12.5px] leading-snug text-[#4B5563]">
               <span className="text-[14px] leading-none">📍</span>
@@ -520,14 +527,20 @@ export function AcsShareCard({
                 <b>{ACS.fullName}</b> · {ACS.address}
               </span>
             </div>
-            <a
-              href={ACS.mapsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-[#EEF3FB] px-3 py-1.5 text-[12px] font-bold text-[#1E40AF] active:scale-95"
-            >
-              📍 View map
-            </a>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {quickLinks.map((q) => (
+                <a
+                  key={q.label}
+                  href={q.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-bold active:scale-95"
+                  style={{ background: q.bg, color: q.fg }}
+                >
+                  {q.label}
+                </a>
+              ))}
+            </div>
           </div>
 
           {/* ===== STATUS / ALARM LINE ===== */}
@@ -695,7 +708,7 @@ export function AcsShareCard({
 
           {/* ===== FIND POSTS & VIDEOS ===== */}
           <SectionLabel>Find posts &amp; videos</SectionLabel>
-          <div className="mx-5 rounded-xl bg-[#FFFBEB] p-3.5 ring-1 ring-[#F3E5B6]">
+          <div className="mx-5 mb-5 rounded-xl bg-[#FFFBEB] p-3.5 ring-1 ring-[#F3E5B6]">
             <p className="text-[12.5px] leading-snug text-[#6B5832]">
               Voyce searches ACS's Facebook, YouTube, and the web by ID. Verify before sharing.
             </p>
@@ -716,38 +729,6 @@ export function AcsShareCard({
             >
               + Add a video, photo, or post you found
             </button>
-          </div>
-
-          {/* ===== VERIFY ON ACS ===== */}
-          <SectionLabel>Verify on ACS</SectionLabel>
-          <div className="mx-5 mb-5 grid grid-cols-1 gap-2">
-            <a
-              href={acsDeepLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block rounded-xl bg-black px-4 py-3 transition active:scale-[0.99]"
-            >
-              <p className="text-[10.5px] font-bold uppercase tracking-[0.12em]" style={{ color: GOLD }}>
-                🏛 Photos &amp; notes on ACS · ID {id}
-              </p>
-              <p className="mt-0.5 text-[12.5px] font-semibold" style={{ color: GOLD }}>
-                🔗 View {animal.name} on ACS →
-              </p>
-            </a>
-            <a
-              href={pdfDeepLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block rounded-xl px-4 py-3 transition active:scale-[0.99]"
-              style={{ background: CREAM, border: `1px solid ${GOLD_DEEP}` }}
-            >
-              <p className="text-[10.5px] font-bold uppercase tracking-[0.12em]" style={{ color: GOLD_DEEP }}>
-                📋 ACS PDF list entry · {NAME} only
-              </p>
-              <p className="mt-0.5 text-[12px] text-[#6B5832]">
-                Shows ONLY {animal.name}'s row — no other animals
-              </p>
-            </a>
           </div>
         </article>
 
