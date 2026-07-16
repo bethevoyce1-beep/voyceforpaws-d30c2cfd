@@ -248,7 +248,8 @@ function buildShareText(a: AcsAnimal, deepLink: string): string {
 }
 
 // ============================================================
-// Share platform metadata
+// Share sheet — a labeled grid (platform + one-line purpose), opened from the
+// "Share" chip under "Can you help?". Mirrors the landing-page share modal.
 // ============================================================
 function Ico({ d }: { d: string }) {
   return (
@@ -258,28 +259,36 @@ function Ico({ d }: { d: string }) {
   );
 }
 
-const SHARE_PRIMARY = [
-  { id: "nextdoor", label: "Nextdoor", bg: "#5BA32C", text: "#fff", glyph: "ND" },
-  { id: "facebook", label: "Facebook", bg: "#1877F2", text: "#fff",
-    iconPath: "M22 12a10 10 0 1 0-11.6 9.9v-7H8v-2.9h2.4V9.4c0-2.4 1.5-3.8 3.6-3.8 1 0 2 .2 2 .2v2.3h-1.2c-1.2 0-1.6.7-1.6 1.5V12h2.7l-.4 2.9h-2.3V22A10 10 0 0 0 22 12Z" },
-  { id: "whatsapp", label: "WhatsApp", bg: "#25D366", text: "#fff",
-    iconPath: "M20 3.5A10 10 0 0 0 4.1 16.6L3 21l4.5-1.1A10 10 0 1 0 20 3.5Zm-5 16a8.4 8.4 0 0 1-4.3-1.2l-.3-.2-2.7.7.7-2.6-.2-.3A8.4 8.4 0 1 1 15 19.5Z" },
-];
-const SHARE_SECONDARY = [
-  { id: "x", label: "𝕏", bg: "#000", text: "#fff",
-    iconPath: "M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" },
-  { id: "copy", label: "Copy", bg: "#4B5563", text: "#fff",
-    iconPath: "M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z" },
-];
-const SHARE_MORE = [
-  { id: "instagram", label: "Instagram", bg: "#E4405F" },
-  { id: "snapchat",  label: "Snapchat",  bg: "#FFFC00", text: "#000" },
-  { id: "telegram",  label: "Telegram",  bg: "#26A5E4" },
-  { id: "messenger", label: "Messenger", bg: "#00B2FF" },
-  { id: "reddit",    label: "Reddit",    bg: "#FF4500" },
-  { id: "pinterest", label: "Pinterest", bg: "#E60023" },
-  { id: "email",     label: "Email",     bg: "#374151" },
-  { id: "sms",       label: "SMS",       bg: "#10B981" },
+const FB_PATH = "M22 12a10 10 0 1 0-11.6 9.9v-7H8v-2.9h2.4V9.4c0-2.4 1.5-3.8 3.6-3.8 1 0 2 .2 2 .2v2.3h-1.2c-1.2 0-1.6.7-1.6 1.5V12h2.7l-.4 2.9h-2.3V22A10 10 0 0 0 22 12Z";
+const WA_PATH = "M20 3.5A10 10 0 0 0 4.1 16.6L3 21l4.5-1.1A10 10 0 1 0 20 3.5Zm-5 16a8.4 8.4 0 0 1-4.3-1.2l-.3-.2-2.7.7.7-2.6-.2-.3A8.4 8.4 0 1 1 15 19.5Z";
+const X_PATH = "M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z";
+const COPY_PATH = "M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z";
+
+type ShareItem = {
+  id: string;
+  label: string;
+  sub: string;
+  bg: string;
+  fg?: string;
+  iconPath?: string;
+  mark?: string;
+};
+
+const SHARE_SHEET: ShareItem[] = [
+  { id: "nextdoor", label: "Nextdoor", sub: "Best for local rescues", bg: "#8ED500", fg: "#1F3A00", mark: "ND" },
+  { id: "facebook", label: "Facebook", sub: "Post to feed or groups", bg: "#1877F2", fg: "#fff", iconPath: FB_PATH },
+  { id: "whatsapp", label: "WhatsApp", sub: "DM or rescue groups", bg: "#25D366", fg: "#fff", iconPath: WA_PATH },
+  { id: "x", label: "X / Twitter", sub: "Tag rescues & shelters", bg: "#000", fg: "#fff", iconPath: X_PATH },
+  { id: "instagram", label: "Instagram", sub: "Copy + paste to story", bg: "#E4405F", fg: "#fff", mark: "IG" },
+  { id: "email", label: "Email", sub: "Forward to a rescuer", bg: "#EA4335", fg: "#fff", mark: "@" },
+  { id: "sms", label: "SMS", sub: "Text to the pack", bg: "#10B981", fg: "#fff", mark: "SMS" },
+  { id: "linkedin", label: "LinkedIn", sub: "Reach professionals", bg: "#0A66C2", fg: "#fff", mark: "in" },
+  { id: "snapchat", label: "Snapchat", sub: "Post to your story", bg: "#FFFC00", fg: "#000", mark: "SC" },
+  { id: "telegram", label: "Telegram", sub: "Channels & groups", bg: "#26A5E4", fg: "#fff", mark: "TG" },
+  { id: "reddit", label: "Reddit", sub: "r/Adopt · r/SanAntonio", bg: "#FF4500", fg: "#fff", mark: "R" },
+  { id: "messenger", label: "Messenger", sub: "Copy + DM friends", bg: "#00B2FF", fg: "#fff", mark: "M" },
+  { id: "pinterest", label: "Pinterest", sub: "Pin to a rescue board", bg: "#E60023", fg: "#fff", mark: "P" },
+  { id: "copy", label: "Copy link", sub: "Paste anywhere", bg: "#4B5563", fg: "#fff", iconPath: COPY_PATH },
 ];
 
 // Small reusable label + fact grid ---------------------------------------
@@ -318,7 +327,7 @@ export function AcsShareCard({
 }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRole, setModalRole] = useState<NetworkRole | undefined>();
-  const [shareMoreOpen, setShareMoreOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [addMediaOpen, setAddMediaOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [photoFailed, setPhotoFailed] = useState(false);
@@ -380,6 +389,7 @@ export function AcsShareCard({
       whatsapp: `https://wa.me/?text=${enc(shareText + "\n" + shareUrl)}`,
       x: `https://twitter.com/intent/tweet?text=${enc(shareText)}&url=${enc(shareUrl)}`,
       telegram: `https://t.me/share/url?url=${enc(shareUrl)}&text=${enc(shareText)}`,
+      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${enc(shareUrl)}`,
       reddit: `https://www.reddit.com/submit?url=${enc(shareUrl)}&title=${enc(`${badgeLabel} — ${animal.name} at ${ACS.name}`)}`,
       pinterest: `https://pinterest.com/pin/create/button/?url=${enc(shareUrl)}&description=${enc(shareText)}`,
       email: `mailto:?subject=${enc(`${badgeLabel} — ${animal.name} needs help at ${ACS.name}`)}&body=${enc(shareText + "\n" + shareUrl)}`,
@@ -579,54 +589,12 @@ export function AcsShareCard({
               🚐 Transport
             </button>
             <button
-              onClick={() => doShare("copy")}
+              onClick={() => setShareOpen(true)}
               className="flex items-center justify-center gap-1.5 rounded-xl border border-[#D9D2C2] bg-white py-2.5 text-[12px] font-bold text-[#1A1611] active:scale-95"
             >
-              📤 {copied ? "Copied!" : "Share"}
+              📤 Share
             </button>
           </div>
-
-          {/* ===== SOCIAL SHARE (kept) ===== */}
-          <div className="my-[18px] mx-5 h-px bg-[#F3F4F6]" />
-          <p className="mx-5 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">
-            Share to help save {animal.name}
-          </p>
-          <div className="mx-5 mt-3 grid grid-cols-3 gap-2">
-            {SHARE_PRIMARY.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => doShare(s.id)}
-                className="flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 text-[10.5px] font-bold shadow-sm active:scale-95"
-                style={{ background: s.bg, color: s.text }}
-                aria-label={`Share to ${s.label}`}
-              >
-                {"iconPath" in s && s.iconPath ? <Ico d={s.iconPath} /> : (
-                  <span className="text-[11px] font-extrabold">{s.glyph}</span>
-                )}
-                <span>{s.label}</span>
-              </button>
-            ))}
-          </div>
-          <div className="mx-5 mt-2 grid grid-cols-2 gap-2">
-            {SHARE_SECONDARY.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => doShare(s.id)}
-                className="flex items-center justify-center gap-2 rounded-xl py-2.5 text-[12px] font-bold shadow-sm active:scale-95"
-                style={{ background: s.bg, color: s.text }}
-                aria-label={`Share to ${s.label}`}
-              >
-                <Ico d={s.iconPath} />
-                <span>{s.id === "copy" && copied ? "Copied!" : s.label}</span>
-              </button>
-            ))}
-          </div>
-          <button
-            onClick={() => setShareMoreOpen(true)}
-            className="mx-5 mt-2 block w-[calc(100%-2.5rem)] rounded-xl border-[1.5px] border-[#FFDF3B] bg-black py-2.5 text-[12px] font-bold tracking-wide text-[#FFDF3B] transition active:scale-[0.99]"
-          >
-            ⋯  More share options
-          </button>
 
           {/* ===== RESCUE FACTS ===== */}
           <SectionLabel>Rescue facts</SectionLabel>
@@ -794,41 +762,54 @@ export function AcsShareCard({
         </div>
       </div>
 
-      {/* MORE SHARE MODAL */}
-      {shareMoreOpen && (
+      {/* SHARE SHEET */}
+      {shareOpen && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 p-0 sm:items-center sm:p-4"
-          onClick={() => setShareMoreOpen(false)}
+          onClick={() => setShareOpen(false)}
         >
           <div
-            className="relative w-full max-w-md overflow-hidden rounded-t-3xl bg-white p-5 shadow-2xl sm:rounded-3xl"
+            className="relative flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="font-serif text-[17px] font-bold">More share options</h3>
+            <div className="flex items-start justify-between px-5 pt-5">
+              <div>
+                <h3 className="font-serif text-[19px] font-bold leading-tight">
+                  Share {animal.name} (ID {id})
+                </h3>
+                <p className="mt-1 text-[12px] leading-snug text-[#6B7280]">
+                  Every share helps. <b>Nextdoor</b> is best for finding a local rescuer or foster
+                  fast — neighbors see neighborhood posts.
+                </p>
+              </div>
               <button
-                onClick={() => setShareMoreOpen(false)}
+                onClick={() => setShareOpen(false)}
                 aria-label="Close"
-                className="rounded-full bg-black/5 px-2.5 py-1 text-sm text-foreground/70 hover:bg-black/10"
+                className="ml-2 shrink-0 rounded-full bg-black/5 px-2.5 py-1 text-sm text-foreground/70 hover:bg-black/10"
               >
                 ✕
               </button>
             </div>
-            <div className="grid grid-cols-4 gap-2.5">
-              {SHARE_MORE.map((s) => (
+            <div className="grid grid-cols-3 gap-2.5 overflow-y-auto px-5 pb-6 pt-4">
+              {SHARE_SHEET.map((s) => (
                 <button
                   key={s.id}
                   onClick={() => {
                     doShare(s.id);
-                    setShareMoreOpen(false);
+                    if (s.id !== "copy") setShareOpen(false);
                   }}
-                  className="flex flex-col items-center justify-center gap-1.5 rounded-xl py-3 text-[10.5px] font-bold shadow-sm active:scale-95"
-                  style={{ background: s.bg, color: s.text ?? "#fff" }}
+                  className="flex flex-col items-center gap-1.5 rounded-2xl border border-[#EFE8D6] bg-white px-1.5 py-3 text-center shadow-sm transition active:scale-95"
                 >
-                  <span className="grid h-6 w-6 place-items-center rounded-full bg-white/25 text-[12px] font-extrabold">
-                    {s.label.charAt(0)}
+                  <span
+                    className="grid h-10 w-10 place-items-center rounded-full"
+                    style={{ background: s.bg, color: s.fg ?? "#fff" }}
+                  >
+                    {s.iconPath ? <Ico d={s.iconPath} /> : <span className="text-[12px] font-extrabold">{s.mark}</span>}
                   </span>
-                  <span>{s.label}</span>
+                  <span className="text-[11.5px] font-bold text-[#1A1611]">{s.label}</span>
+                  <span className="text-[9.5px] leading-tight text-[#9CA3AF]">
+                    {s.id === "copy" && copied ? "Copied!" : s.sub}
+                  </span>
                 </button>
               ))}
             </div>
