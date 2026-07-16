@@ -295,11 +295,16 @@ function RowTimerBadge({ a }: { a: AcsAnimal }) {
   const target = useMemo(() => (inRoom ? null : deadlineForAnimal(a)), [a, inRoom]);
   const { msLeft, hasTarget } = useEuthCountdown(target);
 
+  // A dated animal whose Central deadline is already behind us shows a clean
+  // "deadline has passed" state rather than a frozen 0s countdown.
+  const past = !inRoom && hasTarget && msLeft <= 0;
   const chip = inRoom
     ? { label: "In progress — act now", bg: "#7F1D1D", text: "#FFFFFF", pulse: true }
-    : urgencyFor(msLeft);
-  const countdown = !inRoom && hasTarget ? formatCountdown(msLeft) : null;
-  const clock = !inRoom && hasTarget && target ? formatDeadlineClock(target) : null;
+    : past
+      ? { label: "Today's deadline has passed", bg: "#7F1D1D", text: "#FFFFFF", pulse: false }
+      : urgencyFor(msLeft);
+  const countdown = !inRoom && hasTarget && msLeft > 0 ? formatCountdown(msLeft) : null;
+  const clock = !inRoom && hasTarget && target && msLeft > 0 ? formatDeadlineClock(target) : null;
 
   return (
     <span
