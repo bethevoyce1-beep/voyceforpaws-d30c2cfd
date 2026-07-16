@@ -74,15 +74,17 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 // ---------------------------------------------------------------------------
-// Auto-update (July 5, 2026; loop-fixed same day): visitors kept getting
-// stale cached versions and had to clear caches by hand. This hook compares
-// the MAIN ENTRY asset path the running page loaded against the one the
-// server currently serves. Vite content-hashes the entry on every build, so
-// a mismatch means a new deploy:
+// Auto-update (July 5, 2026; loop-fixed same day; broadened July 16, 2026):
+// visitors kept getting stale cached versions and had to clear caches by hand.
+// This hook compares the MAIN ENTRY asset path the running page loaded against
+// the one the server currently serves. Vite content-hashes the entry on every
+// build, so a mismatch means a new deploy:
 //   • right after load → reload once (nothing in progress yet)
-//   • returning to a tab hidden 30+ minutes → reload once (stale session)
+//   • whenever the app is brought back to the foreground (tab switch, or
+//     reopening the installed home-screen app) → reload once if it's stale
 // LOOP GUARDS: only the FIRST matching asset path is compared (lazy-loaded
-// chunks accumulate in the DOM and must not count), and a sessionStorage
+// chunks accumulate in the DOM and must not count); after a reload the running
+// entry equals the server entry so it won't reload again; and a sessionStorage
 // stamp hard-caps auto-reloads to one per 2 minutes no matter what.
 // ---------------------------------------------------------------------------
 const RELOAD_STAMP_KEY = "voyce_auto_reload_at";
@@ -134,7 +136,6 @@ function recentlyAutoReloaded(): boolean {
 function useAutoRefreshOnNewVersion() {
   useEffect(() => {
     let reloading = false;
-    let hiddenAt = 0;
 
     const isNewBuild = async (): Promise<boolean> => {
       const current = runningEntry();
@@ -165,17 +166,20 @@ function useAutoRefreshOnNewVersion() {
     // the current build right away — the visitor hasn't started anything yet.
     const t = setTimeout(() => void reloadIf(), 1500);
 
-    const onVisibility = () => {
-      if (document.visibilityState === "hidden") {
-        hiddenAt = Date.now();
-      } else if (hiddenAt && Date.now() - hiddenAt > 30 * 60 * 1000) {
-        void reloadIf();
-      }
+    // On ANY return to the foreground — switching back to the tab, or reopening
+    // the installed home-screen app — check for a newer deploy and swap to it.
+    // reloadIf only reloads when the build actually changed, and the 2-minute
+    // stamp prevents loops, so this never interrupts active use.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void reloadIf();
     };
-    document.addEventListener("visibilitychange", onVisibility);
+    const onFocus = () => void reloadIf();
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onFocus);
     return () => {
       clearTimeout(t);
-      document.removeEventListener("visibilitychange", onVisibility);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onFocus);
     };
   }, []);
 }
