@@ -663,9 +663,44 @@ export function AcsShareCard({
             </div>
           </div>
 
-          {/* ===== CONTACT ACS ===== */}
+          {/* ===== DEADLINE-EMAIL PROCESS BOX ===== */}
+          <div
+            className="mx-5 mt-3 rounded-xl px-4 py-3 text-[12px] leading-[1.5]"
+            style={{ background: CREAM, border: `1px solid ${GOLD_DEEP}`, color: "#6B5832" }}
+          >
+            ⏰ To rescue, foster, or adopt, a placement email must reach{" "}
+            <b>{ACS.adoptionsEmail}</b> or <b>{ACS.fosterEmail}</b> before the daily deadline —{" "}
+            {DEADLINE_WORDS}.
+          </div>
+
+          {/* ===== FIND POSTS & VIDEOS ===== */}
+          <SectionLabel>Find posts &amp; videos</SectionLabel>
+          <div className="mx-5 rounded-xl bg-[#FFFBEB] p-3.5 ring-1 ring-[#F3E5B6]">
+            <p className="text-[12.5px] leading-snug text-[#6B5832]">
+              Voyce searches ACS's Facebook, YouTube, and the web by ID. Verify before sharing.
+            </p>
+            <div className="mt-2.5 grid grid-cols-3 gap-2">
+              <a href={findFb} target="_blank" rel="noopener noreferrer"
+                 className="rounded-lg bg-[#1877F2] py-2 text-center text-[11px] font-bold text-white shadow-sm active:scale-95">Facebook</a>
+              <a href={findYt} target="_blank" rel="noopener noreferrer"
+                 className="rounded-lg bg-[#FF0000] py-2 text-center text-[11px] font-bold text-white shadow-sm active:scale-95">YouTube</a>
+              <a href={findWeb} target="_blank" rel="noopener noreferrer"
+                 className="rounded-lg bg-[#374151] py-2 text-center text-[11px] font-bold text-white shadow-sm active:scale-95">Web</a>
+            </div>
+            <p className="mt-3 text-[11px] italic text-[#6B5832]">
+              Found footage of {animal.name} anywhere? Add the link — we'll credit whoever posted it.
+            </p>
+            <button
+              onClick={() => setAddMediaOpen(true)}
+              className="mt-2 w-full rounded-lg border border-[#E1B85B] bg-white py-2 text-[11.5px] font-bold text-[#7A5A0A] transition active:scale-95"
+            >
+              + Add a video, photo, or post you found
+            </button>
+          </div>
+
+          {/* ===== CONTACT ACS (bottom of card) ===== */}
           <SectionLabel>Contact ACS</SectionLabel>
-          <div className="mx-5 grid grid-cols-2 gap-2">
+          <div className="mx-5 mb-5 grid grid-cols-2 gap-2">
             <a
               href={adoptMailto}
               className="rounded-xl px-3 py-2.5 text-center text-[12px] font-bold shadow-sm transition active:scale-95"
@@ -694,41 +729,6 @@ export function AcsShareCard({
             >
               🧭 Directions
             </a>
-          </div>
-
-          {/* ===== DEADLINE-EMAIL PROCESS BOX ===== */}
-          <div
-            className="mx-5 mt-3 rounded-xl px-4 py-3 text-[12px] leading-[1.5]"
-            style={{ background: CREAM, border: `1px solid ${GOLD_DEEP}`, color: "#6B5832" }}
-          >
-            ⏰ To rescue, foster, or adopt, a placement email must reach{" "}
-            <b>{ACS.adoptionsEmail}</b> or <b>{ACS.fosterEmail}</b> before the daily deadline —{" "}
-            {DEADLINE_WORDS}.
-          </div>
-
-          {/* ===== FIND POSTS & VIDEOS ===== */}
-          <SectionLabel>Find posts &amp; videos</SectionLabel>
-          <div className="mx-5 mb-5 rounded-xl bg-[#FFFBEB] p-3.5 ring-1 ring-[#F3E5B6]">
-            <p className="text-[12.5px] leading-snug text-[#6B5832]">
-              Voyce searches ACS's Facebook, YouTube, and the web by ID. Verify before sharing.
-            </p>
-            <div className="mt-2.5 grid grid-cols-3 gap-2">
-              <a href={findFb} target="_blank" rel="noopener noreferrer"
-                 className="rounded-lg bg-[#1877F2] py-2 text-center text-[11px] font-bold text-white shadow-sm active:scale-95">Facebook</a>
-              <a href={findYt} target="_blank" rel="noopener noreferrer"
-                 className="rounded-lg bg-[#FF0000] py-2 text-center text-[11px] font-bold text-white shadow-sm active:scale-95">YouTube</a>
-              <a href={findWeb} target="_blank" rel="noopener noreferrer"
-                 className="rounded-lg bg-[#374151] py-2 text-center text-[11px] font-bold text-white shadow-sm active:scale-95">Web</a>
-            </div>
-            <p className="mt-3 text-[11px] italic text-[#6B5832]">
-              Found footage of {animal.name} anywhere? Add the link — we'll credit whoever posted it.
-            </p>
-            <button
-              onClick={() => setAddMediaOpen(true)}
-              className="mt-2 w-full rounded-lg border border-[#E1B85B] bg-white py-2 text-[11.5px] font-bold text-[#7A5A0A] transition active:scale-95"
-            >
-              + Add a video, photo, or post you found
-            </button>
           </div>
         </article>
 
