@@ -7,12 +7,14 @@ import {
   normalizeStatusKey,
   statusLabel,
   type AcsAnimal,
+  type AcsStatusKey,
 } from "@/lib/acs.functions";
 import {
   deadlineForAnimal,
   useEuthCountdown,
   urgencyFor,
   formatCountdown,
+  formatDeadlineClock,
 } from "@/lib/acs.timer";
 import type { NetworkRole } from "@/lib/signups.functions";
 
@@ -21,6 +23,7 @@ import type { NetworkRole } from "@/lib/signups.functions";
 // ============================================================
 const ACS = {
   name: "San Antonio ACS",
+  fullName: "San Antonio Animal Care Services",
   phone: "(210) 207-6669",
   phoneTel: "+12102076669",
   adoptionsEmail: "acsadoptions@sanantonio.gov",
@@ -43,6 +46,40 @@ const CREAM = "#FFFBEB";
 const PAPER = "#FAF7F1";
 const INK = "#1A1611";
 
+// The daily ACS deadline, in words — matches acs.timer.ts (5:30 PM Mon–Fri /
+// 12:30 PM Sat / Sun closed). Kept in one place so it can never drift again.
+const DEADLINE_WORDS = "5:30 PM Mon–Fri / 12:30 PM Sat · Sun closed";
+
+// Status color ramp — honest, not everything red. Critical tiers are red,
+// scheduled/at-risk warm, holds teal, secured green, memoriam/unknown gray.
+function statusColor(key: AcsStatusKey): string {
+  switch (key) {
+    case "euthanasia":
+    case "b6spt":
+    case "office_crit":
+      return "#B91C1C";
+    case "immediate":
+      return "#DC2626";
+    case "scheduled":
+      return "#EA580C";
+    case "atrisk":
+      return "#D97706";
+    case "office":
+      return "#B45309";
+    case "adopthold":
+    case "adoption":
+    case "foster":
+    case "watch":
+      return "#0F766E";
+    case "secured":
+      return "#15803D";
+    case "euthanized":
+      return "#57534E";
+    default:
+      return "#6B7280";
+  }
+}
+
 // ============================================================
 // Small ACS helpers — the scraper doesn't populate every column, so each
 // accessor degrades gracefully (nulls become friendly fallbacks).
@@ -57,46 +94,46 @@ function daysText(a: AcsAnimal): string {
   return typeof a.days === "number" ? `${a.days} days at shelter` : "on the at-risk list";
 }
 
+/** Normalize a date-ish string to US M/D/YYYY; pass through anything odd. */
+function usDate(s: string | null | undefined): string | null {
+  if (!s) return null;
+  const t = s.trim();
+  if (!t) return null;
+  let m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(t);
+  if (m) return `${+m[2]}/${+m[3]}/${m[1]}`;
+  m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(t);
+  if (m) return `${+m[1]}/${+m[2]}/${m[3]}`;
+  return t;
+}
+
+/** Best-effort spay/neuter read from the free-text sex field. */
+function spayText(sex: string | null): { value: string; warn: boolean } {
+  const s = (sex || "").toLowerCase();
+  if (/intact/.test(s)) return { value: "Intact", warn: true };
+  if (/spay|neuter|altered/.test(s)) return { value: "Altered", warn: false };
+  return { value: "Confirm with ACS", warn: false };
+}
+
 // ============================================================
-// Live euthanasia timer badge — an escalating urgency chip plus a ticking
-// countdown, layered ON TOP of (never replacing) the category status pill.
-//
-//   b6spt      → "In progress — act now" (no numeric timer; they're in the room)
-//   immediate  → countdown to today's Central euthanasia start
-//   scheduled  → countdown to the euth date's Central start
-//   all others → no badge (handled by the callers)
-//
-// `variant="compact"` renders a single inline pill (used on the hero + CTA);
-// `variant="block"` renders the fuller labeled block (the Time-left card).
+// Live euthanasia timer — countdown for dated statuses; a pulsing
+// "in progress" state for b6spt / euthanasia (they're in the room now).
 // ============================================================
-function EuthTimerBadge({
-  animal,
-  variant,
-}: {
-  animal: AcsAnimal;
-  variant: "compact" | "block";
-}) {
+function EuthTimer({ animal, variant }: { animal: AcsAnimal; variant: "chip" | "block" }) {
   const key = normalizeStatusKey(animal.status_key);
-  const inRoom = key === "b6spt";
-  const target = useMemo(
-    () => (inRoom ? null : deadlineForAnimal(animal)),
-    [animal, inRoom],
-  );
+  const inProgress = key === "b6spt" || key === "euthanasia";
+  const target = useMemo(() => (inProgress ? null : deadlineForAnimal(animal)), [animal, inProgress]);
   const { msLeft, hasTarget } = useEuthCountdown(target);
 
-  // b6spt: they're in the room now — always the deep-red "in progress" state.
-  const chip = inRoom
+  const chip = inProgress
     ? { label: "In progress — act now", bg: "#7F1D1D", text: "#FFFFFF", pulse: true }
     : urgencyFor(msLeft);
-  const showCountdown = !inRoom && hasTarget;
-  const countdown = showCountdown ? formatCountdown(msLeft) : null;
+  const countdown = hasTarget ? formatCountdown(msLeft) : null;
+  const pulse = chip.pulse ? "motion-safe:animate-pulse" : "";
 
-  const pulseClass = chip.pulse ? "motion-safe:animate-pulse" : "";
-
-  if (variant === "compact") {
+  if (variant === "chip") {
     return (
       <span
-        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-extrabold shadow-lg ${pulseClass}`}
+        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-extrabold shadow-lg ${pulse}`}
         style={{ background: chip.bg, color: chip.text }}
         role="status"
         aria-live="polite"
@@ -109,28 +146,28 @@ function EuthTimerBadge({
 
   return (
     <div
-      className={`rounded-xl border-l-[4px] px-3.5 py-3 ${pulseClass}`}
+      className={`rounded-xl border px-4 py-3 text-center ${pulse}`}
       style={{ background: "#FEF2F2", borderColor: chip.bg }}
       role="status"
       aria-live="polite"
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <span
-          className="rounded-full px-2.5 py-1 text-[10.5px] font-extrabold uppercase tracking-[0.1em]"
-          style={{ background: chip.bg, color: chip.text }}
-        >
-          {chip.label}
-        </span>
-        {countdown && (
-          <span className="font-mono text-[20px] font-extrabold tabular-nums" style={{ color: RED2 }}>
-            ⏳ {countdown}
-          </span>
-        )}
-      </div>
-      <p className="mt-1.5 text-[11.5px] text-[#6B7280]">
-        {inRoom
-          ? "In the euthanasia room now — email or call ACS immediately."
-          : "ACS euthanasia starts 12:30 PM Mon–Fri / 11:00 AM Sat (Central) · confirm with ACS"}
+      <p className="text-[10.5px] font-extrabold uppercase tracking-[0.12em]" style={{ color: chip.bg }}>
+        {hasTarget ? "Time left before euthanasia window" : chip.label}
+      </p>
+      {hasTarget ? (
+        <p className="mt-0.5 font-mono text-[26px] font-extrabold tabular-nums" style={{ color: chip.bg }}>
+          {countdown}
+        </p>
+      ) : (
+        <p className="mt-1 text-[13px] font-bold" style={{ color: chip.bg }}>
+          {key === "euthanasia"
+            ? "In the euthanasia room now."
+            : "Moved to a euthanasia-prep kennel."}
+        </p>
+      )}
+      <p className="mt-1 text-[11px] text-[#6B7280]">
+        ACS deadline · {target ? `${formatDeadlineClock(target)} · ` : ""}
+        {DEADLINE_WORDS} · confirm with ACS
       </p>
     </div>
   );
@@ -197,6 +234,30 @@ const SHARE_MORE = [
   { id: "sms",       label: "SMS",       bg: "#10B981" },
 ];
 
+// Small reusable label + fact grid ---------------------------------------
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mx-5 mb-2 mt-4 text-[10.5px] font-bold uppercase tracking-[0.12em]" style={{ color: GOLD_DEEP }}>
+      {children}
+    </p>
+  );
+}
+
+function FactGrid({ items }: { items: { label: string; value: string; warn?: boolean }[] }) {
+  return (
+    <div className="mx-5 grid grid-cols-2 gap-x-3 gap-y-2 rounded-xl bg-[#FBF9F3] p-3.5 ring-1 ring-black/5">
+      {items.map((f) => (
+        <div key={f.label} className="min-w-0">
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-[#9CA3AF]">{f.label}</div>
+          <div className={`truncate text-[13px] font-semibold ${f.warn ? "text-[#B91C1C]" : "text-[#3A2A07]"}`}>
+            {f.value}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ============================================================
 // Component
 // ============================================================
@@ -213,6 +274,7 @@ export function AcsShareCard({
   const [addMediaOpen, setAddMediaOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [photoFailed, setPhotoFailed] = useState(false);
+  const [storyOpen, setStoryOpen] = useState(false);
 
   const openModal = (role?: NetworkRole) => {
     setModalRole(role);
@@ -222,21 +284,25 @@ export function AcsShareCard({
   const statusKey = normalizeStatusKey(animal.status_key);
   const statusMeta = statusKey === "left" ? ACS_STATUS_MODEL.atrisk : ACS_STATUS_MODEL[statusKey];
   const badgeLabel = statusLabel(animal);
+  const chipColor = statusColor(statusKey === "left" ? "atrisk" : statusKey);
 
-  // Whether this animal shows the live euthanasia timer. b6spt (in the room),
-  // immediate (today), and scheduled (a set date) get the timer/urgency chip.
-  // atrisk / adoption / foster / secured / euthanized do NOT.
-  const showTimer = statusKey === "b6spt" || statusKey === "immediate" || statusKey === "scheduled";
+  // Time-critical statuses show the countdown / in-progress timer block.
+  const showTimer =
+    statusKey === "b6spt" ||
+    statusKey === "euthanasia" ||
+    statusKey === "office_crit" ||
+    statusKey === "immediate" ||
+    statusKey === "scheduled";
 
   const id = animal.id;
   const NAME = animal.name.toUpperCase();
   const kennel = animal.kennel ?? "—";
   const photo = acsPhoto(animal);
-  const specLine = [animal.breed, animal.age, animal.sex, animal.color, `kennel ${kennel}`, daysText(animal)]
+  const vitals = [animal.breed, animal.age || animal.age_raw, animal.color]
     .filter(Boolean)
     .join(" · ");
+  const daysWaiting = typeof animal.days === "number" ? `${animal.days} days waiting` : "on the list";
 
-  // Prefer ACS's own listing link; fall back to the ID-based search page.
   const acsDeepLink = animal.pet_search_url || `${ACS.searchPage}?id=${encodeURIComponent(id)}`;
   const pdfDeepLink = animal.list_url || `${ACS.pdfList}#${encodeURIComponent(id)}`;
   const shareUrl =
@@ -288,17 +354,55 @@ export function AcsShareCard({
     }
   };
 
+  const story = (animal.story || "").trim();
+  const storyPreview = story.length > 160 ? `${story.slice(0, 160)}…` : story;
+  const spay = spayText(animal.sex);
+
+  const facts: { label: string; value: string; warn?: boolean }[] = [
+    { label: "Breed", value: animal.breed || "—" },
+    { label: "Kennel", value: kennel },
+    { label: "Color", value: animal.color || "—" },
+    { label: "Age", value: animal.age || animal.age_raw || "—" },
+    { label: "Sex", value: animal.sex || "—", warn: /intact/i.test(animal.sex || "") },
+    { label: "Weight", value: animal.weight ? `${animal.weight} lb` : "—" },
+    { label: "Days at shelter", value: typeof animal.days === "number" ? `${animal.days} days` : "—" },
+    { label: "At risk since", value: usDate(animal.risk_since) || "—" },
+    { label: "Due out", value: usDate(animal.due_out) || "—" },
+    { label: "Euth date", value: animal.euth_date || "—", warn: !!animal.euth_date },
+  ];
+
+  const medical: { label: string; value: string; warn?: boolean }[] = [
+    { label: "Spay / neuter", value: spay.value, warn: spay.warn },
+    { label: "Weight / size", value: animal.weight ? `${animal.weight} lb` : "Not listed" },
+    { label: "Heartworm", value: "Confirm with ACS" },
+    { label: "Microchip", value: "Confirm with ACS" },
+    { label: "Vaccines", value: "Confirm with ACS" },
+    { label: "FeLV / FIV", value: "N/A (canine)" },
+  ];
+
   return (
     <div style={{ minHeight: "100dvh", background: PAPER }}>
       <BrandHeader />
 
-      <div className="mx-auto w-full max-w-[420px] px-4 pb-10 pt-3" style={{ color: INK }}>
+      <div className="mx-auto w-full max-w-[440px] px-4 pb-10 pt-3" style={{ color: INK }}>
+        {/* AI advisory — folded in from the report view */}
+        <div className="mb-3 flex items-start gap-2 rounded-xl bg-[#FEF6E0] px-3.5 py-2.5 ring-1 ring-[#F3E5B6]">
+          <span className="text-[14px] leading-none">⚠️</span>
+          <p className="text-[11.5px] leading-snug text-[#6B5832]">
+            <b>AI is advisory — not a diagnosis.</b> May misidentify breed, age, or condition. Always
+            confirm with ACS.
+          </p>
+        </div>
+
         <article
           className="overflow-hidden rounded-2xl bg-white ring-1 ring-black/5"
           style={{ boxShadow: "0 22px 60px -28px rgba(20,15,5,0.45)" }}
         >
-          {/* ===== 1. HERO PHOTO (graceful placeholder when none) ===== */}
-          <div className="relative w-full overflow-hidden" style={{ aspectRatio: "4/3", background: photo && !photoFailed ? "#000" : undefined }}>
+          {/* ===== HERO PHOTO ===== */}
+          <div
+            className="relative w-full overflow-hidden"
+            style={{ aspectRatio: "4/3", background: photo && !photoFailed ? "#000" : undefined }}
+          >
             {photo && !photoFailed ? (
               <img
                 src={photo}
@@ -318,254 +422,125 @@ export function AcsShareCard({
                 </span>
               </div>
             )}
-            {/* days */}
             <span className="absolute left-3 top-3 rounded-full bg-black/80 px-3 py-1 text-[11px] font-bold text-white shadow-lg">
-              {daysText(animal)}
+              🕒 {daysText(animal)}
             </span>
-            {/* category status badge (unchanged — the timer is layered on top) */}
             <span
               className="absolute right-3 top-3 rounded-full px-3 py-1 text-[10.5px] font-extrabold uppercase tracking-[0.12em] text-white shadow-lg"
-              style={{ background: `linear-gradient(135deg, ${RED1} 0%, ${RED2} 100%)` }}
+              style={{ background: chipColor }}
             >
               {badgeLabel}
             </span>
-            {/* live urgency chip + countdown — time-critical statuses only */}
             {showTimer && (
               <div className="absolute bottom-3 left-3 right-3 flex justify-end">
-                <EuthTimerBadge animal={animal} variant="compact" />
+                <EuthTimer animal={animal} variant="chip" />
               </div>
             )}
           </div>
 
-          {/* ===== 2. NAME BLOCK ===== */}
-          <div className="px-5 pb-2 pt-5">
+          {/* ===== NAME BLOCK ===== */}
+          <div className="px-5 pb-1 pt-5">
             <h2 className="font-serif text-[28px] font-bold leading-[1.05] tracking-tight" style={{ color: INK }}>
               {NAME}
             </h2>
-            <p className="mt-1 text-[12px] text-[#6B7280]">
-              ID {id} · Kennel {kennel}
+            <p className="mt-1 text-[12px] font-semibold" style={{ color: GOLD_DEEP }}>
+              ID {id} · kennel {kennel}
             </p>
-            <p className="mt-1 text-[13px] font-medium text-[#4B5563]">{specLine}</p>
-            {/* Plain-language status meaning + action */}
-            <p className="mt-2 text-[12.5px] leading-snug text-[#4B5563]">
-              <span className="font-bold">{badgeLabel}:</span> {statusMeta.meaning}{" "}
-              <span className="text-[#6B7280]">{statusMeta.action}</span>
+            <p className="mt-1 text-[13px] font-medium text-[#4B5563]">
+              {vitals}
+              {vitals ? " · " : ""}
+              {daysWaiting}
             </p>
           </div>
 
-          {/* ===== 3. TIME LEFT CARD — only for time-critical statuses ===== */}
-          {showTimer && (
-            <div className="mx-5 my-4">
-              <p className="mb-1.5 text-[10.5px] font-extrabold uppercase tracking-[0.12em]" style={{ color: RED2 }}>
-                ⏳ Time left before euthanasia begins
-              </p>
-              <EuthTimerBadge animal={animal} variant="block" />
+          {/* ===== ADDRESS + MAP ===== */}
+          <div className="mx-5 mt-3">
+            <div className="flex items-start gap-2 text-[12.5px] leading-snug text-[#4B5563]">
+              <span className="text-[14px] leading-none">📍</span>
+              <span>
+                <b>{ACS.fullName}</b> · {ACS.address}
+              </span>
             </div>
-          )}
-
-          {/* ===== 4. THEIR STORY (ACS's exact note) ===== */}
-          <div className="mx-5 mb-4 overflow-hidden rounded-xl ring-1 ring-black/5">
-            <div
-              className="flex items-center gap-2 px-4 py-2 text-[10.5px] font-bold uppercase tracking-[0.12em] text-white"
-              style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_DEEP} 100%)` }}
-            >
-              <span>🐾</span>
-              <span>ACS's exact note · from the shelter listing</span>
-            </div>
-            <div className="bg-[#FFFBEB] px-4 py-3 text-[14px] leading-[1.55] text-[#3A2A07]">
-              {animal.euth_date && (
-                <p className="mb-1 text-[12px] font-semibold text-[#7A1F1F]">
-                  ACS euth date: <span className="font-normal">{animal.euth_date}</span>
-                </p>
-              )}
-              <p>
-                {animal.story ||
-                  `${animal.name} is listed at ${ACS.name}, kennel ${kennel} (${daysText(animal)}). No shelter note yet — check the ACS listing for the latest.`}
-              </p>
-            </div>
-          </div>
-
-          {/* ===== 5. SHELTER CONTACT ===== */}
-          <div className="mx-5 mb-4 grid grid-cols-2 gap-2">
-            <a
-              href={adoptMailto}
-              className="rounded-xl px-3 py-2.5 text-center text-[12px] font-bold shadow-sm transition active:scale-95"
-              style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_DEEP} 100%)`, color: GOLD_INK }}
-            >
-              ✉️ Email Adoptions
-            </a>
-            <a
-              href={fosterMailto}
-              className="rounded-xl px-3 py-2.5 text-center text-[12px] font-bold shadow-sm transition active:scale-95"
-              style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_DEEP} 100%)`, color: GOLD_INK }}
-            >
-              📝 Foster Application
-            </a>
-            <a
-              href={`tel:${ACS.phoneTel}`}
-              className="rounded-xl border border-[#D9D2C2] bg-white px-3 py-2.5 text-center text-[12px] font-bold text-[#1A1611] transition active:scale-95"
-            >
-              📞 {ACS.phone}
-            </a>
             <a
               href={ACS.mapsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-xl border border-[#D9D2C2] bg-white px-3 py-2.5 text-center text-[12px] font-bold text-[#1A1611] transition active:scale-95"
+              className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-[#EEF3FB] px-3 py-1.5 text-[12px] font-bold text-[#1E40AF] active:scale-95"
             >
-              📍 Directions
+              📍 View map
             </a>
           </div>
 
-          {/* ===== 6. FIND VIDEOS & POSTS ===== */}
-          <div className="mx-5 mb-4 rounded-xl bg-[#FFFBEB] p-3.5 ring-1 ring-[#F3E5B6]">
-            <p className="text-[10.5px] font-bold uppercase tracking-[0.12em]" style={{ color: GOLD_DEEP }}>
-              🔍 Find videos & posts
+          {/* ===== STATUS / ALARM LINE ===== */}
+          <div
+            className="mx-5 mt-3 rounded-xl border-l-[4px] px-3.5 py-2.5"
+            style={{ background: "#FFFBEB", borderColor: chipColor }}
+          >
+            <p className="text-[12.5px] leading-snug text-[#4B3A12]">
+              <span className="font-bold" style={{ color: chipColor }}>
+                {badgeLabel}:
+              </span>{" "}
+              {statusMeta.meaning}{" "}
+              <span className="text-[#6B7280]">{statusMeta.action}</span>
             </p>
-            <p className="mt-1 text-[12.5px] leading-snug text-[#6B5832]">
-              Voyce searches ACS's Facebook + YouTube + the web by ID. Verify before sharing.
-            </p>
-            <p className="mt-2.5 text-[11px] font-bold" style={{ color: GOLD_DEEP }}>
-              📌 Auto-find this dog's videos & posts
-            </p>
-            <div className="mt-2 grid grid-cols-3 gap-2">
-              <a href={findFb} target="_blank" rel="noopener noreferrer"
-                 className="rounded-lg bg-[#1877F2] py-2 text-center text-[11px] font-bold text-white shadow-sm active:scale-95">Facebook</a>
-              <a href={findYt} target="_blank" rel="noopener noreferrer"
-                 className="rounded-lg bg-[#FF0000] py-2 text-center text-[11px] font-bold text-white shadow-sm active:scale-95">YouTube</a>
-              <a href={findWeb} target="_blank" rel="noopener noreferrer"
-                 className="rounded-lg bg-[#374151] py-2 text-center text-[11px] font-bold text-white shadow-sm active:scale-95">Web</a>
-            </div>
-            <p className="mt-3 text-[11px] italic text-[#6B5832]">
-              Searches ACS pages by {id}. Found the right one? Tap below to save it with credit.
-            </p>
-            <button
-              onClick={() => setAddMediaOpen(true)}
-              className="mt-2 w-full rounded-lg border border-[#E1B85B] bg-white py-2 text-[11.5px] font-bold text-[#7A5A0A] transition active:scale-95"
-            >
-              + Add a video, photo, or post you found
-            </button>
           </div>
 
-          {/* ===== 7. MAIN ACTION ROW ===== */}
-          <div className="mx-5 mb-4 grid grid-cols-5 gap-1.5">
-            <button
-              onClick={() => openModal("rescuer")}
-              className="flex flex-col items-center justify-center gap-0.5 rounded-lg py-2.5 text-[10px] font-extrabold uppercase tracking-wide text-white shadow-sm active:scale-95"
-              style={{ background: `linear-gradient(135deg, ${RED1} 0%, ${RED2} 100%)` }}
-            >
-              <span className="text-[14px]">🆘</span>
-              <span>Help</span>
-            </button>
-            <button
-              onClick={() => openModal("rescuer")}
-              className="flex flex-col items-center justify-center gap-0.5 rounded-lg py-2.5 text-[10px] font-extrabold uppercase tracking-wide active:scale-95"
-              style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_DEEP} 100%)`, color: GOLD_INK }}
-            >
-              <span className="text-[14px]">🐾</span>
-              <span>Rescue</span>
-            </button>
+          {/* ===== TIME LEFT ===== */}
+          {showTimer && (
+            <div className="mx-5 mt-4">
+              <EuthTimer animal={animal} variant="block" />
+            </div>
+          )}
+
+          {/* ===== CAN YOU HELP? action chips ===== */}
+          <p className="mx-5 mb-2 mt-5 text-[13px] font-bold" style={{ color: INK }}>
+            Can you help {animal.name}?
+          </p>
+          <div className="mx-5 grid grid-cols-3 gap-2">
             <button
               onClick={() => openModal("foster")}
-              className="flex flex-col items-center justify-center gap-0.5 rounded-lg py-2.5 text-[10px] font-extrabold uppercase tracking-wide active:scale-95"
+              className="flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[12px] font-bold active:scale-95"
               style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_DEEP} 100%)`, color: GOLD_INK }}
             >
-              <span className="text-[14px]">🏠</span>
-              <span>Foster</span>
+              🏠 Foster
             </button>
             <a
               href={adoptMailto}
-              className="flex flex-col items-center justify-center gap-0.5 rounded-lg border border-[#D9D2C2] bg-white py-2.5 text-[10px] font-extrabold uppercase tracking-wide text-[#1A1611] active:scale-95"
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-[#D9D2C2] bg-white py-2.5 text-[12px] font-bold text-[#1A1611] active:scale-95"
             >
-              <span className="text-[14px]">💛</span>
-              <span>Adopt</span>
+              💛 Adopt
             </a>
             <button
-              onClick={() => doShare("copy")}
-              className="flex flex-col items-center justify-center gap-0.5 rounded-lg border border-[#D9D2C2] bg-white py-2.5 text-[10px] font-extrabold uppercase tracking-wide text-[#1A1611] active:scale-95"
+              onClick={() => openModal("rescuer")}
+              className="flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[12px] font-bold text-white active:scale-95"
+              style={{ background: `linear-gradient(135deg, ${RED1} 0%, ${RED2} 100%)` }}
             >
-              <span className="text-[14px]">📤</span>
-              <span>Share</span>
+              🤝 Rescue pull
+            </button>
+            <button
+              onClick={() => openModal("animal_lover")}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-[#D9D2C2] bg-white py-2.5 text-[12px] font-bold text-[#1A1611] active:scale-95"
+            >
+              💵 Pledge
+            </button>
+            <button
+              onClick={() => openModal("animal_lover")}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-[#D9D2C2] bg-white py-2.5 text-[12px] font-bold text-[#1A1611] active:scale-95"
+            >
+              🚐 Transport
+            </button>
+            <button
+              onClick={() => doShare("copy")}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-[#D9D2C2] bg-white py-2.5 text-[12px] font-bold text-[#1A1611] active:scale-95"
+            >
+              📤 {copied ? "Copied!" : "Share"}
             </button>
           </div>
 
-          {/* ===== 8. ACS DEEP LINK (black) ===== */}
-          <a
-            href={acsDeepLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mx-5 mb-2 block rounded-xl bg-black px-4 py-3 transition active:scale-[0.99]"
-          >
-            <p className="text-[10.5px] font-bold uppercase tracking-[0.12em]" style={{ color: GOLD }}>
-              🏛 {ACS.name.toUpperCase()} · ID {id}
-            </p>
-            <p className="mt-0.5 text-[12.5px] font-semibold" style={{ color: GOLD }}>
-              🔗 View {animal.name} on ACS →
-            </p>
-          </a>
-
-          {/* ===== 9. ACS PDF DEEP LINK ===== */}
-          <a
-            href={pdfDeepLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mx-5 mb-4 block rounded-xl px-4 py-3 transition active:scale-[0.99]"
-            style={{ background: CREAM, border: `1px solid ${GOLD_DEEP}` }}
-          >
-            <p className="text-[10.5px] font-bold uppercase tracking-[0.12em]" style={{ color: GOLD_DEEP }}>
-              📋 ACS PDF list entry · {NAME} only
-            </p>
-            <p className="mt-0.5 text-[12px] text-[#6B5832]">
-              Shows ONLY {animal.name}'s row — no other animals
-            </p>
-          </a>
-
-          {/* ===== 10. VOYCE APP CTA with live urgency chip ===== */}
-          <button
-            onClick={() => openModal("animal_lover")}
-            className="mx-5 mb-4 flex w-[calc(100%-2.5rem)] items-center justify-between gap-3 rounded-xl px-4 py-3 text-left shadow-md transition active:scale-[0.99]"
-            style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_DEEP} 100%)`, color: GOLD_INK }}
-          >
-            <div className="min-w-0">
-              <p className="text-[10.5px] font-extrabold uppercase tracking-[0.14em]">🎯 The Voyce App</p>
-              <p className="mt-0.5 truncate text-[13px] font-bold">Help {animal.name} the moment we launch</p>
-            </div>
-            {showTimer && <EuthTimerBadge animal={animal} variant="compact" />}
-          </button>
-
-          {/* ===== 11. I CAN HELP AS pills ===== */}
-          <p className="mx-5 text-[10.5px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">
-            I can help as:
-          </p>
-          <div className="mx-5 mt-2 flex flex-wrap gap-1.5">
-            {[
-              { label: "Foster", role: "foster" as NetworkRole, bg: "#D1FAE5", text: "#065F46" },
-              { label: "Rescue", role: "rescuer" as NetworkRole, bg: "#FEE2E2", text: "#991B1B" },
-              { label: "Adopt", role: "animal_lover" as NetworkRole, bg: "#FEF3C7", text: "#92400E" },
-              { label: "Pledge", role: "animal_lover" as NetworkRole, bg: "transparent", text: "#92400E" },
-              { label: "Transport", role: "animal_lover" as NetworkRole, bg: "#DBEAFE", text: "#1E40AF" },
-            ].map((p) => (
-              <button
-                key={p.label}
-                onClick={() => openModal(p.role)}
-                className="rounded-full px-3.5 py-2 text-[12.5px] font-bold transition active:scale-95"
-                style={{
-                  background: p.bg,
-                  color: p.text,
-                  border: p.bg === "transparent" ? `1.5px solid ${p.text}` : "none",
-                }}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-
-          {/* divider */}
+          {/* ===== SOCIAL SHARE (kept) ===== */}
           <div className="my-[18px] mx-5 h-px bg-[#F3F4F6]" />
-
-          {/* ===== 12. SHARE SECTION ===== */}
           <p className="mx-5 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">
-            Or share to help save {animal.name}
+            Share to help save {animal.name}
           </p>
           <div className="mx-5 mt-3 grid grid-cols-3 gap-2">
             {SHARE_PRIMARY.map((s) => (
@@ -599,56 +574,156 @@ export function AcsShareCard({
           </div>
           <button
             onClick={() => setShareMoreOpen(true)}
-            className="mx-5 mt-2 mb-5 block w-[calc(100%-2.5rem)] rounded-xl border-[1.5px] border-[#FFDF3B] bg-black py-2.5 text-[12px] font-bold tracking-wide text-[#FFDF3B] transition active:scale-[0.99]"
+            className="mx-5 mt-2 block w-[calc(100%-2.5rem)] rounded-xl border-[1.5px] border-[#FFDF3B] bg-black py-2.5 text-[12px] font-bold tracking-wide text-[#FFDF3B] transition active:scale-[0.99]"
           >
             ⋯  More share options
           </button>
 
-          {/* ===== 13. NEARBY HELPERS FOOTER ===== */}
+          {/* ===== RESCUE FACTS ===== */}
+          <SectionLabel>Rescue facts</SectionLabel>
+          <FactGrid items={facts} />
+
+          {/* ===== MEDICAL ===== */}
+          <SectionLabel>Medical · from ACS</SectionLabel>
+          <FactGrid items={medical} />
+          <p className="mx-5 mt-2 text-[11px] italic leading-snug text-[#6B7280]">
+            Vaccines and microchip aren't on ACS's capacity list, so they stay "confirm with ACS."
+          </p>
+
+          {/* ===== THEIR STORY (ACS's exact note) ===== */}
+          <SectionLabel>Their story · ACS's exact note</SectionLabel>
+          <div className="mx-5 overflow-hidden rounded-xl ring-1 ring-black/5">
+            <div className="bg-[#FFFBEB] px-4 py-3 text-[13.5px] leading-[1.55] text-[#3A2A07]">
+              {animal.euth_date && (
+                <p className="mb-1.5 text-[12px] font-semibold text-[#7A1F1F]">
+                  ACS euth date: <span className="font-normal">{animal.euth_date}</span>
+                </p>
+              )}
+              {story ? (
+                <>
+                  <p className="whitespace-pre-line">{storyOpen ? story : storyPreview}</p>
+                  {story.length > 160 && (
+                    <button
+                      onClick={() => setStoryOpen((v) => !v)}
+                      className="mt-2 text-[12px] font-bold underline-offset-2 hover:underline"
+                      style={{ color: GOLD_DEEP }}
+                    >
+                      {storyOpen ? "Hide full notes ▴" : "Read ACS's full notes ▾"}
+                    </button>
+                  )}
+                  <p className="mt-2 text-[10.5px] italic text-[#9CA3AF]">
+                    Source: San Antonio ACS capacity list
+                    {usDate(animal.list_date) ? `, ${usDate(animal.list_date)}` : ""} — verbatim.
+                  </p>
+                </>
+              ) : (
+                <p className="italic text-[#6B7280]">
+                  No evaluation notes on ACS's list yet — check the ACS listing for the latest.
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* ===== CONTACT ACS ===== */}
+          <SectionLabel>Contact ACS</SectionLabel>
+          <div className="mx-5 grid grid-cols-2 gap-2">
+            <a
+              href={adoptMailto}
+              className="rounded-xl px-3 py-2.5 text-center text-[12px] font-bold shadow-sm transition active:scale-95"
+              style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_DEEP} 100%)`, color: GOLD_INK }}
+            >
+              ✉️ Email adoptions
+            </a>
+            <a
+              href={fosterMailto}
+              className="rounded-xl px-3 py-2.5 text-center text-[12px] font-bold shadow-sm transition active:scale-95"
+              style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_DEEP} 100%)`, color: GOLD_INK }}
+            >
+              📝 Foster application
+            </a>
+            <a
+              href={`tel:${ACS.phoneTel}`}
+              className="rounded-xl border border-[#D9D2C2] bg-white px-3 py-2.5 text-center text-[12px] font-bold text-[#1A1611] transition active:scale-95"
+            >
+              📞 {ACS.phone}
+            </a>
+            <a
+              href={ACS.mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-xl border border-[#D9D2C2] bg-white px-3 py-2.5 text-center text-[12px] font-bold text-[#1A1611] transition active:scale-95"
+            >
+              🧭 Directions
+            </a>
+          </div>
+
+          {/* ===== DEADLINE-EMAIL PROCESS BOX ===== */}
           <div
-            className="flex items-start gap-2.5 px-5 py-3.5"
-            style={{ background: CREAM, color: "#7A5A0A" }}
+            className="mx-5 mt-3 rounded-xl px-4 py-3 text-[12px] leading-[1.5]"
+            style={{ background: CREAM, border: `1px solid ${GOLD_DEEP}`, color: "#6B5832" }}
           >
-            <span className="text-[15px] leading-none">👥</span>
-            <p className="text-[11.5px] leading-[1.45] font-medium">
-              Rippling outward — rescues, fosters & adopters will see {animal.name} the moment Voyce
-              launches alerts.
+            ⏰ To rescue, foster, or adopt, a placement email must reach{" "}
+            <b>{ACS.adoptionsEmail}</b> or <b>{ACS.fosterEmail}</b> before the daily deadline —{" "}
+            {DEADLINE_WORDS}.
+          </div>
+
+          {/* ===== FIND POSTS & VIDEOS ===== */}
+          <SectionLabel>Find posts &amp; videos</SectionLabel>
+          <div className="mx-5 rounded-xl bg-[#FFFBEB] p-3.5 ring-1 ring-[#F3E5B6]">
+            <p className="text-[12.5px] leading-snug text-[#6B5832]">
+              Voyce searches ACS's Facebook, YouTube, and the web by ID. Verify before sharing.
             </p>
+            <div className="mt-2.5 grid grid-cols-3 gap-2">
+              <a href={findFb} target="_blank" rel="noopener noreferrer"
+                 className="rounded-lg bg-[#1877F2] py-2 text-center text-[11px] font-bold text-white shadow-sm active:scale-95">Facebook</a>
+              <a href={findYt} target="_blank" rel="noopener noreferrer"
+                 className="rounded-lg bg-[#FF0000] py-2 text-center text-[11px] font-bold text-white shadow-sm active:scale-95">YouTube</a>
+              <a href={findWeb} target="_blank" rel="noopener noreferrer"
+                 className="rounded-lg bg-[#374151] py-2 text-center text-[11px] font-bold text-white shadow-sm active:scale-95">Web</a>
+            </div>
+            <p className="mt-3 text-[11px] italic text-[#6B5832]">
+              Found footage of {animal.name} anywhere? Add the link — we'll credit whoever posted it.
+            </p>
+            <button
+              onClick={() => setAddMediaOpen(true)}
+              className="mt-2 w-full rounded-lg border border-[#E1B85B] bg-white py-2 text-[11.5px] font-bold text-[#7A5A0A] transition active:scale-95"
+            >
+              + Add a video, photo, or post you found
+            </button>
+          </div>
+
+          {/* ===== VERIFY ON ACS ===== */}
+          <SectionLabel>Verify on ACS</SectionLabel>
+          <div className="mx-5 mb-5 grid grid-cols-1 gap-2">
+            <a
+              href={acsDeepLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block rounded-xl bg-black px-4 py-3 transition active:scale-[0.99]"
+            >
+              <p className="text-[10.5px] font-bold uppercase tracking-[0.12em]" style={{ color: GOLD }}>
+                🏛 Photos &amp; notes on ACS · ID {id}
+              </p>
+              <p className="mt-0.5 text-[12.5px] font-semibold" style={{ color: GOLD }}>
+                🔗 View {animal.name} on ACS →
+              </p>
+            </a>
+            <a
+              href={pdfDeepLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block rounded-xl px-4 py-3 transition active:scale-[0.99]"
+              style={{ background: CREAM, border: `1px solid ${GOLD_DEEP}` }}
+            >
+              <p className="text-[10.5px] font-bold uppercase tracking-[0.12em]" style={{ color: GOLD_DEEP }}>
+                📋 ACS PDF list entry · {NAME} only
+              </p>
+              <p className="mt-0.5 text-[12px] text-[#6B5832]">
+                Shows ONLY {animal.name}'s row — no other animals
+              </p>
+            </a>
           </div>
         </article>
-
-        {/* ===== 14. PRE-LAUNCH BANNER ===== */}
-        <p
-          className="mx-auto mt-4 max-w-[360px] text-center text-[12px] italic leading-[1.5]"
-          style={{ color: GOLD_DEEP }}
-        >
-          🐾 Pre-launch · shares grow Voyce.<br />
-          Real alerts launch with the app.
-        </p>
-
-        {/* ===== 15. BE THE FIRST CTA ===== */}
-        <div
-          className="mt-4 rounded-2xl px-5 py-5 text-center"
-          style={{
-            background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_DEEP} 100%)`,
-            color: GOLD_INK,
-            boxShadow: "0 10px 30px -15px rgba(217,119,6,0.55)",
-          }}
-        >
-          <h3 className="font-serif text-[18px] font-bold leading-tight">
-            Be the first Rescue Partner in San Antonio
-          </h3>
-          <p className="mt-1.5 text-[13px] leading-[1.45]">
-            Join the pack so the next at-risk shelter animal reaches you — not no one.
-          </p>
-          <button
-            onClick={() => openModal("rescuer")}
-            className="mt-3 w-full rounded-full bg-black px-5 py-3 text-[12.5px] font-extrabold uppercase tracking-wider"
-            style={{ color: GOLD }}
-          >
-            Join the Pack →
-          </button>
-        </div>
 
         <div className="mt-6 flex justify-center">
           <button
@@ -751,8 +826,6 @@ function AddMediaModal({
     }
     setBusy(true);
     try {
-      // July 5, 2026: media inserts now go through the server (anonymous
-      // client inserts were removed by the security migration).
       await addAnimalMedia({
         data: {
           animalId,
