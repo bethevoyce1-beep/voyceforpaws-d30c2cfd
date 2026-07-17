@@ -929,6 +929,12 @@ function AddMediaModal({
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
+  // Find-by-ID quick search — tap, find the post, copy its link, paste above.
+  const enc = encodeURIComponent;
+  const findFb = `https://www.facebook.com/sanantonioacs/search?q=${enc(animalId)}`;
+  const findYt = `https://www.youtube.com/results?search_query=${enc(`"San Antonio ACS" ${animalId}`)}`;
+  const findWeb = `https://www.google.com/search?q=${enc(`"San Antonio ACS" ${animalId} ${animalName}`)}`;
+
   const submit = async () => {
     setErr(null);
     if (!/^https?:\/\//i.test(url.trim())) {
@@ -991,6 +997,24 @@ function AddMediaModal({
             <p className="mt-1 text-[12.5px] text-foreground/70">
               You found {animalName} on another page? Paste the link and credit the source.
             </p>
+
+            {/* Find it by ID — search this animal's pages, then copy the link and paste below */}
+            <div className="mt-3 rounded-xl bg-[#FFFBEB] p-3 ring-1 ring-[#F3E5B6]">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A5A0A]">
+                🔍 Find it by ID — no typing
+              </p>
+              <p className="mt-0.5 text-[11.5px] leading-snug text-[#6B5832]">
+                Search {animalName}'s pages, then copy the link and paste it below.
+              </p>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                <a href={findFb} target="_blank" rel="noopener noreferrer"
+                   className="rounded-lg bg-[#1877F2] py-2 text-center text-[11px] font-bold text-white shadow-sm active:scale-95">Facebook</a>
+                <a href={findYt} target="_blank" rel="noopener noreferrer"
+                   className="rounded-lg bg-[#FF0000] py-2 text-center text-[11px] font-bold text-white shadow-sm active:scale-95">YouTube</a>
+                <a href={findWeb} target="_blank" rel="noopener noreferrer"
+                   className="rounded-lg bg-[#374151] py-2 text-center text-[11px] font-bold text-white shadow-sm active:scale-95">Web</a>
+              </div>
+            </div>
 
             <div className="mt-3">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground/60">Source</span>
