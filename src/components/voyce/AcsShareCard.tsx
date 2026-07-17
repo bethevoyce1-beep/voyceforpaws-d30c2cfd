@@ -663,16 +663,6 @@ export function AcsShareCard({
             </div>
           </div>
 
-          {/* ===== DEADLINE-EMAIL PROCESS BOX ===== */}
-          <div
-            className="mx-5 mt-3 rounded-xl px-4 py-3 text-[12px] leading-[1.5]"
-            style={{ background: CREAM, border: `1px solid ${GOLD_DEEP}`, color: "#6B5832" }}
-          >
-            ⏰ To rescue, foster, or adopt, a placement email must reach{" "}
-            <b>{ACS.adoptionsEmail}</b> or <b>{ACS.fosterEmail}</b> before the daily deadline —{" "}
-            {DEADLINE_WORDS}.
-          </div>
-
           {/* ===== FIND POSTS & VIDEOS ===== */}
           <SectionLabel>Find posts &amp; videos</SectionLabel>
           <div className="mx-5 rounded-xl bg-[#FFFBEB] p-3.5 ring-1 ring-[#F3E5B6]">
@@ -698,9 +688,9 @@ export function AcsShareCard({
             </button>
           </div>
 
-          {/* ===== CONTACT ACS (bottom of card) ===== */}
+          {/* ===== CONTACT ACS ===== */}
           <SectionLabel>Contact ACS</SectionLabel>
-          <div className="mx-5 mb-5 grid grid-cols-2 gap-2">
+          <div className="mx-5 grid grid-cols-2 gap-2">
             <a
               href={adoptMailto}
               className="rounded-xl px-3 py-2.5 text-center text-[12px] font-bold shadow-sm transition active:scale-95"
@@ -729,6 +719,16 @@ export function AcsShareCard({
             >
               🧭 Directions
             </a>
+          </div>
+
+          {/* ===== DEADLINE-EMAIL PROCESS BOX (very bottom) ===== */}
+          <div
+            className="mx-5 mb-5 mt-3 rounded-xl px-4 py-3 text-[12px] leading-[1.5]"
+            style={{ background: CREAM, border: `1px solid ${GOLD_DEEP}`, color: "#6B5832" }}
+          >
+            ⏰ To rescue, foster, or adopt, a placement email must reach{" "}
+            <b>{ACS.adoptionsEmail}</b> or <b>{ACS.fosterEmail}</b> before the daily deadline —{" "}
+            {DEADLINE_WORDS}.
           </div>
         </article>
 
