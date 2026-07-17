@@ -16,6 +16,10 @@ export type SignupInput = {
 
 const ALLOWED_ROLES: NetworkRole[] = ["rescuer", "foster", "vet", "shelter", "animal_lover", "volunteer", "wildlife_rehabilitator"];
 
+// The MailerLite group new members are added to ("Voyce Pack — App Signups").
+// Not a secret — just an identifier.
+const MAILERLITE_GROUP_ID = "193253154197865708";
+
 function isEmail(s: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 }
@@ -35,6 +39,38 @@ function publicClient() {
   return createClient(url, key, {
     auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
   });
+}
+
+// Best-effort mirror into MailerLite so the founder is notified and the mailing
+// list grows. Turns on automatically once MAILERLITE_API_KEY is set in the
+// host env; skips silently otherwise, and NEVER fails the signup.
+async function syncToMailerLite(sub: {
+  email: string;
+  name?: string;
+  city?: string;
+}) {
+  const key = process.env.MAILERLITE_API_KEY;
+  if (!key) return;
+  try {
+    await fetch("https://connect.mailerlite.com/api/subscribers", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        email: sub.email,
+        fields: {
+          ...(sub.name ? { name: sub.name } : {}),
+          ...(sub.city ? { city: sub.city } : {}),
+        },
+        groups: [MAILERLITE_GROUP_ID],
+      }),
+    });
+  } catch (e) {
+    console.warn("[voyce] MailerLite sync failed (continuing):", e);
+  }
 }
 
 export const submitNetworkSignup = createServerFn({ method: "POST" })
@@ -87,5 +123,9 @@ export const submitNetworkSignup = createServerFn({ method: "POST" })
       source: "shareable_card",
     });
     if (error) throw new Error(error.message);
+
+    // Mirror to MailerLite (best-effort; never blocks the signup).
+    await syncToMailerLite({ email: data.email, name: data.name, city: data.city });
+
     return { ok: true };
   });
