@@ -291,6 +291,15 @@ const SHARE_SHEET: ShareItem[] = [
   { id: "copy", label: "Copy link", sub: "Paste anywhere", bg: "#4B5563", fg: "#fff", iconPath: COPY_PATH },
 ];
 
+// "More ways to help" — opened from the Other chip under "Can you help?".
+const OTHER_WAYS = [
+  { emoji: "🏢", label: "Shelter transfer", tag: "another shelter takes" },
+  { emoji: "🚐", label: "Transport", tag: "get them there" },
+  { emoji: "🩺", label: "Vet care", tag: "medical" },
+  { emoji: "🏫", label: "Trainer", tag: "behavior help" },
+  { emoji: "🛏️", label: "Boarding", tag: "temporary space" },
+];
+
 // Small reusable label ----------------------------------------------------
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -340,6 +349,8 @@ export function AcsShareCard({
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRole, setModalRole] = useState<NetworkRole | undefined>();
   const [shareOpen, setShareOpen] = useState(false);
+  const [otherOpen, setOtherOpen] = useState(false);
+  const [otherText, setOtherText] = useState("");
   const [addMediaOpen, setAddMediaOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [photoFailed, setPhotoFailed] = useState(false);
@@ -608,10 +619,10 @@ export function AcsShareCard({
               💵 Pledge
             </button>
             <button
-              onClick={() => openModal("animal_lover")}
+              onClick={() => setOtherOpen(true)}
               className="flex items-center justify-center gap-1.5 rounded-xl border border-[#D9D2C2] bg-white py-2.5 text-[12px] font-bold text-[#1A1611] active:scale-95"
             >
-              🚐 Transport
+              ⋯ Other
             </button>
             <button
               onClick={() => setShareOpen(true)}
@@ -806,6 +817,74 @@ export function AcsShareCard({
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MORE WAYS TO HELP (Other) */}
+      {otherOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 p-0 sm:items-center sm:p-4"
+          onClick={() => setOtherOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-md overflow-hidden rounded-t-3xl bg-white p-5 shadow-2xl sm:rounded-3xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="font-serif text-[17px] font-bold">More ways to help</h3>
+              <button
+                onClick={() => setOtherOpen(false)}
+                aria-label="Close"
+                className="rounded-full bg-black/5 px-2.5 py-1 text-sm text-foreground/70 hover:bg-black/10"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex flex-col gap-2">
+              {OTHER_WAYS.map((w) => (
+                <button
+                  key={w.label}
+                  onClick={() => {
+                    openModal("animal_lover");
+                    setOtherOpen(false);
+                  }}
+                  className="flex items-center justify-between gap-2 rounded-xl border border-[#EAE2CF] bg-[#FCFAF4] px-3.5 py-3 text-left transition active:scale-[0.99]"
+                >
+                  <span className="text-[13.5px] font-bold text-[#1A1611]">
+                    {w.emoji} {w.label}
+                  </span>
+                  <span className="rounded-full bg-[#EAF3E7] px-2.5 py-1 text-[10.5px] font-bold text-[#3F6B33]">
+                    {w.tag}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="mt-3 flex gap-2">
+              <input
+                value={otherText}
+                onChange={(e) => setOtherText(e.target.value)}
+                maxLength={90}
+                placeholder="Something else — how can you help?"
+                className="min-w-0 flex-1 rounded-xl border border-[#D9D2C2] bg-white px-3 py-2.5 text-[13px] outline-none focus:border-[#C9871A]"
+              />
+              <button
+                onClick={() => {
+                  openModal("animal_lover");
+                  setOtherOpen(false);
+                }}
+                className="shrink-0 rounded-xl px-4 text-[13px] font-bold text-white"
+                style={{ background: GOLD_DEEP }}
+              >
+                Add
+              </button>
+            </div>
+            <button
+              onClick={() => setOtherOpen(false)}
+              className="mt-4 w-full rounded-2xl bg-black py-3 text-[13px] font-bold text-white"
+            >
+              Done
+            </button>
           </div>
         </div>
       )}
