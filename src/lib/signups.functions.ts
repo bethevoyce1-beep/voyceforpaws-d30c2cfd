@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { createClient } from "@supabase/supabase-js";
 
 export type NetworkRole = "rescuer" | "foster" | "vet" | "shelter" | "animal_lover" | "volunteer" | "wildlife_rehabilitator";
 
@@ -17,6 +18,23 @@ const ALLOWED_ROLES: NetworkRole[] = ["rescuer", "foster", "vet", "shelter", "an
 
 function isEmail(s: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+}
+
+// The Supabase project URL + publishable (anon) key are NOT secret — the
+// landing page ships them in plain HTML. network_signups has a public INSERT
+// policy ("Public can join network"), so the publishable key is all we need;
+// no hosting service-role secret required.
+const FALLBACK_SUPABASE_URL = "https://okmukfrhvqkxphzueqww.supabase.co";
+const FALLBACK_SUPABASE_PUBLISHABLE_KEY =
+  "sb_publishable_e_OWsyXVeFqgV6EVGAKKTw_sgEV2cTN";
+
+function publicClient() {
+  const url = process.env.SUPABASE_URL || FALLBACK_SUPABASE_URL;
+  const key =
+    process.env.SUPABASE_PUBLISHABLE_KEY || FALLBACK_SUPABASE_PUBLISHABLE_KEY;
+  return createClient(url, key, {
+    auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+  });
 }
 
 export const submitNetworkSignup = createServerFn({ method: "POST" })
@@ -57,8 +75,8 @@ export const submitNetworkSignup = createServerFn({ method: "POST" })
       if (!json?.success) throw new Error("Verification failed");
     }
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.from("network_signups").insert({
+    const sb = publicClient();
+    const { error } = await sb.from("network_signups").insert({
       name: data.name ?? null,
       email: data.email,
       zip: data.zip || null,
