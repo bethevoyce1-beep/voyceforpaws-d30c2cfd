@@ -7,7 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -74,18 +74,21 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 // ---------------------------------------------------------------------------
-// Auto-update (July 5, 2026; loop-fixed same day; broadened July 16, 2026):
+// Auto-update (July 5, 2026; loop-fixed same day; broadened July 16, 2026;
+// visible banner added July 17, 2026):
 // visitors kept getting stale cached versions and had to clear caches by hand.
 // This hook compares the MAIN ENTRY asset path the running page loaded against
 // the one the server currently serves. Vite content-hashes the entry on every
-// build, so a mismatch means a new deploy:
-//   • right after load → reload once (nothing in progress yet)
-//   • whenever the app is brought back to the foreground (tab switch, or
-//     reopening the installed home-screen app) → reload once if it's stale
+// build, so a mismatch means a new deploy.
+//   • right after load → reload once, silently (nothing in progress yet, so a
+//     visitor who arrived on a stale cache is swapped to current immediately)
+//   • while the app is in use (foreground return, or a 60s poll) → DON'T yank
+//     the page out from under them. Instead surface a "New version available —
+//     tap to refresh" banner so the update is visible and under their control.
 // LOOP GUARDS: only the FIRST matching asset path is compared (lazy-loaded
 // chunks accumulate in the DOM and must not count); after a reload the running
 // entry equals the server entry so it won't reload again; and a sessionStorage
-// stamp hard-caps auto-reloads to one per 2 minutes no matter what.
+// stamp hard-caps SILENT auto-reloads to one per 2 minutes no matter what.
 // ---------------------------------------------------------------------------
 const RELOAD_STAMP_KEY = "voyce_auto_reload_at";
 
@@ -133,7 +136,11 @@ function recentlyAutoReloaded(): boolean {
   }
 }
 
-function useAutoRefreshOnNewVersion() {
+// Returns `updateReady`: true once a newer build has been detected while the
+// app is in active use. RootComponent shows the refresh banner when it's true.
+function useAutoRefreshOnNewVersion(): boolean {
+  const [updateReady, setUpdateReady] = useState(false);
+
   useEffect(() => {
     let reloading = false;
 
@@ -148,40 +155,43 @@ function useAutoRefreshOnNewVersion() {
       }
     };
 
-    const reloadIf = async () => {
+    // Fresh arrival: if the browser served a stale cached page, swap it for the
+    // current build right away — the visitor hasn't started anything yet.
+    const swapIfStaleOnArrival = async () => {
       if (reloading || recentlyAutoReloaded()) return;
       if (await isNewBuild()) {
         reloading = true;
         try {
           sessionStorage.setItem(RELOAD_STAMP_KEY, String(Date.now()));
         } catch {
-          // if we can't stamp it, don't reload — avoids any chance of a loop
-          return;
+          return; // if we can't stamp it, don't reload — avoids any loop
         }
         window.location.reload();
       }
     };
 
-    // Fresh arrival: if the browser served a stale cached page, swap it for
-    // the current build right away — the visitor hasn't started anything yet.
-    const t = setTimeout(() => void reloadIf(), 1500);
-
-    // On ANY return to the foreground — switching back to the tab, or reopening
-    // the installed home-screen app — check for a newer deploy and swap to it.
-    // reloadIf only reloads when the build actually changed, and the 2-minute
-    // stamp prevents loops, so this never interrupts active use.
-    const onVisible = () => {
-      if (document.visibilityState === "visible") void reloadIf();
+    // In-use detection: show the banner instead of reloading mid-task.
+    const flagIfNewBuild = async () => {
+      if (await isNewBuild()) setUpdateReady(true);
     };
-    const onFocus = () => void reloadIf();
+
+    const t = setTimeout(() => void swapIfStaleOnArrival(), 1500);
+    const poll = window.setInterval(() => void flagIfNewBuild(), 60000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void flagIfNewBuild();
+    };
+    const onFocus = () => void flagIfNewBuild();
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", onFocus);
     return () => {
       clearTimeout(t);
+      window.clearInterval(poll);
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onFocus);
     };
   }, []);
+
+  return updateReady;
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
@@ -241,12 +251,29 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+// A small, tappable banner shown when a newer build is available. Fixed to the
+// top-center so it's visible without covering the bottom tab bar.
+function UpdateBanner() {
+  return (
+    <div className="pointer-events-none fixed inset-x-0 top-3 z-[100] flex justify-center px-4">
+      <button
+        onClick={() => window.location.reload()}
+        className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-black px-4 py-2 text-[12.5px] font-bold shadow-lg transition active:scale-95"
+        style={{ border: "1.5px solid #FFDF3B", color: "#FFDF3B" }}
+      >
+        🔄 New version available — tap to refresh
+      </button>
+    </div>
+  );
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  useAutoRefreshOnNewVersion();
+  const updateReady = useAutoRefreshOnNewVersion();
 
   return (
     <QueryClientProvider client={queryClient}>
+      {updateReady && <UpdateBanner />}
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <AddToHomeBanner />
