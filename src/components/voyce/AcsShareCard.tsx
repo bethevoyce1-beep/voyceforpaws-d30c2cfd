@@ -291,7 +291,7 @@ const SHARE_SHEET: ShareItem[] = [
   { id: "copy", label: "Copy link", sub: "Paste anywhere", bg: "#4B5563", fg: "#fff", iconPath: COPY_PATH },
 ];
 
-// Small reusable label + fact grid ---------------------------------------
+// Small reusable label ----------------------------------------------------
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p className="mx-5 mb-2 mt-4 text-[10.5px] font-bold uppercase tracking-[0.12em]" style={{ color: GOLD_DEEP }}>
@@ -300,13 +300,25 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function FactGrid({ items }: { items: { label: string; value: string; warn?: boolean }[] }) {
+// Fact grid — tinted per section to match the landing card: rescue = cream,
+// medical = cool blue-gray. Warn values use ACS's warm amber (#B4610F).
+function FactGrid({
+  items,
+  tone,
+}: {
+  items: { label: string; value: string; warn?: boolean }[];
+  tone: "rescue" | "med";
+}) {
+  const box =
+    tone === "med"
+      ? "bg-[#F4F7FA] ring-[#DBE6EF]"
+      : "bg-[#FCF8EE] ring-[#EFE2C4]";
   return (
-    <div className="mx-5 grid grid-cols-2 gap-x-3 gap-y-2 rounded-xl bg-[#FBF9F3] p-3.5 ring-1 ring-black/5">
+    <div className={`mx-5 grid grid-cols-2 gap-x-3 gap-y-2 rounded-xl p-3.5 ring-1 ${box}`}>
       {items.map((f) => (
         <div key={f.label} className="min-w-0">
-          <div className="text-[10px] font-semibold uppercase tracking-wide text-[#9CA3AF]">{f.label}</div>
-          <div className={`truncate text-[13px] font-semibold ${f.warn ? "text-[#B91C1C]" : "text-[#3A2A07]"}`}>
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-[#8F877A]">{f.label}</div>
+          <div className={`truncate text-[13px] font-semibold ${f.warn ? "text-[#B4610F]" : "text-[#22201C]"}`}>
             {f.value}
           </div>
         </div>
@@ -611,11 +623,11 @@ export function AcsShareCard({
 
           {/* ===== RESCUE FACTS ===== */}
           <SectionLabel>Rescue facts</SectionLabel>
-          <FactGrid items={facts} />
+          <FactGrid items={facts} tone="rescue" />
 
           {/* ===== MEDICAL ===== */}
           <SectionLabel>Medical · from ACS</SectionLabel>
-          <FactGrid items={medical} />
+          <FactGrid items={medical} tone="med" />
           <p className="mx-5 mt-2 text-[11px] italic leading-snug text-[#6B7280]">
             Vaccines and microchip aren't on ACS's capacity list, so they stay "confirm with ACS."
           </p>
