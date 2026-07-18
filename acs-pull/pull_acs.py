@@ -17,9 +17,12 @@ Status model (status_key -> public_status):
   secured     -> Secured                         euthanized  -> In Memoriam
 
   'euthanasia' means the dog is in the EUTHANASIA kennel right now (being
-  euthanized). Once ACS drops them off the list, acs_apply_pull() moves them to
-  'euthanized' (In Memoriam) permanently. A dog that leaves the list from any
-  other kennel is treated as 'left' (saved/adopted/other), never memorialized.
+  euthanized). When ACS drops a dog off the list, acs_apply_pull() decides its
+  fate by the last saved ACS banner (status_text), NOT by kennel alone:
+  only a banner that confirms euthanasia ("was/has been euthanized", or a firm
+  "euthanized today") moves the dog to 'euthanized' (In Memoriam) permanently.
+  A conditional "could be euthanized after {date}" or any other drop-off is
+  treated as 'left' (No longer listed) -- that dog may have been rescued.
 
   All "today" logic uses San Antonio (Central) time — ACS's operating clock —
   not the runner's UTC, so the list date and today/scheduled rollover are honest.
@@ -102,6 +105,11 @@ VAL_RE = re.compile(r"^(A\d{6,8})\s+(\d{1,2}/\d{1,2}/\d{4})\s+(\S+)")
 ID_RE = re.compile(r"\b(A\d{6,8})\b")
 EUTH_ON_RE = re.compile(r"euthanized on\s+(\d{1,2}/\d{1,2}/\d{4})", re.I)
 EUTH_TODAY_RE = re.compile(r"euthanized today", re.I)
+# The right-side euthanasia banner clause for a dog, stored verbatim as
+# status_text so drop-off reconciliation can tell a confirmed death
+# ("was/has been euthanized", "euthanized today") from a mere risk warning
+# ("could be euthanized after {date}").
+EUTH_TEXT_RE = re.compile(r"[^.\n]*euthaniz[^.\n]*", re.I)
 SIZEHDR_RE = re.compile(r"^(Size|Weight)\s+Days At Shelter\s+At Risk Since", re.I)
 
 OG_RE = re.compile(r'property=["\']og:image["\'][^>]*content=["\']([^"\']+)', re.I)
@@ -336,6 +344,13 @@ def parse_rows(raw_text):
         euth_on_iso = parse_date_iso(euth_on)
         status_key, public_status = classify(kennel, euth_on, euth_today, block_text)
 
+        # Verbatim ACS euthanasia banner clause -> status_text. Drives the
+        # In Memoriam vs No longer listed decision when the dog drops off.
+        _et = EUTH_TEXT_RE.search(block_text)
+        status_text = None
+        if _et:
+            status_text = (norm(_et.group(0)) or "")[:300] or None
+
         # Split "immediate" into today vs a set future date ("Euthanasia date set").
         if status_key == "immediate":
             if euth_today or not euth_on_iso or euth_on_iso <= today_iso:
@@ -370,6 +385,7 @@ def parse_rows(raw_text):
             "due_out": due_out,
             "heartworm": None,
             "story": story,
+            "status_text": status_text,
             "pet_search_url": f"https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id={aid}",
             "list_url": PDF_URL,
         }
