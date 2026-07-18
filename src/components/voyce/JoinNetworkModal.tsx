@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import {
   submitNetworkSignup,
   type NetworkRole,
+  type AlertChannel,
+  type AlertUrgency,
 } from "@/lib/signups.functions";
 import { getTurnstileToken, loadTurnstile } from "@/lib/turnstile";
 
@@ -39,6 +41,15 @@ export function JoinNetworkModal({
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
+  // Alert preferences
+  const [alertUrgency, setAlertUrgency] = useState<AlertUrgency>("critical");
+  const [alertPerDay, setAlertPerDay] = useState(0);
+  const [breedsText, setBreedsText] = useState("");
+  const [statesText, setStatesText] = useState("");
+  const [wantInApp, setWantInApp] = useState(true);
+  const [wantText, setWantText] = useState(false);
+  const [smsConsent, setSmsConsent] = useState(false);
+
   useEffect(() => {
     if (!open) return;
     setSelected(initialRole ? [initialRole] : []);
@@ -50,6 +61,13 @@ export function JoinNetworkModal({
     setBetaTester(false);
     setError(null);
     setDone(false);
+    setAlertUrgency("critical");
+    setAlertPerDay(0);
+    setBreedsText("");
+    setStatesText("");
+    setWantInApp(true);
+    setWantText(false);
+    setSmsConsent(false);
     loadTurnstile().catch(() => {});
   }, [open, initialRole]);
 
@@ -67,11 +85,24 @@ export function JoinNetworkModal({
     // updates without committing to a role.
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError("Enter a valid email.");
     if (!zip.trim()) return setError("Enter your ZIP / postal code.");
-
+    if (wantText && !phone.trim()) return setError("Add a phone number to get text alerts.");
+    if (wantText && !smsConsent) return setError("Please agree to receive texts, or uncheck Text alerts.");
     if (!consent) return setError("Please accept Privacy & Terms to continue.");
     setSubmitting(true);
     try {
       const turnstileToken = await getTurnstileToken();
+      const alertChannels: AlertChannel[] = [
+        ...(wantInApp ? (["in_app"] as AlertChannel[]) : []),
+        ...(wantText ? (["text"] as AlertChannel[]) : []),
+      ];
+      const alertBreeds = breedsText
+        .split(",")
+        .map((b) => b.trim())
+        .filter(Boolean);
+      const alertStates = statesText
+        .split(",")
+        .map((s) => s.trim().toUpperCase())
+        .filter(Boolean);
       await submitNetworkSignup({
         data: {
           name: name.trim() || undefined,
@@ -82,6 +113,12 @@ export function JoinNetworkModal({
           roles: selected,
           betaTester,
           turnstileToken,
+          alertChannels,
+          alertBreeds,
+          alertUrgency,
+          alertStates,
+          alertPerDay,
+          smsConsent,
         },
       });
       setDone(true);
@@ -92,13 +129,18 @@ export function JoinNetworkModal({
     }
   };
 
+  const fieldClass =
+    "mt-1 w-full rounded-xl border border-[#D9D2C2] bg-white px-3 py-2 text-[14px] outline-none focus:border-[#C9871A]";
+  const labelClass =
+    "text-[11px] font-semibold uppercase tracking-wider text-foreground/60";
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 p-0 sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl"
+        className="relative max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -116,7 +158,7 @@ export function JoinNetworkModal({
               You're in the Voyce Pack! 🐾
             </h2>
             <p className="mt-2 text-[14px] leading-relaxed text-foreground/75">
-              We'll email you the moment Voyce launches full alerts
+              We'll alert you the way you chose the moment a matching animal needs help
               {city ? ` in ${city}` : " in your area"}.
             </p>
             <button
@@ -179,18 +221,18 @@ export function JoinNetworkModal({
 
             <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
               <label className="block sm:col-span-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground/60">Name</span>
+                <span className={labelClass}>Name</span>
                 <input
                   type="text"
                   autoComplete="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Your name"
-                  className="mt-1 w-full rounded-xl border border-[#D9D2C2] bg-white px-3 py-2 text-[14px] outline-none focus:border-[#C9871A]"
+                  className={fieldClass}
                 />
               </label>
               <label className="block sm:col-span-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground/60">Email *</span>
+                <span className={labelClass}>Email *</span>
                 <input
                   type="email"
                   inputMode="email"
@@ -198,11 +240,11 @@ export function JoinNetworkModal({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="mt-1 w-full rounded-xl border border-[#D9D2C2] bg-white px-3 py-2 text-[14px] outline-none focus:border-[#C9871A]"
+                  className={fieldClass}
                 />
               </label>
               <label className="block">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground/60">ZIP *</span>
+                <span className={labelClass}>ZIP *</span>
                 <input
                   type="text"
                   inputMode="text"
@@ -210,11 +252,11 @@ export function JoinNetworkModal({
                   value={zip}
                   onChange={(e) => setZip(e.target.value)}
                   placeholder="90210"
-                  className="mt-1 w-full rounded-xl border border-[#D9D2C2] bg-white px-3 py-2 text-[14px] outline-none focus:border-[#C9871A]"
+                  className={fieldClass}
                 />
               </label>
               <label className="block">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground/60">Phone (optional — for text alerts)</span>
+                <span className={labelClass}>Phone (for text alerts)</span>
                 <input
                   type="tel"
                   inputMode="tel"
@@ -222,9 +264,103 @@ export function JoinNetworkModal({
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="555 555 5555"
-                  className="mt-1 w-full rounded-xl border border-[#D9D2C2] bg-white px-3 py-2 text-[14px] outline-none focus:border-[#C9871A]"
+                  className={fieldClass}
                 />
               </label>
+            </div>
+
+            {/* Alert preferences */}
+            <div className="mt-5 rounded-2xl border-2 border-[#EAE6DE] bg-[#FAF8F5] p-3.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-foreground/55">
+                Alert me about
+              </p>
+
+              <div className="mt-2 grid gap-2.5 sm:grid-cols-2">
+                <label className="block">
+                  <span className={labelClass}>How urgent</span>
+                  <select
+                    value={alertUrgency}
+                    onChange={(e) => setAlertUrgency(e.target.value as AlertUrgency)}
+                    className={fieldClass}
+                  >
+                    <option value="last_chance">Last Chance only (euthanasia now/today)</option>
+                    <option value="critical">All critical</option>
+                    <option value="atrisk">Everything at risk</option>
+                  </select>
+                </label>
+                <label className="block">
+                  <span className={labelClass}>How often</span>
+                  <select
+                    value={alertPerDay}
+                    onChange={(e) => setAlertPerDay(Number(e.target.value))}
+                    className={fieldClass}
+                  >
+                    <option value={0}>As it happens</option>
+                    <option value={1}>Once a day</option>
+                    <option value={2}>Twice a day</option>
+                    <option value={3}>3× a day</option>
+                    <option value={24}>Hourly</option>
+                  </select>
+                </label>
+                <label className="block">
+                  <span className={labelClass}>Breeds (blank = any)</span>
+                  <input
+                    type="text"
+                    value={breedsText}
+                    onChange={(e) => setBreedsText(e.target.value)}
+                    placeholder="e.g. Husky, Pit Bull"
+                    className={fieldClass}
+                  />
+                </label>
+                <label className="block">
+                  <span className={labelClass}>State(s)</span>
+                  <input
+                    type="text"
+                    value={statesText}
+                    onChange={(e) => setStatesText(e.target.value)}
+                    placeholder="e.g. TX"
+                    className={fieldClass}
+                  />
+                </label>
+              </div>
+
+              <p className="mt-3 text-[11px] font-semibold uppercase tracking-wider text-foreground/55">
+                How should we reach you?
+              </p>
+              <div className="mt-1.5 space-y-1.5">
+                <label className="flex items-center gap-2.5 text-[13px] text-foreground/80">
+                  <input
+                    type="checkbox"
+                    checked={wantInApp}
+                    onChange={(e) => setWantInApp(e.target.checked)}
+                    className="h-4 w-4 accent-[#C9871A]"
+                  />
+                  <span>🔔 In the app</span>
+                </label>
+                <label className="flex items-center gap-2.5 text-[13px] text-foreground/80">
+                  <input
+                    type="checkbox"
+                    checked={wantText}
+                    onChange={(e) => setWantText(e.target.checked)}
+                    className="h-4 w-4 accent-[#C9871A]"
+                  />
+                  <span>💬 Text me</span>
+                </label>
+                {wantText && (
+                  <label className="flex items-start gap-2.5 rounded-xl bg-white px-3 py-2 text-[12px] leading-snug text-foreground/75">
+                    <input
+                      type="checkbox"
+                      checked={smsConsent}
+                      onChange={(e) => setSmsConsent(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 accent-[#C9871A]"
+                    />
+                    <span>
+                      I agree to receive text alerts at the number above. Msg &amp; data
+                      rates may apply; reply STOP to opt out anytime.
+                    </span>
+                  </label>
+                )}
+              </div>
             </div>
 
             <label className="mt-4 flex items-start gap-2.5 rounded-2xl border-2 border-[#EAE6DE] bg-[#FAF8F5] px-3.5 py-2.5 text-[12.5px] leading-snug text-foreground/80">
@@ -248,7 +384,7 @@ export function JoinNetworkModal({
                 I agree to Voyce's{" "}
                 <a href="/privacy" target="_blank" className="underline">Privacy</a> &{" "}
                 <a href="/terms" target="_blank" className="underline">Terms</a>, and
-                consent to launch emails for my area.
+                consent to alerts for my area.
               </span>
             </label>
 
@@ -267,7 +403,7 @@ export function JoinNetworkModal({
             </button>
 
             <p className="mt-3 text-center text-[11px] italic text-foreground/55">
-              Protected by silent verification. No spam — launch announcements only.
+              Protected by silent verification. No spam — only the alerts you chose.
             </p>
 
             {/* Always-visible way back — the top ✕ scrolls out of view on this
