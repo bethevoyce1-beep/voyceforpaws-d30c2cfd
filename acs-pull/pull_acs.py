@@ -9,13 +9,12 @@ table via acs_apply_pull().
 
 Status model (status_key -> public_status):
   euthanasia  -> Euthanasia in progress — act immediately
-  b6spt       -> Immediate risk · save now      office_crit -> Critical · Office
+  b6spt       -> SOS (B6-SPT) · save now         office_crit -> Critical · Office
   immediate   -> High risk · save today         scheduled   -> Euthanasia date set
   atrisk      -> At risk                         office      -> Office (not critical)
   adopthold   -> ACS Adoption Hold               adoption    -> ACS Rescue Hold
   foster      -> ACS Foster Hold                 watch       -> Foster Pending
   secured     -> Secured                         euthanized  -> In Memoriam
-  unknown     -> Unknown (tripwire for any status/banner we don't recognize)
 
   'euthanasia' means the dog is in the EUTHANASIA kennel right now (being
   euthanized). Once ACS drops them off the list, acs_apply_pull() moves them to
@@ -113,13 +112,13 @@ GALLERY_RE = re.compile(
 PETCONNECT_RE = re.compile(r'https://24petconnect\.com/image/[^\s"\'<>]+', re.I)
 
 # status_key -> friendly label shown to the public. This mirrors Voyce's earlier
-# board taxonomy: euthanasia now, the B6/SPT "immediate risk" prep group, the
+# board taxonomy: euthanasia now, the B6/SPT "SOS · save now" prep group, the
 # OFFICE groups (critical vs not), a firm scheduled date, general at-risk, the
 # three ACS holds, foster pending, secured, In Memoriam, and an Unknown tripwire.
 PUBLIC = {
     "euthanasia": "Euthanasia in progress — act immediately",
     "euthanized": "In Memoriam",
-    "b6spt": "Immediate risk · save now",
+    "b6spt": "SOS (B6-SPT) · save now",
     "office_crit": "Critical · Office",
     "immediate": "High risk · save today",
     "scheduled": "Euthanasia date set",
@@ -218,7 +217,7 @@ def classify(kennel, euth_on, euth_today, block_text):
     is Critical only if its banner says so ("euthanized today"); a conditional
     "could be euthanized after {date}" or no euthanasia wording makes it the
     non-critical 'office' bucket. B6/SPT kennels are ACS's genuine euthanasia
-    staging, so they stay 'b6spt' (Immediate risk). Only a real euthanasia
+    staging, so they stay 'b6spt' (SOS · save now). Only a real euthanasia
     (already done, or the EUTHANASIA kennel) outranks a hold.
     """
     k = (kennel or "").upper()
