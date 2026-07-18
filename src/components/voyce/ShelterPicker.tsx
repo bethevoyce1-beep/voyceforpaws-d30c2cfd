@@ -210,7 +210,9 @@ function sectionOf(a: AcsAnimal): AcsSectionId {
   if (key === "office_crit" || key === "outside_crit" || key === "immediate" || key === "scheduled") {
     const target = deadlineForAnimal(a);
     if (target && target.getTime() <= Date.now()) {
-      return "urgent";
+      // A Critical·Office dog past its deadline is just an office dog again
+      // (like Princess) until ACS re-marks it; the others fall back to At risk.
+      return key === "office_crit" ? "office" : "urgent";
     }
   }
   return metaOf(a).section;
