@@ -3,6 +3,11 @@ import { createClient } from "@supabase/supabase-js";
 
 export type NetworkRole = "rescuer" | "foster" | "vet" | "shelter" | "animal_lover" | "volunteer" | "wildlife_rehabilitator";
 
+// Alert preferences captured at join time. Delivery (in-app / SMS) is wired
+// separately; here we just store what each member wants.
+export type AlertChannel = "in_app" | "text";
+export type AlertUrgency = "last_chance" | "critical" | "atrisk";
+
 export type SignupInput = {
   name?: string;
   email: string;
@@ -12,9 +17,18 @@ export type SignupInput = {
   roles: NetworkRole[];
   betaTester?: boolean;
   turnstileToken: string;
+  // Alert preferences
+  alertChannels?: AlertChannel[];
+  alertBreeds?: string[];
+  alertUrgency?: AlertUrgency;
+  alertStates?: string[];
+  alertPerDay?: number;
+  smsConsent?: boolean;
 };
 
 const ALLOWED_ROLES: NetworkRole[] = ["rescuer", "foster", "vet", "shelter", "animal_lover", "volunteer", "wildlife_rehabilitator"];
+const ALLOWED_CHANNELS: AlertChannel[] = ["in_app", "text"];
+const ALLOWED_URGENCY: AlertUrgency[] = ["last_chance", "critical", "atrisk"];
 
 // The MailerLite group new members are added to ("Voyce Pack — App Signups").
 // Not a secret — just an identifier.
@@ -89,12 +103,56 @@ export const submitNetworkSignup = createServerFn({ method: "POST" })
     const betaTester = o.betaTester === true;
     const turnstileToken = String(o.turnstileToken ?? "");
 
+    // Alert preferences — sanitize everything.
+    const alertChannels = Array.isArray(o.alertChannels)
+      ? o.alertChannels.filter((c): c is AlertChannel =>
+          ALLOWED_CHANNELS.includes(c as AlertChannel),
+        )
+      : [];
+    const alertUrgency: AlertUrgency = ALLOWED_URGENCY.includes(
+      o.alertUrgency as AlertUrgency,
+    )
+      ? (o.alertUrgency as AlertUrgency)
+      : "critical";
+    const alertBreeds = Array.isArray(o.alertBreeds)
+      ? o.alertBreeds
+          .map((b) => String(b).trim().slice(0, 40))
+          .filter(Boolean)
+          .slice(0, 25)
+      : [];
+    const alertStates = Array.isArray(o.alertStates)
+      ? o.alertStates
+          .map((s) => String(s).trim().toUpperCase().slice(0, 2))
+          .filter((s) => /^[A-Z]{2}$/.test(s))
+          .slice(0, 50)
+      : [];
+    const alertPerDayRaw = Number(o.alertPerDay);
+    const alertPerDay = Number.isFinite(alertPerDayRaw)
+      ? Math.min(24, Math.max(0, Math.round(alertPerDayRaw)))
+      : 0;
+    const smsConsent = o.smsConsent === true;
+
     if (!isEmail(email) || email.length > 255) throw new Error("Invalid email");
     if (!zip || zip.length > 16) throw new Error("Invalid ZIP");
     // Roles are optional — supporters can join with no role selected.
     if (!turnstileToken) throw new Error("Missing verification");
 
-    return { name, email, zip, phone, city, roles, betaTester, turnstileToken };
+    return {
+      name,
+      email,
+      zip,
+      phone,
+      city,
+      roles,
+      betaTester,
+      turnstileToken,
+      alertChannels,
+      alertBreeds,
+      alertUrgency,
+      alertStates,
+      alertPerDay,
+      smsConsent,
+    };
   })
   .handler(async ({ data }) => {
     // Verify Turnstile server-side
@@ -111,6 +169,11 @@ export const submitNetworkSignup = createServerFn({ method: "POST" })
       if (!json?.success) throw new Error("Verification failed");
     }
 
+    // Only keep SMS as a channel if the member actually consented to texts.
+    const channels = data.smsConsent
+      ? data.alertChannels
+      : data.alertChannels.filter((c) => c !== "text");
+
     const sb = publicClient();
     const { error } = await sb.from("network_signups").insert({
       name: data.name ?? null,
@@ -121,6 +184,12 @@ export const submitNetworkSignup = createServerFn({ method: "POST" })
       roles: data.roles,
       beta_tester: data.betaTester ?? false,
       source: "shareable_card",
+      alert_channels: channels.length ? channels : ["in_app"],
+      alert_breeds: data.alertBreeds,
+      alert_urgency: data.alertUrgency,
+      alert_states: data.alertStates,
+      alert_per_day: data.alertPerDay,
+      sms_consent: data.smsConsent,
     });
     if (error) throw new Error(error.message);
 
