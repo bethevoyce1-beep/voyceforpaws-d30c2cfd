@@ -1,6 +1,7 @@
 /**
- * Voyce for Paws brand header — mark + wordmark + AI disclosure + Donate.
- * Appears at the top of every screen for consistent brand identity.
+ * Voyce for Paws brand header — mark + wordmark + Last Chance bell + AI
+ * disclosure / Donate. Appears at the top of every screen for consistent brand
+ * identity and an always-visible urgency signal.
  *
  * A screen can surface a back button by wrapping itself in
  * <BackNavContext.Provider value={goBack}> — the header then shows a ← arrow.
@@ -11,10 +12,119 @@
  * available on every screen that renders its own BrandHeader (mission picker,
  * shelter picker, capture) without threading a prop through each one.
  */
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { listAcsAnimals, normalizeStatusKey, type AcsAnimal } from "@/lib/acs.functions";
 
 export const BackNavContext = createContext<(() => void) | null>(null);
 export const DonateContext = createContext<(() => void) | null>(null);
+
+// "Last Chance" = being euthanized now or today (the act-now tiers). Matches the
+// board's CRITICAL stat: office dogs are folded into At risk, so not counted.
+const LAST_CHANCE_KEYS = ["euthanasia", "b6spt", "outside_crit", "immediate"];
+
+function NotifyBell() {
+  const [animals, setAnimals] = useState<AcsAnimal[]>([]);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    const load = () => {
+      listAcsAnimals({ data: { shelterId: "san_antonio_acs" } })
+        .then((d) => {
+          if (alive) setAnimals(d.animals ?? []);
+        })
+        .catch(() => {});
+    };
+    load();
+    const id = window.setInterval(load, 120000);
+    return () => {
+      alive = false;
+      window.clearInterval(id);
+    };
+  }, []);
+
+  const lastChance = useMemo(
+    () => animals.filter((a) => LAST_CHANCE_KEYS.includes(normalizeStatusKey(a.status_key))),
+    [animals],
+  );
+  const count = lastChance.length;
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label={`Last Chance dogs: ${count}`}
+        aria-expanded={open}
+        className="relative flex h-9 w-9 items-center justify-center rounded-full text-[#0B0B0C] transition hover:bg-black/5 active:scale-95"
+      >
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+        </svg>
+        {count > 0 && (
+          <span
+            className="absolute -right-0.5 -top-0.5 grid min-w-[16px] place-content-center rounded-full px-1 text-[9.5px] font-bold leading-[16px] text-white motion-safe:animate-pulse"
+            style={{ background: "#DC2626" }}
+            aria-hidden
+          >
+            {count}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden />
+          <div className="absolute right-0 top-11 z-50 max-h-[70vh] w-[280px] overflow-y-auto rounded-2xl border border-[#EAE6DE] bg-white p-2 shadow-2xl">
+            <div className="px-2 py-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="inline-block h-2 w-2 rounded-full motion-safe:animate-pulse" style={{ background: "#DC2626" }} aria-hidden />
+                <span className="font-serif text-[14px] font-bold text-[#7F1D1D]">Last Chance</span>
+                <span className="ml-auto text-[11px] font-semibold text-muted-foreground">{count}</span>
+              </div>
+              <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+                Being euthanized now or today — act immediately.
+              </p>
+            </div>
+            {count === 0 ? (
+              <div className="px-2 py-3 text-center text-[12px] text-muted-foreground">
+                No dogs in Last Chance right now. 💛
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {lastChance.map((a) => (
+                  <a
+                    key={a.id}
+                    href={a.pet_search_url ?? undefined}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block rounded-xl px-2 py-1.5 transition hover:bg-[#FAF8F5]"
+                  >
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="font-serif text-[13.5px] font-semibold text-[#1A1611]">{a.name}</span>
+                      {a.kennel && (
+                        <span className="text-[10px] text-muted-foreground">· {a.kennel}</span>
+                      )}
+                    </div>
+                    <div className="truncate text-[11px] text-muted-foreground">
+                      {[a.breed, a.age, a.sex].filter(Boolean).join(" · ")}
+                    </div>
+                    {a.public_status && (
+                      <div className="mt-0.5 text-[10.5px] font-semibold text-[#B4610F]">
+                        {a.public_status}
+                      </div>
+                    )}
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 export function BrandHeader() {
   const onBack = useContext(BackNavContext);
@@ -47,21 +157,24 @@ export function BrandHeader() {
           Voyce <em>for</em> Paws
         </span>
       </div>
-      {onDonate ? (
-        <button
-          type="button"
-          onClick={onDonate}
-          className="flex items-center gap-1 rounded-full px-3.5 py-1.5 text-[12.5px] font-bold text-[#3A2A07] shadow-sm transition hover:brightness-105 active:scale-95"
-          style={{ background: "linear-gradient(135deg, #FFDF3B 0%, #C9871A 100%)" }}
-        >
-          <span aria-hidden>💛</span>
-          <span>Donate</span>
-        </button>
-      ) : (
-        <div className="text-[11px] font-medium text-muted-foreground">
-          AI is advisory — not a diagnosis
-        </div>
-      )}
+      <div className="flex items-center gap-1.5">
+        <NotifyBell />
+        {onDonate ? (
+          <button
+            type="button"
+            onClick={onDonate}
+            className="flex items-center gap-1 rounded-full px-3.5 py-1.5 text-[12.5px] font-bold text-[#3A2A07] shadow-sm transition hover:brightness-105 active:scale-95"
+            style={{ background: "linear-gradient(135deg, #FFDF3B 0%, #C9871A 100%)" }}
+          >
+            <span aria-hidden>💛</span>
+            <span>Donate</span>
+          </button>
+        ) : (
+          <div className="text-[11px] font-medium text-muted-foreground">
+            AI is advisory — not a diagnosis
+          </div>
+        )}
+      </div>
     </header>
   );
 }
