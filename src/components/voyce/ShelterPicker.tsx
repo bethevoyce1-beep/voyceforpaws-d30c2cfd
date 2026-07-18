@@ -193,13 +193,14 @@ const CHIPS: ChipDef[] = [
 
 // SOS pills — the "act now" statuses promoted to their own top row, each with a
 // pulsing dot (motion-safe). Each maps to a single existing section and is
-// removed from the lower chip row so it isn't duplicated. Nothing renamed.
+// removed from the lower chip row so it isn't duplicated. Labels are trimmed so
+// they flow two-up; card badges and section headers keep the full names.
 type SosPill = { id: string; label: string; dot: string; section: AcsSectionId };
 const SOS_PILLS: SosPill[] = [
-  { id: "euthanasia_now", label: "Euthanasia in progress", dot: "#501313", section: "euthanasia_now" },
-  { id: "critical_now", label: "SOS (B6-SPT) · save now", dot: "#791F1F", section: "critical_now" },
-  { id: "critical_outside", label: "Critical (OUTSIDE3) · save now", dot: "#8F2525", section: "critical_outside" },
-  { id: "critical_today", label: "High risk · save today", dot: "#C8362B", section: "critical_today" },
+  { id: "euthanasia_now", label: "Euthanasia now", dot: "#501313", section: "euthanasia_now" },
+  { id: "critical_now", label: "SOS (B6-SPT)", dot: "#791F1F", section: "critical_now" },
+  { id: "critical_outside", label: "Critical (OUTSIDE3)", dot: "#8F2525", section: "critical_outside" },
+  { id: "critical_today", label: "High risk today", dot: "#C8362B", section: "critical_today" },
 ];
 
 function metaOf(a: AcsAnimal): AcsStatusMeta {
