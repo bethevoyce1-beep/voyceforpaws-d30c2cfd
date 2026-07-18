@@ -54,7 +54,7 @@ const SECTIONS: SectionDef[] = [
   },
   {
     id: "critical_now",
-    title: "Critical · save now",
+    title: "SOS (B6-SPT) · save now",
     action: "Moved to a euthanasia-prep kennel (B6-SPT) — act now.",
     badgeBg: "#791F1F",
     badgeText: "#F7C1C1",
@@ -172,7 +172,7 @@ type ChipDef = { id: string; label: string; sections: AcsSectionId[] | "all" };
 const CHIPS: ChipDef[] = [
   { id: "all", label: "All", sections: "all" },
   { id: "euthanasia_now", label: "Euthanasia in progress", sections: ["euthanasia_now"] },
-  { id: "critical_now", label: "Critical · save now", sections: ["critical_now"] },
+  { id: "critical_now", label: "SOS (B6-SPT) · save now", sections: ["critical_now"] },
   { id: "critical_office", label: "Critical · Office", sections: ["critical_office"] },
   { id: "critical_today", label: "High risk · save today", sections: ["critical_today"] },
   { id: "on_the_clock", label: "Euthanasia date set", sections: ["on_the_clock"] },
