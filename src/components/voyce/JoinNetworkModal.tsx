@@ -17,6 +17,8 @@ const ROLES: { id: NetworkRole; icon: string; label: string; sub: string }[] = [
   { id: "animal_lover", icon: "💛", label: "Animal Lover", sub: "Share + support" },
 ];
 
+const US_STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY"];
+
 export function JoinNetworkModal({
   open,
   onClose,
@@ -45,7 +47,9 @@ export function JoinNetworkModal({
   const [alertUrgency, setAlertUrgency] = useState<AlertUrgency>("critical");
   const [alertPerDay, setAlertPerDay] = useState(0);
   const [breedsText, setBreedsText] = useState("");
-  const [statesText, setStatesText] = useState("");
+  const [stateMode, setStateMode] = useState<"nationwide" | "mine" | "custom">("mine");
+  const [myState, setMyState] = useState("TX");
+  const [customStates, setCustomStates] = useState<string[]>([]);
   const [wantInApp, setWantInApp] = useState(true);
   const [wantText, setWantText] = useState(false);
   const [smsConsent, setSmsConsent] = useState(false);
@@ -64,7 +68,9 @@ export function JoinNetworkModal({
     setAlertUrgency("critical");
     setAlertPerDay(0);
     setBreedsText("");
-    setStatesText("");
+    setStateMode("mine");
+    setMyState("TX");
+    setCustomStates([]);
     setWantInApp(true);
     setWantText(false);
     setSmsConsent(false);
@@ -99,10 +105,12 @@ export function JoinNetworkModal({
         .split(",")
         .map((b) => b.trim())
         .filter(Boolean);
-      const alertStates = statesText
-        .split(",")
-        .map((s) => s.trim().toUpperCase())
-        .filter(Boolean);
+      const alertStates =
+        stateMode === "nationwide"
+          ? []
+          : stateMode === "mine"
+            ? (myState ? [myState] : [])
+            : customStates.slice();
       await submitNetworkSignup({
         data: {
           name: name.trim() || undefined,
@@ -312,16 +320,71 @@ export function JoinNetworkModal({
                     className={fieldClass}
                   />
                 </label>
-                <label className="block">
-                  <span className={labelClass}>State(s)</span>
-                  <input
-                    type="text"
-                    value={statesText}
-                    onChange={(e) => setStatesText(e.target.value)}
-                    placeholder="e.g. TX"
-                    className={fieldClass}
-                  />
-                </label>
+                <div className="sm:col-span-2">
+                  <span className={labelClass}>Where — states to watch</span>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {([["mine", "My state"], ["custom", "Pick states"], ["nationwide", "Anywhere"]] as const).map(
+                      ([m, lbl]) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setStateMode(m)}
+                          className="rounded-full px-3 py-1 text-[12px] font-semibold transition active:scale-95"
+                          style={
+                            stateMode === m
+                              ? { background: "#FFDF3B", color: "#3A2A07" }
+                              : { background: "#FFFFFF", color: "#6B5832", border: "1px solid #D9D2C2" }
+                          }
+                        >
+                          {lbl}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                  {stateMode === "mine" && (
+                    <select
+                      value={myState}
+                      onChange={(e) => setMyState(e.target.value)}
+                      className={fieldClass}
+                      aria-label="My state"
+                    >
+                      {US_STATES.map((st) => (
+                        <option key={st} value={st}>{st}</option>
+                      ))}
+                    </select>
+                  )}
+                  {stateMode === "custom" && (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {US_STATES.map((st) => {
+                        const on = customStates.includes(st);
+                        return (
+                          <button
+                            key={st}
+                            type="button"
+                            onClick={() =>
+                              setCustomStates((prev) =>
+                                prev.includes(st) ? prev.filter((x) => x !== st) : [...prev, st],
+                              )
+                            }
+                            className="rounded-md px-2 py-1 text-[11px] font-semibold transition active:scale-95"
+                            style={
+                              on
+                                ? { background: "#FFDF3B", color: "#3A2A07" }
+                                : { background: "#FFFFFF", color: "#6B5832", border: "1px solid #E3DAC4" }
+                            }
+                          >
+                            {st}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {stateMode === "nationwide" && (
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Alerts for every state, as more cities come online.
+                    </p>
+                  )}
+                </div>
               </div>
 
               <p className="mt-3 text-[11px] font-semibold uppercase tracking-wider text-foreground/55">
