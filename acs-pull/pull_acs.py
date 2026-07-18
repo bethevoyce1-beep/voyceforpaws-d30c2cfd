@@ -121,9 +121,8 @@ PETCONNECT_RE = re.compile(r'https://24petconnect\.com/image/[^\s"\'<>]+', re.I)
 
 # status_key -> friendly label shown to the public. This mirrors Voyce's earlier
 # board taxonomy: euthanasia now, the B6/SPT "SOS · save now" prep group, the
-# OFFICE groups (critical vs not), the OUTSIDE3 critical group, a firm scheduled
-# date, general at-risk, the three ACS holds, foster pending, secured, In
-# Memoriam, and an Unknown tripwire.
+# OFFICE groups (critical vs not), a firm scheduled date, general at-risk, the
+# three ACS holds, foster pending, secured, In Memoriam, and an Unknown tripwire.
 PUBLIC = {
     "euthanasia": "Euthanasia in progress — act immediately",
     "euthanized": "In Memoriam",
@@ -226,9 +225,9 @@ def classify(kennel, euth_on, euth_today, block_text):
     euthanized. In particular an OFFICE kennel is only a LOCATION — a dog there
     is Critical only if its banner says so ("euthanized today"); a conditional
     "could be euthanized after {date}" or no euthanasia wording makes it the
-    non-critical 'office' bucket. B6/SPT and OUTSIDE kennels are ACS's genuine
-    euthanasia staging, so they get their own critical tiers. Only a real
-    euthanasia (already done, or the EUTHANASIA kennel) outranks a hold.
+    non-critical 'office' bucket. B6/SPT kennels are ACS's genuine euthanasia
+    staging, so they stay 'b6spt' (SOS · save now). Only a real euthanasia
+    (already done, or the EUTHANASIA kennel) outranks a hold.
     """
     k = (kennel or "").upper()
     bt = (block_text or "").upper()
