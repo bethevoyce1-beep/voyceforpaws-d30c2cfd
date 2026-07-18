@@ -174,12 +174,11 @@ const SECTION_BY_ID = SECTIONS.reduce<Record<AcsSectionId, SectionDef>>(
   {} as Record<AcsSectionId, SectionDef>,
 );
 
-// Filter chips — one per section, always shown (even at count 0). `all` shows
-// every animal.
+// Filter chips — the "other / outcome" statuses (holds, secured, memoriam,
+// unknown). The urgent statuses live in the SOS row above; `all` is its own
+// button above SOS.
 type ChipDef = { id: string; label: string; sections: AcsSectionId[] | "all" };
 const CHIPS: ChipDef[] = [
-  { id: "on_the_clock", label: "Euthanasia date set", sections: ["on_the_clock"] },
-  { id: "urgent", label: "At risk", sections: ["urgent"] },
   { id: "adoption", label: "ACS Adoption Hold", sections: ["acs_adoption_hold"] },
   { id: "rescue", label: "ACS Rescue Hold", sections: ["rescue_hold"] },
   { id: "foster", label: "ACS Foster Hold", sections: ["acs_foster_hold"] },
@@ -189,16 +188,18 @@ const CHIPS: ChipDef[] = [
   { id: "unknown", label: "Unknown", sections: ["unknown"] },
 ];
 
-// SOS pills — the "act now" statuses promoted to their own top row, each with a
-// pulsing dot (motion-safe). Each maps to a single existing section and is
-// removed from the lower chip row so it isn't duplicated. Labels are trimmed so
-// they flow two-up; card badges and section headers keep the full names.
-type SosPill = { id: string; label: string; dot: string; section: AcsSectionId };
+// SOS pills — the urgency ladder in one row. The four act-now statuses pulse;
+// "Euthanasia date set" and "At risk" carry a static dot. Each maps to a single
+// section and is not repeated in the lower chip row. Card badges + section
+// headers keep the full names.
+type SosPill = { id: string; label: string; dot: string; pulse?: boolean; section: AcsSectionId };
 const SOS_PILLS: SosPill[] = [
-  { id: "euthanasia_now", label: "Euthanasia now", dot: "#501313", section: "euthanasia_now" },
-  { id: "critical_now", label: "SOS (B6-SPT)", dot: "#791F1F", section: "critical_now" },
-  { id: "critical_outside", label: "Critical (OUTSIDE3)", dot: "#8F2525", section: "critical_outside" },
-  { id: "critical_today", label: "High risk today", dot: "#C8362B", section: "critical_today" },
+  { id: "euthanasia_now", label: "Euthanasia now", dot: "#501313", pulse: true, section: "euthanasia_now" },
+  { id: "critical_now", label: "SOS (B6-SPT)", dot: "#791F1F", pulse: true, section: "critical_now" },
+  { id: "critical_outside", label: "Critical (OUTSIDE3)", dot: "#8F2525", pulse: true, section: "critical_outside" },
+  { id: "critical_today", label: "High risk today", dot: "#C8362B", pulse: true, section: "critical_today" },
+  { id: "on_the_clock", label: "Euthanasia date set", dot: "#F97316", section: "on_the_clock" },
+  { id: "urgent", label: "At risk", dot: "#F59E0B", section: "urgent" },
 ];
 
 function metaOf(a: AcsAnimal): AcsStatusMeta {
@@ -666,7 +667,6 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
               value:
                 (d?.counts.euthanasia ?? 0) +
                 (d?.counts.b6spt ?? 0) +
-                (d?.counts.office_crit ?? 0) +
                 (d?.counts.outside_crit ?? 0) +
                 (d?.counts.immediate ?? 0),
             },
@@ -713,7 +713,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
           </button>
         </div>
 
-        {/* SOS pills — the act-now statuses, each with a pulsing dot (motion-safe). */}
+        {/* SOS pills — the urgency ladder. Act-now four pulse; date-set + at-risk static. */}
         <div className="mb-1 text-[10px] font-bold tracking-[0.14em] text-muted-foreground">SOS</div>
         <div className="mb-3 flex flex-wrap gap-1.5" role="tablist" aria-label="Filter by SOS status">
           {SOS_PILLS.map((p) => {
@@ -732,7 +732,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
                 }
               >
                 <span
-                  className="inline-block h-2 w-2 flex-none rounded-full motion-safe:animate-pulse"
+                  className={`inline-block h-2 w-2 flex-none rounded-full ${p.pulse ? "motion-safe:animate-pulse" : ""}`}
                   style={{ background: p.dot }}
                   aria-hidden
                 />
@@ -759,7 +759,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
           <span className="font-semibold">B6-SPT</span> = euthanasia-prep kennel · <span className="font-semibold">OUTSIDE3</span> = outdoor kennel, marked for euthanasia
         </p>
 
-        {/* Filter chips — every pill shows, even at 0 */}
+        {/* Filter chips — the other / outcome statuses */}
         <div className="mb-4 flex flex-wrap gap-1.5" role="tablist" aria-label="Filter animals by status">
           {CHIPS.map((c) => {
             const active = c.id === chip;
