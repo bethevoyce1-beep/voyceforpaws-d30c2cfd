@@ -18,6 +18,7 @@ export type AcsStatusKey =
   | "euthanasia"
   | "b6spt"
   | "office_crit"
+  | "outside_crit"
   | "immediate"
   | "scheduled"
   | "atrisk"
@@ -35,6 +36,7 @@ export type AcsSectionId =
   | "euthanasia_now"
   | "critical_now"
   | "critical_office"
+  | "critical_outside"
   | "critical_today"
   | "on_the_clock"
   | "urgent"
@@ -86,6 +88,14 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
     meaning: "In an office kennel and marked for euthanasia today.",
     action: "Email or call ACS immediately.",
     rank: 2,
+  },
+  outside_crit: {
+    key: "outside_crit",
+    section: "critical_outside",
+    label: "Critical (OUTSIDE3) · save now",
+    meaning: "In an outdoor kennel (OUTSIDE3) and marked for euthanasia.",
+    action: "Email or call ACS immediately to foster or rescue.",
+    rank: 2.5,
   },
   immediate: {
     key: "immediate",
@@ -187,6 +197,7 @@ export function normalizeStatusKey(raw: string | null | undefined): AcsStatusKey
     k === "euthanasia" ||
     k === "b6spt" ||
     k === "office_crit" ||
+    k === "outside_crit" ||
     k === "immediate" ||
     k === "scheduled" ||
     k === "atrisk" ||
