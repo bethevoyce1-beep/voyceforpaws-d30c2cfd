@@ -196,6 +196,26 @@ const CHIPS: ChipDef[] = [
   { id: "unknown", label: "Unknown", sections: ["unknown"] },
 ];
 
+// SOS levels — a four-color traffic-light grouping layered ON TOP of the pills
+// above (nothing is renamed). Each maps to one or more existing sections. Only
+// "Last Chance" pulses.
+type SosLevel = {
+  id: string;
+  title: string;
+  dot: string;
+  fill: string;
+  border: string;
+  text: string;
+  pulse?: boolean;
+  sections: AcsSectionId[];
+};
+const SOS_LEVELS: SosLevel[] = [
+  { id: "last_chance", title: "Last Chance", dot: "#DC2626", fill: "#FBECEC", border: "#DC2626", text: "#7F1D1D", pulse: true, sections: ["euthanasia_now", "critical_now", "critical_office", "critical_outside", "critical_today"] },
+  { id: "critical", title: "Critical", dot: "#EA580C", fill: "#FDEBD8", border: "#F97316", text: "#9A3412", sections: ["on_the_clock"] },
+  { id: "urgent", title: "Urgent", dot: "#EAB308", fill: "#FEF3C7", border: "#EAB308", text: "#854D0E", sections: ["urgent"] },
+  { id: "needs_help", title: "Needs Help", dot: "#16A34A", fill: "#DCFCE7", border: "#16A34A", text: "#14532D", sections: ["office"] },
+];
+
 function metaOf(a: AcsAnimal): AcsStatusMeta {
   const key = normalizeStatusKey(a.status_key);
   return key === "left" ? ACS_STATUS_MODEL.atrisk : ACS_STATUS_MODEL[key];
@@ -547,9 +567,15 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
     return map;
   }, [matched]);
 
-  const activeChip = CHIPS.find((c) => c.id === chip) ?? CHIPS[0];
+  const sosLevel = SOS_LEVELS.find((l) => l.id === chip) ?? null;
+  const activeChip = CHIPS.find((c) => c.id === chip) ?? null;
+  const activeSections: AcsSectionId[] | "all" = sosLevel
+    ? sosLevel.sections
+    : activeChip
+      ? activeChip.sections
+      : "all";
   const visibleSections = SECTIONS.filter((s) => {
-    if (activeChip.sections !== "all" && !activeChip.sections.includes(s.id)) return false;
+    if (activeSections !== "all" && !activeSections.includes(s.id)) return false;
     return (grouped.get(s.id)?.length ?? 0) > 0;
   });
 
@@ -563,6 +589,10 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
     if (c.sections === "all") return matched.length;
     return c.sections.reduce((n, sid) => n + (grouped.get(sid)?.length ?? 0), 0);
   };
+
+  // SOS level count = sum across its mapped sections.
+  const sosCount = (l: SosLevel): number =>
+    l.sections.reduce((n, sid) => n + (grouped.get(sid)?.length ?? 0), 0);
 
   // Freshness heartbeat: "checked X ago" from the scraper's last run. Amber
   // warning only when a successful check hasn't happened in over 3 hours.
@@ -665,6 +695,39 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* SOS level pills — traffic-light grouping layered on top. Only Last Chance pulses. */}
+        <div className="mb-1 text-[10px] font-bold tracking-[0.14em] text-muted-foreground">SOS LEVEL</div>
+        <div className="mb-3 flex flex-wrap gap-1.5" role="tablist" aria-label="Filter by SOS level">
+          {SOS_LEVELS.map((l) => {
+            const active = chip === l.id;
+            return (
+              <button
+                key={l.id}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setChip(l.id)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold transition active:scale-95 ${l.pulse ? "motion-safe:animate-pulse" : ""}`}
+                style={{ background: l.fill, color: l.text, border: `${active ? 2 : 1}px solid ${l.border}` }}
+              >
+                <span
+                  className={`inline-block h-2 w-2 rounded-full ${l.pulse ? "motion-safe:animate-pulse" : ""}`}
+                  style={{ background: l.dot }}
+                  aria-hidden
+                />
+                <span>{l.title}</span>
+                {d && (
+                  <span
+                    className="rounded-full px-1.5 text-[10px] font-bold leading-[1.45] tabular-nums"
+                    style={{ background: "rgba(0,0,0,0.06)", color: l.text }}
+                  >
+                    {sosCount(l)}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Filter chips — every pill shows, even at 0 */}
