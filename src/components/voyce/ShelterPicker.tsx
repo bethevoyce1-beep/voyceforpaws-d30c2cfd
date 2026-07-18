@@ -179,11 +179,7 @@ const SECTION_BY_ID = SECTIONS.reduce<Record<AcsSectionId, SectionDef>>(
 type ChipDef = { id: string; label: string; sections: AcsSectionId[] | "all" };
 const CHIPS: ChipDef[] = [
   { id: "all", label: "All", sections: "all" },
-  { id: "euthanasia_now", label: "Euthanasia in progress", sections: ["euthanasia_now"] },
-  { id: "critical_now", label: "SOS (B6-SPT) · save now", sections: ["critical_now"] },
   { id: "critical_office", label: "Critical · Office", sections: ["critical_office"] },
-  { id: "critical_outside", label: "Critical (OUTSIDE3) · save now", sections: ["critical_outside"] },
-  { id: "critical_today", label: "High risk · save today", sections: ["critical_today"] },
   { id: "on_the_clock", label: "Euthanasia date set", sections: ["on_the_clock"] },
   { id: "urgent", label: "At risk", sections: ["urgent"] },
   { id: "office", label: "Office", sections: ["office"] },
@@ -196,24 +192,15 @@ const CHIPS: ChipDef[] = [
   { id: "unknown", label: "Unknown", sections: ["unknown"] },
 ];
 
-// SOS levels — a four-color traffic-light grouping layered ON TOP of the pills
-// above (nothing is renamed). Each maps to one or more existing sections. Only
-// "Last Chance" pulses.
-type SosLevel = {
-  id: string;
-  title: string;
-  dot: string;
-  fill: string;
-  border: string;
-  text: string;
-  pulse?: boolean;
-  sections: AcsSectionId[];
-};
-const SOS_LEVELS: SosLevel[] = [
-  { id: "last_chance", title: "Last Chance", dot: "#DC2626", fill: "#FBECEC", border: "#DC2626", text: "#7F1D1D", pulse: true, sections: ["euthanasia_now", "critical_now", "critical_office", "critical_outside", "critical_today"] },
-  { id: "critical", title: "Critical", dot: "#EA580C", fill: "#FDEBD8", border: "#F97316", text: "#9A3412", sections: ["on_the_clock"] },
-  { id: "urgent", title: "Urgent", dot: "#EAB308", fill: "#FEF3C7", border: "#EAB308", text: "#854D0E", sections: ["urgent"] },
-  { id: "needs_help", title: "Needs Help", dot: "#16A34A", fill: "#DCFCE7", border: "#16A34A", text: "#14532D", sections: ["office"] },
+// SOS pills — the "act now" statuses promoted to their own top row, each with a
+// pulsing dot (motion-safe). Each maps to a single existing section and is
+// removed from the lower chip row so it isn't duplicated. Nothing renamed.
+type SosPill = { id: string; label: string; dot: string; section: AcsSectionId };
+const SOS_PILLS: SosPill[] = [
+  { id: "euthanasia_now", label: "Euthanasia in progress", dot: "#501313", section: "euthanasia_now" },
+  { id: "critical_now", label: "SOS (B6-SPT) · save now", dot: "#791F1F", section: "critical_now" },
+  { id: "critical_outside", label: "Critical (OUTSIDE3) · save now", dot: "#8F2525", section: "critical_outside" },
+  { id: "critical_today", label: "High risk · save today", dot: "#C8362B", section: "critical_today" },
 ];
 
 function metaOf(a: AcsAnimal): AcsStatusMeta {
@@ -567,10 +554,10 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
     return map;
   }, [matched]);
 
-  const sosLevel = SOS_LEVELS.find((l) => l.id === chip) ?? null;
+  const sosPill = SOS_PILLS.find((p) => p.id === chip) ?? null;
   const activeChip = CHIPS.find((c) => c.id === chip) ?? null;
-  const activeSections: AcsSectionId[] | "all" = sosLevel
-    ? sosLevel.sections
+  const activeSections: AcsSectionId[] | "all" = sosPill
+    ? [sosPill.section]
     : activeChip
       ? activeChip.sections
       : "all";
@@ -590,9 +577,8 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
     return c.sections.reduce((n, sid) => n + (grouped.get(sid)?.length ?? 0), 0);
   };
 
-  // SOS level count = sum across its mapped sections.
-  const sosCount = (l: SosLevel): number =>
-    l.sections.reduce((n, sid) => n + (grouped.get(sid)?.length ?? 0), 0);
+  // SOS pill count = its single mapped section.
+  const sosCount = (p: SosPill): number => grouped.get(p.section)?.length ?? 0;
 
   // Freshness heartbeat: "checked X ago" from the scraper's last run. Amber
   // warning only when a successful check hasn't happened in over 3 hours.
@@ -697,32 +683,40 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
           ))}
         </div>
 
-        {/* SOS level pills — traffic-light grouping layered on top. Only Last Chance pulses. */}
-        <div className="mb-1 text-[10px] font-bold tracking-[0.14em] text-muted-foreground">SOS LEVEL</div>
-        <div className="mb-3 flex flex-wrap gap-1.5" role="tablist" aria-label="Filter by SOS level">
-          {SOS_LEVELS.map((l) => {
-            const active = chip === l.id;
+        {/* SOS pills — the act-now statuses, each with a pulsing dot (motion-safe). */}
+        <div className="mb-1 text-[10px] font-bold tracking-[0.14em] text-muted-foreground">SOS</div>
+        <div className="mb-3 flex flex-wrap gap-1.5" role="tablist" aria-label="Filter by SOS status">
+          {SOS_PILLS.map((p) => {
+            const active = chip === p.id;
             return (
               <button
-                key={l.id}
+                key={p.id}
                 role="tab"
                 aria-selected={active}
-                onClick={() => setChip(l.id)}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold transition active:scale-95 ${l.pulse ? "motion-safe:animate-pulse" : ""}`}
-                style={{ background: l.fill, color: l.text, border: `${active ? 2 : 1}px solid ${l.border}` }}
+                onClick={() => setChip(p.id)}
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold transition active:scale-95"
+                style={
+                  active
+                    ? { background: GOLD, color: "#3A2A07" }
+                    : { background: "#FFFFFF", color: "#6B5832", border: "1px solid #E3DAC4" }
+                }
               >
                 <span
-                  className={`inline-block h-2 w-2 rounded-full ${l.pulse ? "motion-safe:animate-pulse" : ""}`}
-                  style={{ background: l.dot }}
+                  className="inline-block h-2 w-2 flex-none rounded-full motion-safe:animate-pulse"
+                  style={{ background: p.dot }}
                   aria-hidden
                 />
-                <span>{l.title}</span>
+                <span>{p.label}</span>
                 {d && (
                   <span
                     className="rounded-full px-1.5 text-[10px] font-bold leading-[1.45] tabular-nums"
-                    style={{ background: "rgba(0,0,0,0.06)", color: l.text }}
+                    style={
+                      active
+                        ? { background: "rgba(58,42,7,0.18)", color: "#3A2A07" }
+                        : { background: "#F1EAD6", color: "#6B5832" }
+                    }
                   >
-                    {sosCount(l)}
+                    {sosCount(p)}
                   </span>
                 )}
               </button>
