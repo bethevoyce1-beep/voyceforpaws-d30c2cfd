@@ -725,6 +725,11 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
           })}
         </div>
 
+        {/* Legend — spell out the shelter kennel codes for the public */}
+        <p className="mb-3 text-[10.5px] leading-snug text-muted-foreground">
+          <span className="font-semibold">B6-SPT</span> = euthanasia-prep kennel · <span className="font-semibold">OUTSIDE3</span> = outdoor kennel, marked for euthanasia
+        </p>
+
         {/* Filter chips — every pill shows, even at 0 */}
         <div className="mb-4 flex flex-wrap gap-1.5" role="tablist" aria-label="Filter animals by status">
           {CHIPS.map((c) => {
