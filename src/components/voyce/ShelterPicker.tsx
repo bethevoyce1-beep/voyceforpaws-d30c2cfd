@@ -178,8 +178,6 @@ const SECTION_BY_ID = SECTIONS.reduce<Record<AcsSectionId, SectionDef>>(
 // every animal.
 type ChipDef = { id: string; label: string; sections: AcsSectionId[] | "all" };
 const CHIPS: ChipDef[] = [
-  { id: "all", label: "All", sections: "all" },
-  { id: "critical_office", label: "Critical · Office", sections: ["critical_office"] },
   { id: "on_the_clock", label: "Euthanasia date set", sections: ["on_the_clock"] },
   { id: "urgent", label: "At risk", sections: ["urgent"] },
   { id: "adoption", label: "ACS Adoption Hold", sections: ["acs_adoption_hold"] },
@@ -214,14 +212,16 @@ function sectionOf(a: AcsAnimal): AcsSectionId {
   // ACS republishes with a fresh date. In-room states (euthanasia/b6spt) carry
   // no dated deadline and are never downgraded.
   const key = normalizeStatusKey(a.status_key);
-  if (key === "office_crit" || key === "outside_crit" || key === "immediate" || key === "scheduled") {
+  // Office-kennel dogs (Critical·Office and plain Office) show under At risk —
+  // their euth date is often already past but they're still listed and at risk.
+  if (key === "office_crit") return "urgent";
+  if (key === "outside_crit" || key === "immediate" || key === "scheduled") {
     const target = deadlineForAnimal(a);
     if (target && target.getTime() <= Date.now()) {
       // Deadline passed but still listed -> falls back to At risk.
       return "urgent";
     }
   }
-  // Office-kennel dogs (not marked for euthanasia) are folded into At risk.
   const sid = metaOf(a).section;
   return sid === "office" ? "urgent" : sid;
 }
@@ -682,6 +682,35 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* All — top-level filter above the SOS row */}
+        <div className="mb-3 flex">
+          <button
+            role="tab"
+            aria-selected={chip === "all"}
+            onClick={() => setChip("all")}
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold transition active:scale-95"
+            style={
+              chip === "all"
+                ? { background: GOLD, color: "#3A2A07" }
+                : { background: "#FFFFFF", color: "#6B5832", border: "1px solid #E3DAC4" }
+            }
+          >
+            <span>All</span>
+            {d && (
+              <span
+                className="rounded-full px-1.5 text-[10px] font-bold leading-[1.45] tabular-nums"
+                style={
+                  chip === "all"
+                    ? { background: "rgba(58,42,7,0.18)", color: "#3A2A07" }
+                    : { background: "#F1EAD6", color: "#6B5832" }
+                }
+              >
+                {matched.length}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* SOS pills — the act-now statuses, each with a pulsing dot (motion-safe). */}
