@@ -69,6 +69,14 @@ const SECTIONS: SectionDef[] = [
     accent: "#A32D2D",
   },
   {
+    id: "critical_outside",
+    title: "Critical (OUTSIDE3) · save now",
+    action: "In an outdoor kennel (OUTSIDE3) and marked for euthanasia — act now.",
+    badgeBg: "#8F2525",
+    badgeText: "#F7C1C1",
+    accent: "#8F2525",
+  },
+  {
     id: "critical_today",
     title: "High risk · save today",
     action: "On today's euthanasia list — email ACS before the deadline to foster or rescue.",
@@ -174,6 +182,7 @@ const CHIPS: ChipDef[] = [
   { id: "euthanasia_now", label: "Euthanasia in progress", sections: ["euthanasia_now"] },
   { id: "critical_now", label: "SOS (B6-SPT) · save now", sections: ["critical_now"] },
   { id: "critical_office", label: "Critical · Office", sections: ["critical_office"] },
+  { id: "critical_outside", label: "Critical (OUTSIDE3) · save now", sections: ["critical_outside"] },
   { id: "critical_today", label: "High risk · save today", sections: ["critical_today"] },
   { id: "on_the_clock", label: "Euthanasia date set", sections: ["on_the_clock"] },
   { id: "urgent", label: "At risk", sections: ["urgent"] },
@@ -198,7 +207,7 @@ function sectionOf(a: AcsAnimal): AcsSectionId {
   // ACS republishes with a fresh date. In-room states (euthanasia/b6spt) carry
   // no dated deadline and are never downgraded.
   const key = normalizeStatusKey(a.status_key);
-  if (key === "office_crit" || key === "immediate" || key === "scheduled") {
+  if (key === "office_crit" || key === "outside_crit" || key === "immediate" || key === "scheduled") {
     const target = deadlineForAnimal(a);
     if (target && target.getTime() <= Date.now()) {
       return "urgent";
@@ -214,6 +223,7 @@ function showsTimer(a: AcsAnimal): boolean {
     key === "euthanasia" ||
     key === "b6spt" ||
     key === "office_crit" ||
+    key === "outside_crit" ||
     key === "immediate" ||
     key === "scheduled"
   );
@@ -638,6 +648,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
                 (d?.counts.euthanasia ?? 0) +
                 (d?.counts.b6spt ?? 0) +
                 (d?.counts.office_crit ?? 0) +
+                (d?.counts.outside_crit ?? 0) +
                 (d?.counts.immediate ?? 0),
             },
             { label: "DATE SET", value: d?.counts.scheduled ?? 0 },
