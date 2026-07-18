@@ -193,6 +193,17 @@ function metaOf(a: AcsAnimal): AcsStatusMeta {
 }
 
 function sectionOf(a: AcsAnimal): AcsSectionId {
+  // Once a dated euthanasia deadline has passed but the dog is STILL on ACS's
+  // list, it's no longer a "save today" case — show it under "At risk" until
+  // ACS republishes with a fresh date. In-room states (euthanasia/b6spt) carry
+  // no dated deadline and are never downgraded.
+  const key = normalizeStatusKey(a.status_key);
+  if (key === "office_crit" || key === "immediate" || key === "scheduled") {
+    const target = deadlineForAnimal(a);
+    if (target && target.getTime() <= Date.now()) {
+      return "urgent";
+    }
+  }
   return metaOf(a).section;
 }
 
