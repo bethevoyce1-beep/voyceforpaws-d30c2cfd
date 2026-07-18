@@ -387,7 +387,7 @@ export const listAcsAnimals = createServerFn({ method: "GET" })
       };
     });
 
-    // Exclude `left` rows (no longer on the list, outcome unknown).
+    // Exclude `left` rows (manually confirmed no-longer-listed / positive exit).
     const visibleAll = all.filter((a) => normalizeStatusKey(a.status_key) !== "left");
 
     // Supabase accumulates every day's animals (old rows are never deleted), so
@@ -395,12 +395,21 @@ export const listAcsAnimals = createServerFn({ method: "GET" })
     // Match the public board: keep only the NEWEST list date — the current
     // at-risk list, including today's outcomes (e.g. today's euthanized). Older
     // rows stay in the database but are not shown or counted here.
+    //
+    // EXCEPTION: `unknown` rows are a persistent follow-up tripwire — a dog that
+    // vanished from ACS without a written outcome. Those must stay visible
+    // regardless of when they were last listed, so they can be chased down
+    // (email ACS) and resolved, instead of silently disappearing from the board.
     const newestListDate = visibleAll.reduce<string | null>((acc, a) => {
       if (!a.list_date) return acc;
       return !acc || a.list_date > acc ? a.list_date : acc;
     }, null);
     const visible = newestListDate
-      ? visibleAll.filter((a) => a.list_date === newestListDate)
+      ? visibleAll.filter(
+          (a) =>
+            a.list_date === newestListDate ||
+            normalizeStatusKey(a.status_key) === "unknown",
+        )
       : visibleAll;
 
     // Order by urgency rank, then days at shelter descending.
