@@ -41,7 +41,7 @@ Classification precedence (the right-side banner text beats a possibly-stale ken
        firm "euthanized on {date}"   -> immediate (split to today/scheduled below)
        otherwise (a conditional "could be euthanized after {date}", or no
        euthanasia wording at all)    -> office (Office, not critical)
-  7. kennel OUTSIDE* (euth today, no hold)          -> immediate
+  7. kennel OUTSIDE* (OUTSIDE3 etc.)                -> outside_crit (Critical (OUTSIDE3))
   8. "euthanized today"                             -> immediate (High risk today)
      "euthanized on {future date}"                  -> scheduled (Euthanasia date set)
   9. otherwise (incl. "euthanized after {date}")    -> atrisk
@@ -121,13 +121,15 @@ PETCONNECT_RE = re.compile(r'https://24petconnect\.com/image/[^\s"\'<>]+', re.I)
 
 # status_key -> friendly label shown to the public. This mirrors Voyce's earlier
 # board taxonomy: euthanasia now, the B6/SPT "SOS · save now" prep group, the
-# OFFICE groups (critical vs not), a firm scheduled date, general at-risk, the
-# three ACS holds, foster pending, secured, In Memoriam, and an Unknown tripwire.
+# OFFICE groups (critical vs not), the OUTSIDE3 critical group, a firm scheduled
+# date, general at-risk, the three ACS holds, foster pending, secured, In
+# Memoriam, and an Unknown tripwire.
 PUBLIC = {
     "euthanasia": "Euthanasia in progress — act immediately",
     "euthanized": "In Memoriam",
     "b6spt": "SOS (B6-SPT) · save now",
     "office_crit": "Critical · Office",
+    "outside_crit": "Critical (OUTSIDE3) · save now",
     "immediate": "High risk · save today",
     "scheduled": "Euthanasia date set",
     "atrisk": "At risk",
@@ -141,7 +143,7 @@ PUBLIC = {
 }
 
 # Keys that carry a euthanasia deadline for the live countdown.
-CRITICAL_KEYS = ("b6spt", "immediate", "scheduled", "office_crit")
+CRITICAL_KEYS = ("b6spt", "immediate", "scheduled", "office_crit", "outside_crit")
 
 
 def log(*a):
@@ -224,9 +226,9 @@ def classify(kennel, euth_on, euth_today, block_text):
     euthanized. In particular an OFFICE kennel is only a LOCATION — a dog there
     is Critical only if its banner says so ("euthanized today"); a conditional
     "could be euthanized after {date}" or no euthanasia wording makes it the
-    non-critical 'office' bucket. B6/SPT kennels are ACS's genuine euthanasia
-    staging, so they stay 'b6spt' (SOS · save now). Only a real euthanasia
-    (already done, or the EUTHANASIA kennel) outranks a hold.
+    non-critical 'office' bucket. B6/SPT and OUTSIDE kennels are ACS's genuine
+    euthanasia staging, so they get their own critical tiers. Only a real
+    euthanasia (already done, or the EUTHANASIA kennel) outranks a hold.
     """
     k = (kennel or "").upper()
     bt = (block_text or "").upper()
@@ -256,7 +258,7 @@ def classify(kennel, euth_on, euth_today, block_text):
         else:
             key = "office"
     elif "OUTSIDE" in k:
-        key = "immediate"
+        key = "outside_crit"
     elif euth_today or euth_on:
         key = "immediate"
     else:
