@@ -405,11 +405,17 @@ function AnimalRow({ a, onPick }: { a: AcsAnimal; onPick: (a: AcsAnimal) => void
     >
       <button
         onClick={() => onPick(a)}
-        className="group flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition hover:-translate-y-px hover:shadow-md active:scale-[0.99]"
+        className="group flex w-full items-start gap-3 rounded-xl p-2.5 text-left transition hover:-translate-y-px hover:shadow-md active:scale-[0.99]"
       >
         <PhotoThumb a={a} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-baseline gap-1.5">
+          <span
+            className="mb-1 inline-block rounded-full px-2 py-0.5 text-[9.5px] font-bold leading-tight tracking-wide"
+            style={{ background: section.badgeBg, color: section.badgeText }}
+          >
+            {badge}
+          </span>
+          <div className="flex flex-wrap items-baseline gap-x-1.5">
             <span className="font-serif text-[15px] font-semibold leading-tight" style={{ color: INK }}>
               {a.name}
             </span>
@@ -432,12 +438,6 @@ function AnimalRow({ a, onPick }: { a: AcsAnimal; onPick: (a: AcsAnimal) => void
             Tap for full details ›
           </div>
         </div>
-        <span
-          className="flex-none rounded-full px-2.5 py-1 text-center text-[10px] font-bold leading-tight tracking-wide"
-          style={{ background: section.badgeBg, color: section.badgeText }}
-        >
-          {badge}
-        </span>
       </button>
 
       {/* ACS date chips — kennel + due out + at-risk-since + euth date */}
