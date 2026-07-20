@@ -78,7 +78,7 @@ const SECTIONS: SectionDef[] = [
   },
   {
     id: "critical_today",
-    title: "High risk · save today",
+    title: "Critical · save today",
     action: "On today's euthanasia list — email ACS before the deadline to foster or rescue.",
     badgeBg: "#F09595",
     badgeText: "#501313",
@@ -205,7 +205,7 @@ const SOS_PILLS: SosPill[] = [
   { id: "euthanasia_now", label: "Euthanasia now", dot: "#501313", pulse: true, section: "euthanasia_now" },
   { id: "critical_now", label: "SOS (B6-SPT)", dot: "#791F1F", pulse: true, section: "critical_now" },
   { id: "critical_outside", label: "Critical (OUTSIDE3)", dot: "#8F2525", pulse: true, section: "critical_outside" },
-  { id: "critical_today", label: "High risk today", dot: "#C8362B", pulse: true, section: "critical_today" },
+  { id: "critical_today", label: "Critical · save today", dot: "#C8362B", pulse: true, section: "critical_today" },
   { id: "on_the_clock", label: "Euthanasia date set · high risk", dot: "#F97316", section: "on_the_clock" },
   { id: "urgent", label: "At risk", dot: "#F59E0B", section: "urgent" },
 ];
