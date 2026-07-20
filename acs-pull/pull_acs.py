@@ -348,15 +348,11 @@ def parse_rows(raw_text):
         b_end = max(b_end, i + 1)
         block_text = "\n".join(lines[b_start:b_end])
         euth_today = bool(EUTH_TODAY_RE.search(block_text))
-        # "could be euthanized after {date}": when that capacity date is TODAY,
-        # the dog is eligible for euthanasia as of today -> treat it as save-today
-        # (same urgency as "euthanized today"). A past/future after-date is not
-        # promoted here (past capacity dates remain At risk).
-        _after = EUTH_AFTER_RE.search(block_text)
-        _after_iso = parse_date_iso(_after.group(1)) if _after else None
-        if _after_iso and _after_iso == today_iso:
-            euth_today = True
         euth_on_iso = parse_date_iso(euth_on)
+        # Capacity "could be euthanized after {date}" stays At risk (NOT a firm
+        # euthanasia day). Surface the date on the card labeled "Euth after {date}".
+        _after = EUTH_AFTER_RE.search(block_text)
+        euth_after = _after.group(1) if _after else None
         status_key, public_status = classify(kennel, euth_on, euth_today, block_text)
 
         # Verbatim ACS euthanasia banner clause -> status_text. Drives the
@@ -376,7 +372,7 @@ def parse_rows(raw_text):
 
         # Critical/scheduled animals carry a deadline for the countdown.
         euth_date = euth_on or (
-            today_mdy if (euth_today or status_key in CRITICAL_KEYS) else None
+            today_mdy if (euth_today or status_key in CRITICAL_KEYS) else euth_after
         )
 
         out[aid] = {
