@@ -487,7 +487,7 @@ export function AcsShareCard({
     { label: "Days at shelter", value: typeof animal.days === "number" ? `${animal.days} days` : "—" },
     { label: "At risk since", value: usDate(animal.risk_since) || "—" },
     { label: "Due out", value: usDate(animal.due_out) || "—" },
-    { label: "Euth date", value: animal.euth_date || "—", warn: !!animal.euth_date },
+    { label: statusKey === "atrisk" ? "Euth after" : "Euth date", value: animal.euth_date || "—", warn: !!animal.euth_date },
   ];
 
   const medical: { label: string; value: string; warn?: boolean }[] = [
