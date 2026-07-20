@@ -39,8 +39,8 @@ Classification precedence (the right-side banner text beats a possibly-stale ken
      animal), so the banner is the more reliable signal than a stale kennel.
   5. kennel B6* / *SPT* (staged out of gen-pop for euthanasia) -> b6spt
   6. kennel OFFICE is a LOCATION, not automatically critical — read the banner:
-       "euthanized today"            -> office_crit (Critical · Office)
-       firm "euthanized on {date}"   -> immediate (split to today/scheduled below)
+       "euthanized today" / firm "euthanized on {date}" -> immediate (save today;
+       kennel still shows OFFICE on the card)
        otherwise (a conditional "could be euthanized after {date}", or no
        euthanasia wording at all)    -> office (Office, not critical)
   7. kennel OUTSIDE* (OUTSIDE3 etc.)                -> outside_crit (Critical (OUTSIDE3))
@@ -255,9 +255,10 @@ def classify(kennel, euth_on, euth_today, block_text):
     elif is_b6spt:
         key = "b6spt"
     elif is_office:
-        if euth_today:
-            key = "office_crit"
-        elif euth_on:
+        if euth_today or euth_on:
+            # An office dog marked for euthanasia today is the same urgency as
+            # any "save today" dog -> immediate (kennel still shows OFFICE on the
+            # card). 'office' stays only for office dogs with no euthanasia date.
             key = "immediate"
         else:
             key = "office"
