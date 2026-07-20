@@ -10,8 +10,10 @@ table via acs_apply_pull().
 Status model (status_key -> public_status):
   euthanasia  -> Euthanasia in progress — act immediately
   b6spt       -> SOS (B6-SPT) · save now         office_crit -> Critical · Office
-  immediate   -> High risk · save today         scheduled   -> Euthanasia date set
-  atrisk      -> At risk                         office      -> Office (not critical)
+  immediate   -> Critical · euthanasia date set · save today (euthanized today)
+  scheduled   -> Euthanasia date set (firm future date)
+  highrisk    -> High risk (capacity "after {date}" has passed -> eligible now)
+  atrisk      -> At risk (capacity date still ahead)   office -> Office (not critical)
   adopthold   -> ACS Adoption Hold               adoption    -> ACS Rescue Hold
   foster      -> ACS Foster Hold                 watch       -> Foster Pending
   secured     -> Secured                         euthanized  -> In Memoriam
@@ -44,7 +46,8 @@ Classification precedence (the right-side banner text beats a possibly-stale ken
   7. kennel OUTSIDE* (OUTSIDE3 etc.)                -> outside_crit (Critical (OUTSIDE3))
   8. "euthanized today"                             -> immediate (High risk today)
      "euthanized on {future date}"                  -> scheduled (Euthanasia date set)
-  9. otherwise (incl. "euthanized after {date}")    -> atrisk
+  9. "euthanized after {past date}"                 -> highrisk (eligible now)
+  10. otherwise (incl. "euthanized after {future date}") -> atrisk
 
 Env vars:
   SUPABASE_URL                (optional; host auto-detected/fixed)
@@ -105,6 +108,7 @@ VAL_RE = re.compile(r"^(A\d{6,8})\s+(\d{1,2}/\d{1,2}/\d{4})\s+(\S+)")
 ID_RE = re.compile(r"\b(A\d{6,8})\b")
 EUTH_ON_RE = re.compile(r"euthanized on\s+(\d{1,2}/\d{1,2}/\d{4})", re.I)
 EUTH_TODAY_RE = re.compile(r"euthanized today", re.I)
+EUTH_AFTER_RE = re.compile(r"euthanized after\s+(\d{1,2}/\d{1,2}/\d{4})", re.I)
 # The right-side euthanasia banner clause for a dog, stored verbatim as
 # status_text so drop-off reconciliation can tell a confirmed death
 # ("was/has been euthanized", "euthanized today") from a mere risk warning
@@ -129,7 +133,8 @@ PUBLIC = {
     "b6spt": "SOS (B6-SPT) · save now",
     "office_crit": "Critical · Office",
     "outside_crit": "Critical (OUTSIDE3) · save now",
-    "immediate": "High risk · save today",
+    "immediate": "Critical · euthanasia date set · save today",
+    "highrisk": "High risk",
     "scheduled": "Euthanasia date set",
     "atrisk": "At risk",
     "office": "Office",
@@ -355,11 +360,21 @@ def parse_rows(raw_text):
         # Split "immediate" into today vs a set future date ("Euthanasia date set").
         if status_key == "immediate":
             if euth_today or not euth_on_iso or euth_on_iso <= today_iso:
-                public_status = "High risk · save today"
+                public_status = "Critical · euthanasia date set · save today"
             else:
                 status_key = "scheduled"
                 d = datetime.strptime(euth_on_iso, "%Y-%m-%d")
                 public_status = f"Euthanasia date set · {d.strftime('%b')} {d.day}"
+
+        # Capacity dogs ("could be euthanized after {date}"): once that date
+        # has passed, the dog is eligible for euthanasia now -> High risk. A
+        # still-future date stays At risk (the window has not opened yet).
+        if status_key in ("atrisk", "office"):
+            _after = EUTH_AFTER_RE.search(block_text)
+            _after_iso = parse_date_iso(_after.group(1)) if _after else None
+            if _after_iso and _after_iso <= today_iso:
+                status_key = "highrisk"
+                public_status = PUBLIC["highrisk"]
 
         # Critical/scheduled animals carry a deadline for the countdown.
         euth_date = euth_on or (
