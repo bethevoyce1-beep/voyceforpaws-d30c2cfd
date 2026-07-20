@@ -102,8 +102,8 @@ SPECIES = {
 }
 
 DEMO_RE = re.compile(r"^\(([A-Z])\)\s*Estimated Age\s+(.*)$")
-VAL_RE = re.compile(r"^(A\d{6,8})\s+(\d{1,2}/\d{1,2}/\d{4})\s+(\S+)")
-ID_RE = re.compile(r"\b(A\d{6,8})\b")
+VAL_RE = re.compile(r"^(A\d{6})(?!\d)\s+(\d{1,2}/\d{1,2}/\d{4})\s+(\S+)")
+ID_RE = re.compile(r"\b(A\d{6})(?!\d)")
 EUTH_ON_RE = re.compile(r"euthanized on\s+(\d{1,2}/\d{1,2}/\d{4})", re.I)
 EUTH_TODAY_RE = re.compile(r"euthanized today", re.I)
 EUTH_AFTER_RE = re.compile(r"euthanized after\s+(\d{1,2}/\d{1,2}/\d{4})", re.I)
