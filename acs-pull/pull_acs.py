@@ -11,9 +11,8 @@ Status model (status_key -> public_status):
   euthanasia  -> Euthanasia in progress — act immediately
   b6spt       -> SOS (B6-SPT) · save now         office_crit -> Critical · Office
   immediate   -> Critical · euthanasia date set · save today (euthanized today)
-  scheduled   -> Euthanasia date set (firm future date)
-  highrisk    -> High risk (capacity "after {date}" has passed -> eligible now)
-  atrisk      -> At risk (capacity date still ahead)   office -> Office (not critical)
+  scheduled   -> Euthanasia date set · high risk (firm future date)
+  atrisk      -> At risk (capacity date, no active/passed date)   office -> Office
   adopthold   -> ACS Adoption Hold               adoption    -> ACS Rescue Hold
   foster      -> ACS Foster Hold                 watch       -> Foster Pending
   secured     -> Secured                         euthanized  -> In Memoriam
@@ -134,7 +133,7 @@ PUBLIC = {
     "outside_crit": "Critical (OUTSIDE3) · save now",
     "immediate": "Critical · euthanasia date set · save today",
     "highrisk": "Euthanasia date set · high risk",
-    "scheduled": "Euthanasia date set",
+    "scheduled": "Euthanasia date set · high risk",
     "atrisk": "At risk",
     "office": "Office",
     "adoption": "ACS Rescue Hold",
@@ -363,8 +362,7 @@ def parse_rows(raw_text):
                 public_status = "Critical · euthanasia date set · save today"
             else:
                 status_key = "scheduled"
-                d = datetime.strptime(euth_on_iso, "%Y-%m-%d")
-                public_status = f"Euthanasia date set · {d.strftime('%b')} {d.day}"
+                public_status = "Euthanasia date set · high risk"
 
         # Critical/scheduled animals carry a deadline for the countdown.
         euth_date = euth_on or (

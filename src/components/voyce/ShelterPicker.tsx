@@ -86,7 +86,7 @@ const SECTIONS: SectionDef[] = [
   },
   {
     id: "on_the_clock",
-    title: "Euthanasia date set",
+    title: "Euthanasia date set · high risk",
     action: "A euthanasia date is set — foster, rescue, or adopt before the date.",
     badgeBg: "#FED7AA",
     badgeText: "#9A3412",
@@ -206,7 +206,7 @@ const SOS_PILLS: SosPill[] = [
   { id: "critical_now", label: "SOS (B6-SPT)", dot: "#791F1F", pulse: true, section: "critical_now" },
   { id: "critical_outside", label: "Critical (OUTSIDE3)", dot: "#8F2525", pulse: true, section: "critical_outside" },
   { id: "critical_today", label: "High risk today", dot: "#C8362B", pulse: true, section: "critical_today" },
-  { id: "on_the_clock", label: "Euthanasia date set", dot: "#F97316", section: "on_the_clock" },
+  { id: "on_the_clock", label: "Euthanasia date set · high risk", dot: "#F97316", section: "on_the_clock" },
   { id: "urgent", label: "At risk", dot: "#F59E0B", section: "urgent" },
 ];
 
