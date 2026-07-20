@@ -134,7 +134,7 @@ PUBLIC = {
     "office_crit": "Critical · Office",
     "outside_crit": "Critical (OUTSIDE3) · save now",
     "immediate": "Critical · euthanasia date set · save today",
-    "highrisk": "High risk",
+    "highrisk": "Euthanasia date set · high risk",
     "scheduled": "Euthanasia date set",
     "atrisk": "At risk",
     "office": "Office",
