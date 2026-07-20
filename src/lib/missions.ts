@@ -140,13 +140,6 @@ export const MISSIONS: Record<MissionId, Mission> = {
     },
     nearbyHelpers:
       "Closest first, then rippling outward — rescuers, fosters, adopters, pledgers, transporters & animal lovers. The alert keeps rippling outward until this animal is helped.",
-    showCountdown: true,
-    extraDetails: [
-      { label: "Shelter", value: "Riverside County AC" },
-      { label: "Kennel", value: "B-14" },
-      { label: "Intake", value: "Jun 22, 2026" },
-      { label: "Days at shelter", value: "6" },
-    ],
   },
   "lost-found": {
     id: "lost-found",
