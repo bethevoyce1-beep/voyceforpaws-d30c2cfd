@@ -207,7 +207,6 @@ const SOS_PILLS: SosPill[] = [
   { id: "critical_outside", label: "Critical (OUTSIDE3)", dot: "#8F2525", pulse: true, section: "critical_outside" },
   { id: "critical_today", label: "High risk today", dot: "#C8362B", pulse: true, section: "critical_today" },
   { id: "on_the_clock", label: "Euthanasia date set", dot: "#F97316", section: "on_the_clock" },
-  { id: "high_risk", label: "Euthanasia date set · high risk", dot: "#E8590C", section: "high_risk" },
   { id: "urgent", label: "At risk", dot: "#F59E0B", section: "urgent" },
 ];
 
@@ -228,8 +227,8 @@ function sectionOf(a: AcsAnimal): AcsSectionId {
   if (key === "outside_crit" || key === "immediate" || key === "scheduled") {
     const target = deadlineForAnimal(a);
     if (target && target.getTime() <= Date.now()) {
-      // Deadline passed but still listed -> High risk (eligible now).
-      return "high_risk";
+      // Deadline passed but still listed -> At risk (no active date).
+      return "urgent";
     }
   }
   const sid = metaOf(a).section;
