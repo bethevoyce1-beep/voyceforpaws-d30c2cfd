@@ -163,6 +163,39 @@ function buildRescueStory(a: AcsAnimal): string {
 }
 
 // ============================================================
+// ACS evaluation / behavior notes — the scraper joins ACS's dated evaluation
+// entries into one string and sometimes bleeds the NEXT animal's block onto the
+// end. Strip that tail, then split into dated entries so each shows under its
+// own date pill (far easier to read than one wall of text).
+// ============================================================
+function parseAcsNotes(raw: string): { date: string | null; text: string }[] {
+  let s = (raw || "").trim();
+  if (!s) return [];
+  // Cut trailing bleed from the next dog's block / capacity boilerplate.
+  const cutMarkers = [
+    /\bA\d{6,8}\s+If kennel capacity/i,
+    /\s+Animal ID\s+Due Out Date/i,
+    /\bIf kennel capacity is needed this pet could be\b/i,
+  ];
+  let cut = s.length;
+  for (const re of cutMarkers) {
+    const m = re.exec(s);
+    if (m && m.index < cut) cut = m.index;
+  }
+  s = s.slice(0, cut).trim();
+  if (!s) return [];
+  const parts = s.split(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+  const entries: { date: string | null; text: string }[] = [];
+  if (parts[0] && parts[0].trim()) entries.push({ date: null, text: parts[0].trim() });
+  for (let i = 1; i < parts.length; i += 2) {
+    const date = parts[i];
+    const text = (parts[i + 1] || "").trim();
+    if (text) entries.push({ date, text });
+  }
+  return entries.length ? entries : [{ date: null, text: s }];
+}
+
+// ============================================================
 // Live euthanasia timer — countdown for dated statuses; a pulsing
 // "in progress" state for b6spt / euthanasia (they're in the room now).
 // ============================================================
@@ -437,6 +470,8 @@ export function AcsShareCard({
 
   const story = (animal.story || "").trim();
   const storyPreview = story.length > 160 ? `${story.slice(0, 160)}…` : story;
+  const noteEntries = parseAcsNotes(story);
+  const listDateStr = usDate(animal.list_date);
   const rescueStory = buildRescueStory(animal);
   const spay = spayText(animal.sex);
 
@@ -652,39 +687,37 @@ export function AcsShareCard({
             Voyce composed this from San Antonio ACS's listing and its own words — nothing invented.
           </p>
 
-          {/* ===== ACS's EXACT NOTE (verbatim) ===== */}
-          <SectionLabel>ACS's exact note · from the shelter listing</SectionLabel>
-          <div className="mx-5 overflow-hidden rounded-xl ring-1 ring-black/5">
-            <div className="bg-[#FFFBEB] px-4 py-3 text-[13.5px] leading-[1.55] text-[#3A2A07]">
-              {animal.euth_date && (
-                <p className="mb-1.5 text-[12px] font-semibold text-[#7A1F1F]">
-                  ACS euth date: <span className="font-normal">{animal.euth_date}</span>
-                </p>
-              )}
-              {story ? (
-                <>
-                  <p className="whitespace-pre-line">{storyOpen ? story : storyPreview}</p>
-                  {story.length > 160 && (
-                    <button
-                      onClick={() => setStoryOpen((v) => !v)}
-                      className="mt-2 text-[12px] font-bold underline-offset-2 hover:underline"
-                      style={{ color: GOLD_DEEP }}
-                    >
-                      {storyOpen ? "Hide full notes ▴" : "Read ACS's full notes ▾"}
-                    </button>
+          {/* ===== EVALUATION / BEHAVIOR NOTES (verbatim, split by date) ===== */}
+          <SectionLabel>Evaluation / behavior · from ACS</SectionLabel>
+          {noteEntries.length > 0 ? (
+            <div className="mx-5 flex flex-col gap-2.5">
+              {noteEntries.map((n, i) => (
+                <div
+                  key={i}
+                  className="overflow-hidden rounded-xl bg-[#FFFBEB] px-4 py-3 ring-1 ring-black/5"
+                >
+                  {n.date && (
+                    <span className="mb-1.5 inline-block rounded-full bg-[#F3E5B6] px-2.5 py-0.5 text-[11px] font-bold text-[#7A5A0A]">
+                      {n.date}
+                    </span>
                   )}
-                  <p className="mt-2 text-[10.5px] italic text-[#9CA3AF]">
-                    Source: San Antonio ACS capacity list
-                    {usDate(animal.list_date) ? `, ${usDate(animal.list_date)}` : ""} — verbatim.
+                  <p className="whitespace-pre-line text-[13.5px] leading-[1.55] text-[#3A2A07]">
+                    {n.text}
                   </p>
-                </>
-              ) : (
-                <p className="italic text-[#6B7280]">
-                  No evaluation notes on ACS's list yet — check the ACS listing for the latest.
-                </p>
-              )}
+                </div>
+              ))}
+              <p className="text-[10.5px] italic text-[#9CA3AF]">
+                Source: San Antonio ACS capacity list
+                {listDateStr ? `, ${listDateStr}` : ""} — verbatim.
+              </p>
             </div>
-          </div>
+          ) : (
+            <div className="mx-5 rounded-xl bg-[#FFFBEB] px-4 py-3 text-[13.5px] leading-[1.55] text-[#3A2A07] ring-1 ring-black/5">
+              <p className="italic text-[#6B7280]">
+                No evaluation notes on ACS's list yet — check the ACS listing for the latest.
+              </p>
+            </div>
+          )}
 
           {/* ===== FIND POSTS & VIDEOS ===== */}
           <SectionLabel>Find posts &amp; videos</SectionLabel>

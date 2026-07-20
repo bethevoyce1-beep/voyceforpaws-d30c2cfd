@@ -197,14 +197,14 @@ export function urgencyFor(msLeft: number): UrgencyChip {
   return { level: "soon", label: "Needs placement soon", bg: "#FDE68A", text: "#78350F", pulse: false };
 }
 
-/** Format remaining ms as a compact ticking string, e.g. "3h 42m" / "12m 05s". */
+/** Format remaining ms as a compact ticking string, e.g. "3h 42m 05s" / "12m 05s". */
 export function formatCountdown(msLeft: number): string {
   const ms = Math.max(0, msLeft);
   const h = Math.floor(ms / 3_600_000);
   const m = Math.floor((ms % 3_600_000) / 60_000);
   const s = Math.floor((ms % 60_000) / 1000);
   const pad = (n: number) => n.toString().padStart(2, "0");
-  if (h > 0) return `${h}h ${pad(m)}m`;
+  if (h > 0) return `${h}h ${pad(m)}m ${pad(s)}s`;
   if (m > 0) return `${m}m ${pad(s)}s`;
   return `${s}s`;
 }
