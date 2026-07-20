@@ -62,6 +62,8 @@ function statusColor(key: AcsStatusKey): string {
       return "#DC2626";
     case "scheduled":
       return "#EA580C";
+    case "highrisk":
+      return "#E8590C";
     case "atrisk":
       return "#D97706";
     case "office":
