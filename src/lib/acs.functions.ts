@@ -21,6 +21,7 @@ export type AcsStatusKey =
   | "outside_crit"
   | "immediate"
   | "scheduled"
+  | "highrisk"
   | "atrisk"
   | "office"
   | "adopthold"
@@ -39,6 +40,7 @@ export type AcsSectionId =
   | "critical_outside"
   | "critical_today"
   | "on_the_clock"
+  | "high_risk"
   | "urgent"
   | "office"
   | "acs_adoption_hold"
@@ -100,7 +102,7 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
   immediate: {
     key: "immediate",
     section: "critical_today",
-    label: "High risk · save today",
+    label: "Critical · euthanasia date set · save today",
     meaning: "On today's euthanasia list.",
     action: "Email ACS before the deadline to foster or rescue.",
     rank: 3,
@@ -112,6 +114,14 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
     meaning: "A euthanasia date is set (not today).",
     action: "Foster, rescue, or adopt before the date.",
     rank: 4,
+  },
+  highrisk: {
+    key: "highrisk",
+    section: "high_risk",
+    label: "High risk",
+    meaning: "The capacity euthanasia date has passed — eligible for euthanasia now.",
+    action: "Foster, rescue, or adopt as soon as possible.",
+    rank: 4.5,
   },
   atrisk: {
     key: "atrisk",
@@ -200,6 +210,7 @@ export function normalizeStatusKey(raw: string | null | undefined): AcsStatusKey
     k === "outside_crit" ||
     k === "immediate" ||
     k === "scheduled" ||
+    k === "highrisk" ||
     k === "atrisk" ||
     k === "office" ||
     k === "adopthold" ||
