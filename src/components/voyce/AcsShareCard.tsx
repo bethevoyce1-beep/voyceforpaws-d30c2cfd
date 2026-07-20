@@ -548,11 +548,11 @@ export function AcsShareCard({
                 </span>
               </div>
             )}
-            <span className="absolute left-3 top-3 rounded-full bg-black/80 px-3 py-1 text-[11px] font-bold text-white shadow-lg">
+            <span className="absolute bottom-3 left-3 rounded-full bg-black/80 px-2.5 py-0.5 text-[10px] font-bold text-white shadow-lg">
               🕒 {daysText(animal)}
             </span>
             <span
-              className="absolute right-3 top-3 rounded-full px-3 py-1 text-[10.5px] font-extrabold uppercase tracking-[0.12em] text-white shadow-lg"
+              className="absolute right-3 top-3 rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.08em] text-white shadow-lg"
               style={{ background: chipColor }}
             >
               {badgeLabel}
