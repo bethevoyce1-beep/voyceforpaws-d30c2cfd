@@ -520,11 +520,6 @@ export function AcsShareCard({
             >
               {badgeLabel}
             </span>
-            {showTimer && (
-              <div className="absolute bottom-3 left-3 right-3 flex justify-end">
-                <EuthTimer animal={animal} variant="chip" />
-              </div>
-            )}
           </div>
 
           {/* ===== NAME BLOCK ===== */}
@@ -540,6 +535,11 @@ export function AcsShareCard({
               {vitals ? " · " : ""}
               {daysWaiting}
             </p>
+            {showTimer && (
+              <p className="mt-1.5 text-[13px] font-bold" style={{ color: chipColor }}>
+                Needs a foster or rescue pull{statusKey === "scheduled" ? " before the date" : " today"}
+              </p>
+            )}
           </div>
 
           {/* ===== ADDRESS + QUICK-LINK PILLS (View map · ACS listing · ACS PDF) ===== */}
@@ -755,15 +755,6 @@ export function AcsShareCard({
           </div>
         </article>
 
-        <div className="mt-6 flex justify-center">
-          <button
-            onClick={onContinue}
-            className="text-[12.5px] font-semibold underline-offset-2 hover:underline"
-            style={{ color: GOLD_DEEP }}
-          >
-            Continue to status →
-          </button>
-        </div>
       </div>
 
       {/* SHARE SHEET */}
