@@ -41,7 +41,7 @@ Classification precedence (the right-side banner text beats a possibly-stale ken
        "euthanized today" / firm "euthanized on {date}" -> immediate (save today;
        kennel still shows OFFICE on the card)
        otherwise (a conditional "could be euthanized after {date}", or no
-       euthanasia wording at all)    -> office (Office, not critical)
+       euthanasia wording at all)    -> atrisk (At risk; kennel shows OFFICE)
   7. kennel OUTSIDE* (OUTSIDE3 etc.)                -> outside_crit (Critical (OUTSIDE3))
   8. "euthanized today"                             -> immediate (High risk today)
      "euthanized on {future date}"                  -> scheduled (Euthanasia date set)
@@ -227,10 +227,10 @@ def classify(kennel, euth_on, euth_today, block_text):
     kennel even after a hold is placed or when it is not actually being
     euthanized. In particular an OFFICE kennel is only a LOCATION — a dog there
     is Critical only if its banner says so ("euthanized today"); a conditional
-    "could be euthanized after {date}" or no euthanasia wording makes it the
-    non-critical 'office' bucket. B6/SPT kennels are ACS's genuine euthanasia
-    staging, so they stay 'b6spt' (SOS · save now). Only a real euthanasia
-    (already done, or the EUTHANASIA kennel) outranks a hold.
+    "could be euthanized after {date}" or no euthanasia wording makes it At risk
+    (the OFFICE kennel still shows on the card). B6/SPT kennels are ACS's genuine
+    euthanasia staging, so they stay 'b6spt' (SOS · save now). Only a real
+    euthanasia (already done, or the EUTHANASIA kennel) outranks a hold.
     """
     k = (kennel or "").upper()
     bt = (block_text or "").upper()
@@ -259,7 +259,9 @@ def classify(kennel, euth_on, euth_today, block_text):
             # card). 'office' stays only for office dogs with no euthanasia date.
             key = "immediate"
         else:
-            key = "office"
+            # An office-kennel dog with no euthanasia date shows as At risk
+            # (its OFFICE kennel still appears on the card).
+            key = "atrisk"
     elif "OUTSIDE" in k:
         key = "outside_crit"
     elif euth_today or euth_on:
