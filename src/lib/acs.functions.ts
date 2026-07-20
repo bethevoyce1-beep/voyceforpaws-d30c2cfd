@@ -102,7 +102,7 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
   immediate: {
     key: "immediate",
     section: "critical_today",
-    label: "Critical · euthanasia date set · save today",
+    label: "Critical · save today",
     meaning: "On today's euthanasia list.",
     action: "Email ACS before the deadline to foster or rescue.",
     rank: 3,
