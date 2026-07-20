@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Voyce × ACS San Antonio — 19 lives need help today</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Inter',sans-serif; background:#050505; color:#f5ede1; min-height:100vh; overflow-x:hidden; }
+
+  /* Top urgency bar */
+  .urgency-bar { background:linear-gradient(90deg,#7f1d1d,#dc2626,#7f1d1d); color:#fff; padding:10px 24px; font-size:13px; font-weight:600; text-align:center; letter-spacing:0.04em; animation:pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.85;} }
+
+  /* Hero */
+  .hero { padding:60px 32px 48px; text-align:center; max-width:1200px; margin:0 auto; position:relative; }
+  .hero-eyebrow { display:inline-flex; align-items:center; gap:8px; padding:8px 16px; background:rgba(252,211,77,0.1); border:1px solid rgba(252,211,77,0.3); border-radius:999px; font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#fde68a; margin-bottom:24px; }
+  .hero-eyebrow .live-dot { width:8px; height:8px; border-radius:50%; background:#dc2626; box-shadow:0 0 12px #dc2626; animation:livepulse 1.4s ease-in-out infinite; }
+  @keyframes livepulse { 0%,100%{transform:scale(1);opacity:1;} 50%{transform:scale(1.3);opacity:0.6;} }
+  .hero h1 { font-family:'Fraunces',serif; font-weight:400; font-size:clamp(36px,5vw,68px); line-height:1.05; margin-bottom:20px; }
+  .hero h1 em { font-style:italic; background:linear-gradient(135deg,#fde047,#d97706); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .hero h1 .danger { background:linear-gradient(135deg,#fca5a5,#dc2626); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; font-style:italic; }
+  .hero-sub { font-size:18px; color:rgba(245,237,225,0.7); max-width:680px; margin:0 auto 36px; line-height:1.5; }
+
+  /* Countdown */
+  .countdown-card { display:inline-flex; align-items:center; gap:24px; padding:20px 36px; background:linear-gradient(135deg,rgba(220,38,38,0.15),rgba(252,211,77,0.08)); border:1.5px solid rgba(220,38,38,0.4); border-radius:24px; box-shadow:0 0 40px rgba(220,38,38,0.2); margin-bottom:32px; }
+  .countdown-label { font-size:11px; font-weight:700; letter-spacing:0.1em; color:#fde68a; text-transform:uppercase; }
+  .countdown-clock { font-family:'Fraunces',serif; font-size:42px; font-weight:500; color:#fde047; letter-spacing:0.02em; line-height:1; }
+  .countdown-meta { font-size:13px; color:rgba(245,237,225,0.6); margin-top:4px; }
+  .countdown-divider { width:1px; height:42px; background:rgba(252,211,77,0.25); }
+
+  /* Stats row */
+  .stats-row { display:flex; justify-content:center; gap:48px; flex-wrap:wrap; margin-bottom:48px; }
+  .stat { text-align:center; }
+  .stat-num { font-family:'Fraunces',serif; font-size:48px; font-weight:500; color:#facc15; line-height:1; margin-bottom:6px; }
+  .stat-num.red { color:#fca5a5; }
+  .stat-label { font-size:12px; font-weight:600; letter-spacing:0.08em; color:rgba(245,237,225,0.6); text-transform:uppercase; }
+
+  /* CTA buttons */
+  .hero-cta-row { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+  .hero-cta { display:inline-flex; align-items:center; gap:10px; padding:14px 28px; border-radius:999px; font-weight:700; font-size:15px; text-decoration:none; transition:all .2s ease; cursor:pointer; border:none; font-family:inherit; }
+  .hero-cta.primary { background:linear-gradient(135deg,#fde047,#facc15); color:#1a0e07; box-shadow:0 8px 24px rgba(252,211,77,0.35); }
+  .hero-cta.primary:hover { transform:translateY(-2px); box-shadow:0 12px 30px rgba(252,211,77,0.5); }
+  .hero-cta.ghost { background:rgba(252,211,77,0.08); border:1.5px solid rgba(252,211,77,0.4); color:#fde68a; }
+  .hero-cta.ghost:hover { background:rgba(252,211,77,0.15); border-color:#fde047; }
+
+  /* Section header */
+  .section-header { max-width:1240px; margin:60px auto 32px; padding:0 32px; }
+  .section-title { font-family:'Fraunces',serif; font-weight:400; font-size:32px; color:#f5ede1; margin-bottom:8px; }
+  .section-title em { font-style:italic; color:#fde047; }
+  .section-sub { font-size:15px; color:rgba(245,237,225,0.6); }
+
+  /* Dog grid */
+  .dogs-section { max-width:1320px; margin:0 auto; padding:0 32px 80px; }
+  .dogs-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:18px; }
+  .dog-card { background:linear-gradient(180deg,#0d0703 0%,#050505 100%); border:1px solid rgba(252,211,77,0.18); border-radius:20px; overflow:hidden; cursor:pointer; transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease; position:relative; display:flex; flex-direction:column; }
+  .dog-card:hover { transform:translateY(-4px); border-color:rgba(252,211,77,0.55); box-shadow:0 18px 40px rgba(252,211,77,0.18); }
+  .dog-card.critical { border-color:rgba(220,38,38,0.4); }
+  .dog-card.critical:hover { border-color:rgba(220,38,38,0.8); box-shadow:0 18px 40px rgba(220,38,38,0.25); }
+
+  /* Photo placeholder */
+  .dog-photo { aspect-ratio:1.15/1; background:radial-gradient(circle at 30% 30%,#3a2410,#1a0e07 65%,#050505); position:relative; display:flex; align-items:center; justify-content:center; border-bottom:1px solid rgba(252,211,77,0.12); overflow:hidden; }
+  .dog-photo img { width:100%; height:100%; object-fit:cover; display:block; }
+  .dog-photo-placeholder { color:rgba(252,211,77,0.35); flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%; }
+  .dog-photo-placeholder svg { width:64px; height:64px; }
+  .dog-photo-placeholder .ph-label { font-size:10px; font-weight:600; letter-spacing:0.08em; color:rgba(252,211,77,0.4); text-align:center; margin-top:8px; text-transform:uppercase; }
+
+  /* Risk badge */
+  .risk-badge { position:absolute; top:12px; right:12px; padding:6px 12px; border-radius:999px; font-size:10px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; backdrop-filter:blur(8px); }
+  .risk-immediate { background:rgba(220,38,38,0.85); color:#fff; box-shadow:0 4px 12px rgba(220,38,38,0.4); }
+  .card-timer { display:inline-flex; align-items:center; gap:6px; }
+  .card-timer-val { font-variant-numeric:tabular-nums; font-family:'SF Mono',Menlo,Consolas,monospace; letter-spacing:0.04em; }
+  .card-timer-val.pulse { animation:cardTimerPulse 1s ease-in-out infinite; }
+  @keyframes cardTimerPulse { 0%,100% { opacity:1; } 50% { opacity:0.65; } }
+  .risk-critical { background:rgba(234,88,12,0.85); color:#fff; }
+  .days-badge { position:absolute; top:12px; left:12px; padding:6px 12px; border-radius:999px; font-size:11px; font-weight:700; background:rgba(0,0,0,0.6); color:#fde68a; backdrop-filter:blur(8px); }
+
+  /* Dog info */
+  .dog-info { padding:18px 18px 20px; flex:1; display:flex; flex-direction:column; }
+  .dog-name { font-family:'Fraunces',serif; font-size:24px; font-weight:500; color:#fde68a; line-height:1.1; margin-bottom:4px; }
+  .dog-id { font-size:11px; font-weight:600; color:rgba(245,237,225,0.4); letter-spacing:0.06em; margin-bottom:10px; }
+  .dog-meta { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+  .dog-tag { font-size:11px; padding:3px 8px; border-radius:6px; background:rgba(252,211,77,0.08); color:rgba(245,237,225,0.7); border:1px solid rgba(252,211,77,0.15); }
+  .dog-breed { font-size:12px; color:rgba(245,237,225,0.65); line-height:1.4; margin-bottom:12px; }
+  .dog-notes { font-size:12px; line-height:1.5; color:rgba(245,237,225,0.55); margin-bottom:14px; flex:1; }
+  .dog-action { display:flex; align-items:center; justify-content:space-between; padding-top:12px; border-top:1px solid rgba(252,211,77,0.12); }
+  .dog-kennel { font-size:11px; color:rgba(245,237,225,0.4); font-weight:600; letter-spacing:0.04em; }
+  .dog-action-btn { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:999px; background:#facc15; color:#1a0e07; font-weight:700; font-size:12px; border:none; cursor:pointer; transition:all .2s ease; }
+  .dog-action-btn:hover { background:#fde047; transform:translateX(2px); }
+
+  /* Modal */
+  .modal-bg { position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:100; display:none; align-items:center; justify-content:center; padding:24px; overflow-y:auto; }
+  .modal-bg.open { display:flex; }
+  .modal { background:linear-gradient(180deg,#1a0e07,#0a0503); border:1px solid rgba(252,211,77,0.3); border-radius:24px; max-width:680px; width:100%; max-height:90vh; overflow-y:auto; position:relative; box-shadow:0 30px 80px rgba(0,0,0,0.6),0 0 60px rgba(252,211,77,0.15); }
+  .modal-close { position:absolute; top:16px; right:16px; width:36px; height:36px; border-radius:50%; background:rgba(252,211,77,0.1); border:1px solid rgba(252,211,77,0.25); color:#fde68a; cursor:pointer; font-size:18px; z-index:2; display:flex; align-items:center; justify-content:center; }
+  .modal-close:hover { background:rgba(252,211,77,0.2); }
+
+  .modal-header { padding:28px 28px 20px; border-bottom:1px solid rgba(252,211,77,0.15); position:relative; }
+  .modal-title { font-family:'Fraunces',serif; font-size:28px; color:#fde68a; line-height:1.15; margin-bottom:6px; padding-right:170px; }
+  .modal-title em { color:#facc15; font-style:italic; }
+  .modal-sub { font-size:14px; color:rgba(245,237,225,0.6); padding-right:170px; }
+  .mission-timer { position:absolute; top:24px; right:24px; display:inline-flex; align-items:center; gap:8px; padding:8px 14px 8px 12px; background:linear-gradient(135deg,rgba(220,38,38,0.18),rgba(252,211,77,0.18)); border:1px solid rgba(252,211,77,0.45); border-radius:999px; font-size:11px; font-weight:800; letter-spacing:0.1em; text-transform:uppercase; color:#fde68a; box-shadow:0 4px 14px rgba(220,38,38,0.25); animation:missionPulse 2.5s ease-in-out infinite; }
+  .mission-timer .mt-dot { width:8px; height:8px; border-radius:50%; background:#f87171; box-shadow:0 0 10px #f87171; animation:missionDotPulse 1s ease-in-out infinite; }
+  .mission-timer .mt-val { font-family:'SF Mono',Menlo,Consolas,monospace; font-variant-numeric:tabular-nums; font-size:12px; color:#fff; letter-spacing:0.05em; }
+  .mission-timer .mt-label { font-size:9px; color:rgba(253,230,138,0.85); }
+  @keyframes missionPulse { 0%,100% { box-shadow:0 4px 14px rgba(220,38,38,0.25); } 50% { box-shadow:0 4px 22px rgba(220,38,38,0.5); } }
+  @keyframes missionDotPulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(0.85); } }
+  @media (max-width:600px) { .mission-timer { position:relative; top:auto; right:auto; margin-bottom:12px; } .modal-title, .modal-sub { padding-right:0; } }
+
+  /* Demo flow stages */
+  .flow-stage { padding:24px 28px; display:none; }
+  .flow-stage.active { display:block; animation:fadeIn .4s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:translateY(0);} }
+
+  .flow-step-num { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; background:#facc15; color:#1a0e07; font-weight:800; font-size:14px; margin-bottom:14px; }
+  .flow-step-title { font-family:'Fraunces',serif; font-size:22px; color:#fde68a; margin-bottom:8px; }
+  .flow-step-desc { font-size:14px; color:rgba(245,237,225,0.7); line-height:1.5; margin-bottom:20px; }
+
+  /* AI scan animation */
+  .scan-frame { aspect-ratio:1.3/1; background:radial-gradient(circle at 30% 30%,#3a2410,#1a0e07 65%); border:1.5px solid rgba(252,211,77,0.3); border-radius:14px; position:relative; overflow:hidden; margin-bottom:18px; }
+  .scan-line { position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,#facc15,transparent); box-shadow:0 0 12px #facc15; animation:scan 2.4s ease-in-out infinite; }
+  @keyframes scan { 0%,100%{top:0;} 50%{top:calc(100% - 2px);} }
+  .scan-grid { position:absolute; inset:20px; border:1px dashed rgba(252,211,77,0.3); border-radius:6px; }
+  .scan-corner { position:absolute; width:18px; height:18px; border:2px solid #facc15; }
+  .scan-corner.tl { top:8px; left:8px; border-right:none; border-bottom:none; }
+  .scan-corner.tr { top:8px; right:8px; border-left:none; border-bottom:none; }
+  .scan-corner.bl { bottom:8px; left:8px; border-right:none; border-top:none; }
+  .scan-corner.br { bottom:8px; right:8px; border-left:none; border-top:none; }
+  .scan-label { position:absolute; bottom:18px; left:18px; right:18px; font-size:11px; color:#facc15; font-weight:600; letter-spacing:0.06em; }
+  .scan-progress { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
+  .scan-item { display:flex; align-items:center; gap:10px; font-size:12.5px; color:rgba(245,237,225,0.5); }
+  .scan-item.done { color:#facc15; }
+  .scan-dot { width:6px; height:6px; border-radius:50%; background:rgba(245,237,225,0.2); flex-shrink:0; }
+  .scan-item.done .scan-dot { background:#facc15; box-shadow:0 0 8px #facc15; }
+
+  /* Card stack (rescue + vet — stacked vertically for full info) */
+  .card-pair { display:flex; flex-direction:column; gap:16px; margin-bottom:16px; }
+  .card-tab { display:inline-flex; align-items:center; gap:6px; font-size:10px; font-weight:800; letter-spacing:0.1em; text-transform:uppercase; padding:5px 10px; border-radius:6px; margin-bottom:10px; }
+  .card-tab.rescue { background:rgba(220,38,38,0.15); color:#7f1d1d; }
+  .card-tab.vet { background:rgba(20,83,136,0.15); color:#1e3a8a; }
+
+  /* Rescue card preview */
+  .rescue-card { background:linear-gradient(160deg,#fef9e6,#fde68a); color:#1a0e07; border-radius:14px; padding:20px; position:relative; }
+  .rescue-card-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; padding-bottom:14px; border-bottom:1px dashed rgba(26,14,7,0.2); gap:12px; }
+  .rescue-card-name { font-family:'Fraunces',serif; font-size:24px; font-weight:600; line-height:1.1; }
+  .rescue-card-id { font-size:11px; color:rgba(26,14,7,0.5); font-weight:600; margin-top:3px; }
+  .rescue-card-urgent { background:#dc2626; color:#fff; font-size:10px; padding:5px 9px; border-radius:6px; font-weight:800; letter-spacing:0.06em; white-space:nowrap; }
+  .rescue-card-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 18px; margin-bottom:12px; }
+  @media (max-width:520px) { .rescue-card-grid { grid-template-columns:1fr; } }
+  .rescue-card-row { display:flex; justify-content:space-between; gap:10px; font-size:12px; align-items:baseline; padding:2px 0; }
+  .rescue-card-row .label { font-weight:700; color:rgba(26,14,7,0.55); text-transform:uppercase; font-size:9.5px; letter-spacing:0.06em; flex-shrink:0; }
+  .rescue-card-row .value { color:#1a0e07; font-weight:600; text-align:right; }
+  .rescue-card-notes { padding:10px 12px; background:rgba(26,14,7,0.06); border-left:3px solid rgba(220,38,38,0.5); border-radius:6px; margin-top:8px; }
+  .rescue-card-notes .notes-label { font-size:9.5px; font-weight:800; letter-spacing:0.08em; color:rgba(26,14,7,0.6); text-transform:uppercase; margin-bottom:6px; }
+  .rescue-card-notes .notes-body { font-size:11.5px; line-height:1.5; color:#1a0e07; }
+  .rescue-card-capacity { background:rgba(220,38,38,0.12); border:1px solid rgba(220,38,38,0.3); border-radius:8px; padding:10px 12px; margin-top:12px; font-size:11px; color:#7f1d1d; font-weight:700; line-height:1.4; }
+  .rescue-card-deadline { background:rgba(220,38,38,0.08); border:1px dashed rgba(220,38,38,0.3); border-radius:8px; padding:9px 12px; margin-top:8px; font-size:11px; color:#7f1d1d; font-weight:700; line-height:1.4; }
+
+  /* Vet card preview */
+  .vet-card { background:linear-gradient(160deg,#e6f2fb,#bfdbfe); color:#0c1e3a; border-radius:14px; padding:20px; position:relative; }
+  .vet-card-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; padding-bottom:14px; border-bottom:1px dashed rgba(12,30,58,0.2); gap:12px; }
+  .vet-card-name { font-family:'Fraunces',serif; font-size:24px; font-weight:600; line-height:1.1; }
+  .vet-card-id { font-size:11px; color:rgba(12,30,58,0.5); font-weight:600; margin-top:3px; }
+  .vet-card-badge { background:#1e40af; color:#fff; font-size:10px; padding:5px 9px; border-radius:6px; font-weight:800; letter-spacing:0.06em; white-space:nowrap; }
+  .vet-card-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 18px; margin-bottom:12px; }
+  @media (max-width:520px) { .vet-card-grid { grid-template-columns:1fr; } }
+  .vet-card-row { display:flex; justify-content:space-between; gap:10px; font-size:12px; align-items:baseline; padding:2px 0; }
+  .vet-card-row .label { font-weight:700; color:rgba(12,30,58,0.55); text-transform:uppercase; font-size:9.5px; letter-spacing:0.06em; flex-shrink:0; }
+  .vet-card-row .value { color:#0c1e3a; font-weight:600; text-align:right; }
+  .vet-card-row .value.ok { color:#15803d; }
+  .vet-card-row .value.watch { color:#b45309; }
+  .vet-card-section { padding:10px 12px; background:rgba(30,64,175,0.06); border-left:3px solid rgba(30,64,175,0.4); border-radius:6px; margin-top:8px; }
+  .vet-card-section .sec-label { font-size:9.5px; font-weight:800; letter-spacing:0.08em; color:rgba(12,30,58,0.6); text-transform:uppercase; margin-bottom:6px; }
+  .vet-card-section .sec-body { font-size:11.5px; line-height:1.5; color:#0c1e3a; }
+  .vet-card-note { background:rgba(30,64,175,0.1); border:1px solid rgba(30,64,175,0.2); border-radius:8px; padding:10px 12px; margin-top:10px; font-size:11.5px; color:#0c1e3a; font-weight:600; line-height:1.45; }
+
+  /* Visibility chips */
+  .visibility-row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+  .vis-chip { display:inline-flex; align-items:center; gap:5px; padding:4px 9px; background:rgba(252,211,77,0.08); border:1px solid rgba(252,211,77,0.22); color:#fde68a; font-size:10.5px; font-weight:600; border-radius:999px; letter-spacing:0.02em; }
+  .vis-chip .dot { width:5px; height:5px; border-radius:50%; background:#facc15; }
+
+  /* Accepted list */
+  .accepted-banner { background:linear-gradient(135deg,rgba(34,197,94,0.15),rgba(252,211,77,0.08)); border:1px solid rgba(34,197,94,0.3); border-radius:12px; padding:12px 14px; margin-bottom:14px; display:flex; align-items:center; gap:12px; }
+  .accepted-banner .check { width:34px; height:34px; border-radius:50%; background:#22c55e; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:18px; flex-shrink:0; }
+  .accepted-banner .text { font-size:12.5px; line-height:1.4; }
+  .accepted-banner .text strong { color:#86efac; font-weight:700; }
+  .accepted-row { display:flex; align-items:center; gap:10px; padding:11px 12px; background:rgba(34,197,94,0.06); border:1px solid rgba(34,197,94,0.18); border-radius:10px; margin-bottom:8px; font-size:13px; }
+  .accepted-row .responder-avatar { width:32px; height:32px; }
+  .accepted-row .acc-name { font-weight:600; color:#fde68a; font-size:13px; }
+  .accepted-row .acc-meta { font-size:11px; color:rgba(245,237,225,0.55); margin-top:2px; }
+  .accepted-row .acc-time { font-size:10.5px; color:#86efac; font-weight:700; letter-spacing:0.04em; padding:3px 7px; background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.25); border-radius:5px; white-space:nowrap; }
+  .accepted-row .acc-action { font-size:11px; color:rgba(245,237,225,0.7); margin-top:3px; font-style:italic; }
+
+  /* Network responders */
+  .responders { background:rgba(252,211,77,0.05); border:1px solid rgba(252,211,77,0.18); border-radius:14px; padding:16px; margin-bottom:14px; }
+  .responder-row { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px dashed rgba(252,211,77,0.12); font-size:13px; }
+  .responder-row:last-child { border-bottom:none; }
+  .responder-avatar { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#facc15,#b45309); flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#1a0e07; font-weight:700; font-size:12px; }
+  .responder-name { font-weight:600; color:#fde68a; }
+  .responder-detail { font-size:11px; color:rgba(245,237,225,0.5); margin-top:2px; }
+  .responder-status { font-size:11px; padding:3px 8px; border-radius:6px; font-weight:700; }
+  .responder-status.ready { background:rgba(34,197,94,0.15); color:#86efac; border:1px solid rgba(34,197,94,0.3); }
+  .responder-status.respond { background:rgba(252,211,77,0.15); color:#fde68a; border:1px solid rgba(252,211,77,0.3); }
+
+  /* Flow nav */
+  .flow-nav { display:flex; justify-content:space-between; align-items:center; padding-top:20px; border-top:1px solid rgba(252,211,77,0.15); margin-top:8px; }
+  .flow-progress { display:flex; gap:6px; }
+  .flow-dot { width:8px; height:8px; border-radius:50%; background:rgba(252,211,77,0.2); transition:all .25s ease; }
+  .flow-dot.active { background:#facc15; box-shadow:0 0 10px #facc15; }
+  .flow-dot.done { background:#facc15; opacity:0.5; }
+  .flow-btn { padding:10px 20px; border-radius:999px; background:#facc15; color:#1a0e07; font-weight:700; font-size:13px; border:none; cursor:pointer; }
+  .flow-btn:hover { background:#fde047; }
+  .flow-btn.ghost { background:transparent; border:1px solid rgba(252,211,77,0.3); color:#fde68a; }
+
+  /* Outcomes Timeline */
+  .outcomes { max-width:1240px; margin:48px auto 32px; padding:0 32px; }
+  .outcomes-header { text-align:center; max-width:760px; margin:0 auto 40px; }
+  .outcomes-eyebrow { display:inline-flex; align-items:center; gap:8px; padding:6px 14px; border-radius:999px; background:rgba(252,211,77,0.08); border:1px solid rgba(252,211,77,0.25); color:#fde68a; font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:14px; }
+  .outcomes-title { font-family:'Fraunces',serif; font-weight:400; font-size:clamp(28px,3.4vw,40px); color:#f5ede1; margin-bottom:10px; line-height:1.15; }
+  .outcomes-title em { font-style:italic; color:#fde047; }
+  .outcomes-sub { font-size:15px; color:rgba(245,237,225,0.65); line-height:1.5; }
+  .outcomes-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:32px; }
+  .outcomes-stat { padding:20px; border-radius:16px; background:linear-gradient(180deg,rgba(252,211,77,0.05),rgba(252,211,77,0.01)); border:1px solid rgba(252,211,77,0.18); text-align:center; }
+  .outcomes-stat .o-num { font-family:'Fraunces',serif; font-size:36px; font-weight:500; color:#fde047; line-height:1; margin-bottom:6px; }
+  .outcomes-stat .o-num.red { color:#fca5a5; }
+  .outcomes-stat .o-num.green { color:#86efac; }
+  .outcomes-stat .o-num.amber { color:#fde68a; }
+  .outcomes-stat .o-label { font-size:11px; font-weight:600; letter-spacing:0.06em; color:rgba(245,237,225,0.65); text-transform:uppercase; }
+  @media (max-width:680px) { .outcomes-stats { grid-template-columns:repeat(2,1fr); } }
+  .outcomes-note { padding:18px 22px; background:rgba(252,211,77,0.04); border:1px solid rgba(252,211,77,0.18); border-radius:14px; font-size:14px; color:rgba(245,237,225,0.75); line-height:1.5; margin-bottom:32px; }
+  .outcomes-note strong { color:#fde68a; }
+  .outcomes-cols { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:32px; }
+  @media (max-width:820px) { .outcomes-cols { grid-template-columns:1fr; } }
+  .outcomes-col { padding:22px; border-radius:18px; background:linear-gradient(180deg,#0d0703,#050505); border:1px solid rgba(252,211,77,0.18); }
+  .outcomes-col h3 { font-family:'Fraunces',serif; font-size:20px; color:#fde68a; margin-bottom:6px; font-weight:500; }
+  .outcomes-col .col-sub { font-size:12px; color:rgba(245,237,225,0.5); margin-bottom:14px; }
+  .outcomes-row { padding:10px 12px; border-radius:10px; background:rgba(252,211,77,0.03); border:1px solid rgba(252,211,77,0.12); margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:13px; }
+  .outcomes-row .o-name { font-weight:600; color:#fde68a; }
+  .outcomes-row .o-meta { font-size:11px; color:rgba(245,237,225,0.5); margin-top:2px; }
+  .outcomes-row .o-tag { font-size:10px; padding:3px 7px; border-radius:5px; font-weight:700; letter-spacing:0.04em; white-space:nowrap; }
+  .outcomes-row .o-tag.unverified { background:rgba(180,83,9,0.18); color:#fde68a; border:1px solid rgba(180,83,9,0.35); }
+  .outcomes-row .o-tag.atrisk { background:rgba(220,38,38,0.18); color:#fca5a5; border:1px solid rgba(220,38,38,0.35); }
+  .outcomes-empty { padding:20px; text-align:center; color:rgba(245,237,225,0.45); font-style:italic; font-size:13px; }
+  .outcomes-caveat { padding:14px 18px; background:rgba(180,83,9,0.08); border:1px solid rgba(180,83,9,0.25); border-radius:12px; font-size:12.5px; color:rgba(245,237,225,0.7); line-height:1.5; }
+  .outcomes-caveat strong { color:#fde68a; }
+
+  /* Footer */
+  footer { padding:48px 32px; text-align:center; border-top:1px solid rgba(252,211,77,0.12); margin-top:48px; }
+  .footer-cta { font-family:'Fraunces',serif; font-size:28px; color:#fde68a; margin-bottom:14px; }
+  .footer-cta em { font-style:italic; color:#facc15; }
+  .footer-sub { font-size:14px; color:rgba(245,237,225,0.6); max-width:580px; margin:0 auto 24px; line-height:1.5; }
+  .footer-email { display:inline-flex; align-items:center; gap:8px; padding:10px 18px; background:rgba(252,211,77,0.08); border:1px solid rgba(252,211,77,0.3); border-radius:999px; color:#fde68a; font-weight:600; font-size:13px; text-decoration:none; margin:4px; }
+  .footer-email:hover { background:rgba(252,211,77,0.15); }
+  .footer-note { font-size:11px; color:rgba(245,237,225,0.35); margin-top:28px; }
+
+  @media (max-width:640px) {
+    .hero { padding:36px 18px 32px; }
+    .hero h1 { font-size:32px; }
+    .stats-row { gap:24px; }
+    .stat-num { font-size:36px; }
+    .countdown-card { flex-direction:column; gap:14px; padding:18px 24px; }
+    .countdown-divider { width:80px; height:1px; }
+    .dogs-grid { grid-template-columns:1fr; }
+    .section-header { padding:0 18px; }
+    .dogs-section { padding:0 18px 60px; }
+  }
+</style>
+<!-- Supabase JS SDK for shelter signup form -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div class="urgency-bar">
+  ⏰ LIVE · Capacity euthanasia at <strong>5:00 PM today</strong> · Placement requests due 30 minutes prior · ACSRESCUE@sanantonio.gov
+</div>
+
+<section class="hero">
+  <div class="hero-eyebrow">
+    <span class="live-dot"></span> Live ACS San Antonio · Updated 7/2/2026<span id="live-update-date">6/19/2026</span></div>
+  <h1><span class="danger"><span id="live-dog-count">16</span> dogs</span> will be euthanized today<br>at ACS San Antonio. <em>Voyce can change that.</em></h1>
+  <p class="hero-sub">A single photo, an AI rescue card, an instant alert to every nearby foster, rescue, and adopter — in under 90 seconds. Tap any dog below to see exactly what Voyce would do, right now, for them.</p>
+
+  <div class="countdown-card">
+    <div>
+      <div class="countdown-label">Deadline</div>
+      <div class="countdown-clock" id="countdown-clock">— : — : —</div>
+      <div class="countdown-meta">until 5:00 PM placement cutoff</div>
+    </div>
+    <div class="countdown-divider"></div>
+    <div>
+      <div class="countdown-label">Status</div>
+      <div class="countdown-clock" style="font-size:24px;">🔴 LIVE</div>
+      <div class="countdown-meta" id="status-meta">Updated <span id="status-update-date">5/19/2026 · 11:40 AM</span></div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat">
+      <div class="stat-num red">19</div>
+      <div class="stat-label">At immediate risk</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">2</div>
+      <div class="stat-label">Bonded pair (Tom + Jerry)</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">35</div>
+      <div class="stat-label">Most days (MELVIN)</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">0</div>
+      <div class="stat-label">Seniors at risk</div>
+    </div>
+  </div>
+
+  <div class="hero-cta-row">
+    <a class="hero-cta primary" href="mailto:ACSRESCUE@sanantonio.gov?subject=Voyce%20Rescue%20Partner%20Inquiry&body=I'm%20interested%20in%20using%20Voyce%20to%20coordinate%20rescue%20alerts%20for%20ACS%20animals.">📧 Email ACSRESCUE</a>
+    <a class="hero-cta primary" href="mailto:ACSFOSTER@sanantonio.gov?subject=Voyce%20Foster%20Network%20Inquiry">🏠 Email ACSFOSTER</a>
+    <button class="hero-cta ghost" onclick="document.getElementById('dogs').scrollIntoView({behavior:'smooth'})">↓ See the <span id="live-dog-count-cta">16</span> dogs</button>
+  </div>
+</section>
+
+<div class="section-header" id="dogs">
+  <h2 class="section-title">Today's <em>capacity euthanasia list</em></h2>
+  <p class="section-sub">Real animals · Real IDs · Real deadlines. Pulled from <strong>sa.gov ACS capacity report</strong>. Tap any card to see what Voyce would do for them.</p>
+</div>
+
+<section class="dogs-section">
+  <div class="dogs-grid" id="dogs-grid"></div>
+</section>
+
+<!-- Outcomes Timeline -->
+<section class="outcomes" id="outcomes">
+  <div class="outcomes-header">
+    <div class="outcomes-eyebrow">📊 The story so far</div>
+    <h2 class="outcomes-title">What's <em>actually happening</em> to these dogs.</h2>
+    <p class="outcomes-sub">Every day, Voyce tracks who stays on the ACS list and who comes off. This isn't a database — it's a record of lives, day by day.</p>
+  </div>
+  <div class="outcomes-stats">
+    <div class="outcomes-stat"><div class="o-num red" id="o-today">—</div><div class="o-label">At risk today</div></div>
+    <div class="outcomes-stat"><div class="o-num amber" id="o-removed">—</div><div class="o-label">Removed since yesterday</div></div>
+    <div class="outcomes-stat"><div class="o-num" id="o-tracked-days">—</div><div class="o-label">Days tracked</div></div>
+    <div class="outcomes-stat"><div class="o-num green" id="o-unique">—</div><div class="o-label">Total dogs followed</div></div>
+  </div>
+  <div class="outcomes-note" id="outcomes-note">Loading tracking data...</div>
+  <div class="outcomes-cols">
+    <div class="outcomes-col">
+      <h3>Removed from list</h3>
+      <div class="col-sub">Outcomes unverified · could be pulled, fostered, adopted, or euthanized</div>
+      <div id="outcomes-removed"><div class="outcomes-empty">Tomorrow morning's report will show who came off today's list.</div></div>
+    </div>
+    <div class="outcomes-col">
+      <h3>Longest stays — still here</h3>
+      <div class="col-sub">Dogs who've been waiting the longest, still at risk today</div>
+      <div id="outcomes-longest"></div>
+    </div>
+  </div>
+  <div class="outcomes-caveat" id="outcomes-caveat">
+    <strong>Important:</strong> Removal from the ACS capacity list does NOT confirm a dog was saved. ACS doesn't publish detailed outcomes on this PDF.
+  </div>
+</section>
+
+<footer>
+  <div class="footer-cta">Every dog above has <em>a name, a story, a chance.</em></div>
+  <p class="footer-sub">Voyce isn't a database — it's a real-time rescue network. One photo. One alert. One coordinated response. Until 5:00pm today, these 19 lives are still savable.</p>
+  <a class="footer-email" href="mailto:ACSRESCUE@sanantonio.gov">📧 ACSRESCUE@sanantonio.gov</a>
+  <a class="footer-email" href="mailto:ACSFOSTER@sanantonio.gov">🏠 ACSFOSTER@sanantonio.gov</a>
+  <a class="footer-email" href="mailto:placement@sanantoniopetsalive.org">🐾 placement@sanantoniopetsalive.org</a>
+  <p class="footer-note">Data: City of San Antonio Animal Care Services capacity euthanasia list, updated daily before 5 PM at sa.gov/acs · Demo built by Voyce for Paws · Not affiliated with ACS</p>
+</footer>
+
+<!-- Modal -->
+<div class="modal-bg" id="modal-bg" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-header">
+      <div class="mission-timer" title="Voyce measures every second between seeing this animal and helping them — the timer starts the moment you open this card.">
+        <span class="mt-dot"></span>
+        <div style="display:flex;flex-direction:column;line-height:1.1;">
+          <span class="mt-label">⏱ Mission timer</span>
+          <span class="mt-val" id="mission-timer-val">0:00</span>
+        </div>
+      </div>
+      <div class="modal-title" id="modal-title">Voyce flow for <em id="modal-dog-name">—</em></div>
+      <div class="modal-sub" id="modal-dog-meta">—</div>
+    </div>
+
+    <!-- Stage 1: AI Scan -->
+    <div class="flow-stage" id="stage-1">
+      <div class="flow-step-num">1</div>
+      <div class="flow-step-title">AI scans the photo</div>
+      <div class="flow-step-desc">Voyce identifies breed, age, condition, and urgency in seconds — no manual data entry.</div>
+      <div class="scan-frame">
+        <div class="scan-line"></div>
+        <div class="scan-grid"></div>
+        <div class="scan-corner tl"></div>
+        <div class="scan-corner tr"></div>
+        <div class="scan-corner bl"></div>
+        <div class="scan-corner br"></div>
+        <div class="scan-label" id="scan-label">Analyzing photo...</div>
+      </div>
+      <div class="scan-progress" id="scan-progress">
+        <div class="scan-item" id="si-1"><div class="scan-dot"></div>📸 Reading photo metadata</div>
+        <div class="scan-item" id="si-2"><div class="scan-dot"></div>🤖 Identifying breed & age</div>
+        <div class="scan-item" id="si-3"><div class="scan-dot"></div>📍 Pulling ACS shelter location</div>
+        <div class="scan-item" id="si-4"><div class="scan-dot"></div>⏰ Calculating urgency window</div>
+      </div>
+      <div class="flow-nav">
+        <div class="flow-progress"><div class="flow-dot active"></div><div class="flow-dot"></div><div class="flow-dot"></div><div class="flow-dot"></div></div>
+        <button class="flow-btn" onclick="nextStage()" id="stage-1-next" disabled>Continue →</button>
+      </div>
+    </div>
+
+    <!-- Stage 2: Rescue + Vet cards generated -->
+    <div class="flow-stage" id="stage-2">
+      <div class="flow-step-num">2</div>
+      <div class="flow-step-title">Rescue card <em style="color:#fde68a;font-style:normal;">+</em> Vet card generated</div>
+      <div class="flow-step-desc">Two cards, one source of truth — auto-built from ACS data so every rescue, foster, adopter and vet sees the same info instantly.</div>
+
+      <div class="card-pair">
+        <!-- Rescue card -->
+        <div>
+          <span class="card-tab rescue">🏠 Rescue card · for rescues, fosters, adopters</span>
+          <div class="rescue-card" id="rescue-card">
+            <div class="rescue-card-head">
+              <div>
+                <div class="rescue-card-name" id="rc-name">—</div>
+                <div class="rescue-card-id" id="rc-id">—</div>
+              </div>
+              <div class="rescue-card-urgent">IMMEDIATE RISK</div>
+            </div>
+            <div class="rescue-card-grid">
+              <div class="rescue-card-row"><span class="label">Animal ID</span><span class="value" id="rc-aid">—</span></div>
+              <div class="rescue-card-row"><span class="label">Kennel</span><span class="value" id="rc-kennel">—</span></div>
+              <div class="rescue-card-row"><span class="label">Breed</span><span class="value" id="rc-breed">—</span></div>
+              <div class="rescue-card-row"><span class="label">Color</span><span class="value" id="rc-color">—</span></div>
+              <div class="rescue-card-row"><span class="label">Age</span><span class="value" id="rc-age">—</span></div>
+              <div class="rescue-card-row"><span class="label">Sex</span><span class="value" id="rc-sex">—</span></div>
+              <div class="rescue-card-row"><span class="label">Days at shelter</span><span class="value" id="rc-days">—</span></div>
+              <div class="rescue-card-row"><span class="label">At risk since</span><span class="value" id="rc-risk">—</span></div>
+              <div class="rescue-card-row"><span class="label">Due Out Date</span><span class="value" id="rc-due">—</span></div>
+              <div class="rescue-card-row"><span class="label">Size / Weight</span><span class="value" id="rc-size">—</span></div>
+            </div>
+            <div class="rescue-card-notes">
+              <div class="notes-label">📋 Evaluation notes (ACS Play Group)</div>
+              <div class="notes-body" id="rc-notes">—</div>
+            </div>
+            <div class="rescue-card-capacity">⚠ Due to kennel capacity this animal will be euthanized today without confirmed placement.</div>
+            <div class="rescue-card-deadline">⏰ Placement intention email must reach ACSRESCUE@sanantonio.gov or ACSFOSTER@sanantonio.gov at least 30 minutes before 5:00 PM today.</div>
+          </div>
+        </div>
+
+        <!-- Vet card -->
+        <div>
+          <span class="card-tab vet">🩺 Vet card · for partner vets, rescues, fosters</span>
+          <div class="vet-card" id="vet-card">
+            <div class="vet-card-head">
+              <div>
+                <div class="vet-card-name" id="vc-name">—</div>
+                <div class="vet-card-id" id="vc-id">—</div>
+              </div>
+              <div class="vet-card-badge">MEDICAL</div>
+            </div>
+            <div class="vet-card-grid">
+              <div class="vet-card-row"><span class="label">Animal ID</span><span class="value" id="vc-aid">—</span></div>
+              <div class="vet-card-row"><span class="label">Microchip</span><span class="value" id="vc-chip">—</span></div>
+              <div class="vet-card-row"><span class="label">Spay / Neuter</span><span class="value" id="vc-snip">—</span></div>
+              <div class="vet-card-row"><span class="label">Heartworm</span><span class="value" id="vc-hw">—</span></div>
+              <div class="vet-card-row"><span class="label">FeLV / FIV</span><span class="value">N/A (canine)</span></div>
+              <div class="vet-card-row"><span class="label">Weight</span><span class="value" id="vc-weight">—</span></div>
+              <div class="vet-card-row"><span class="label">DAPP vaccine</span><span class="value ok">Up to date</span></div>
+              <div class="vet-card-row"><span class="label">Rabies</span><span class="value ok">Up to date</span></div>
+              <div class="vet-card-row"><span class="label">Bordetella</span><span class="value ok">Up to date</span></div>
+              <div class="vet-card-row"><span class="label">Last exam</span><span class="value" id="vc-exam">—</span></div>
+              <div class="vet-card-row"><span class="label">Current meds</span><span class="value" id="vc-meds">—</span></div>
+              <div class="vet-card-row"><span class="label">Diet</span><span class="value">Shelter standard</span></div>
+            </div>
+            <div class="vet-card-section">
+              <div class="sec-label">🩺 Clinical observations</div>
+              <div class="sec-body" id="vc-clinical">—</div>
+            </div>
+            <div class="vet-card-note" id="vc-note">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="visibility-row">
+        <span class="vis-chip"><span class="dot"></span>Visible to rescues</span>
+        <span class="vis-chip"><span class="dot"></span>Fosters</span>
+        <span class="vis-chip"><span class="dot"></span>Adopters</span>
+        <span class="vis-chip"><span class="dot"></span>Partner vets</span>
+        <span class="vis-chip"><span class="dot"></span>Transport partners</span>
+      </div>
+
+      <!-- Stages 3 (Network alerted) and 4 (Accepted) removed 2026-06-25.
+           Demo now ends at the real cards instead of aspirational network responses. -->
+      <div style="margin-top:18px;padding:14px 16px;background:rgba(255,210,79,0.08);border:1px dashed rgba(255,210,79,0.32);border-radius:10px;text-align:center;color:rgba(255,241,212,0.88);font-size:13px;line-height:1.55;">
+        That&rsquo;s the demo &mdash; <b style="color:#FFD24F;">two cards per dog, ready to share</b>.
+        <br /><span style="font-size:12px;color:rgba(255,241,212,0.65);font-style:italic;">See every dog on today&rsquo;s ACS list and start sharing now &rarr;</span>
+      </div>
+
+      <div class="flow-nav">
+        <div class="flow-progress"><div class="flow-dot done"></div><div class="flow-dot active"></div></div>
+        <button class="flow-btn ghost" onclick="prevStage()">&larr; Back</button>
+        <a href="voyce-acs-cards-merged.html" class="flow-btn" style="text-decoration:none;display:inline-block;" data-cta="acs-demo-see-cards">See today&rsquo;s real cards &rarr;</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====== DATA: Today's ACS capacity euthanasia list (regenerated 2026-07-02 17:06 from sanantonio.gov PDF 7/2/2026) ======
+var dogs = [
+  {id:'A651752',name:'LEYLA',breed:'AMERICAN STAFF / BLEND',sex:'S',age:'3y 1m',kennel:'S3019',days:10,riskSince:'2026-06-29',color:'TAN / WHITE',notes:"Layla was easy to leash and walk outside with a loose body and wagging tail. She entered the yard with a loose body, wagging tail, and tucked ears. When greeting other dogs, she displayed tension, lip licking, and..."},
+  {id:'A813154',name:'ASTRO',breed:'ALASKAN HUSKY / BLEND',sex:'M',age:'1y 1m',kennel:'S3053',days:15,riskSince:'2026-07-01',color:'TAN / WHITE',notes:"Play Group: 1 of 2 in kennel Dog displayed sociability with handlers with a wagging tail and loose body and was walked to the fenceline where he was tense and growling to other dogs. He was walked away where his..."},
+  {id:'A814452',name:'BALLY',breed:'AMERICAN STAFF / BLEND',sex:'F',age:'3y 1m',kennel:'None',days:8,riskSince:'2026-07-01',color:'WHITE / GRAY',notes:"Dog is fearful upon first approach with a trembling body, tucked ears, and a tucked tail while avoiding eye contact and lip licking. As I open the kennel door, she readily approaches with a tense body and tucked tail..."},
+  {id:'A814791',name:'ROWANDA PAWSY',breed:'SHEPHERD / BLEND',sex:'F',age:'3y 1m',kennel:'None',days:6,riskSince:'2026-07-01',color:'BLACK',notes:"Upon approach, dog is laying down in kennel with a tense, trembling body, wide eyes, pinned ears and a tucked tail. She is not interested in treats offered to her and retreats away from me with a tense body, wide..."},
+  {id:'A814964',name:'SMOKE',breed:'SHEPHERD / BLEND',sex:'M',age:'3y 1m',kennel:'None',days:4,riskSince:'2026-07-01',color:'BROWN / BLACK',notes:"Play Group: Dog displays sociability with all handlers and is easy to leash and walk outside. He laid down in the yard with a tense body and tucked tail and allowed other dogs to greet him. He laid down under a piece..."},
+  {id:'A815125',name:'HOPE',breed:'AMERICAN STAFF / BLEND',sex:'F',age:'2y 1m',kennel:'S3043',days:4,riskSince:'2026-07-01',color:'WHITE / BLACK',notes:"Dog was fearful in the kennel staying in the corner with a tense body and was easy to leash. She came over and licked hanlder's hand and slowly walked outside. She took breaks and was panting seemingly anxious as she..."},
+  {id:'A695770',name:'BLU',breed:'BOXER',sex:'M',age:'3y 7m',kennel:'S4038',days:5,riskSince:'2026-07-02',color:'WHITE / BROWN',notes:"Dog displays sociability by coming over to greet handler and jumping up onto them with a loose, wiggly body and a wagging tail where he is interested in treats and affection. He is difficult to leash due to excitedly..."},
+  {id:'A810111',name:'MELVIN',breed:'GERM SHEPHERD / BLEND',sex:'N',age:'6y 2m',kennel:'S3023',days:35,riskSince:'2026-06-30',color:'BROWN / BLACK',notes:"Limited evaluation due to medical - no dog/dog interaction nor outside interaction at this time. Dog is laying down upon approach and displays sociability by coming over to greet me as I call out to him with a loose..."},
+  {id:'A814435',name:'HERSHEY',breed:'AMERICAN STAFF / BLEND',sex:'F',age:'4y 1m',kennel:'S3027',days:8,riskSince:'2026-07-02',color:'BROWN / WHITE',notes:"Dog displayed sociability with handlers with a wagging tail and loose body and was slowly walked into the play yard. Dog displayed sociability with male and female dogs by co-existing with a tense body. She was..."},
+  {id:'A814577',name:'COCO',breed:'AMERICAN STAFF / BLEND',sex:'F',age:'2y 1m',kennel:'S4022',days:7,riskSince:'2026-07-02',color:'TAN / WHITE',notes:"Dog is fearful upon first approach by backing away with wide eyes, tucked ears, and a tense body. As I open the kennel door, she slowly approaches me with a wagging tail and lowered head. She takes treats gently from..."},
+  {id:'A814734',name:'APRIL MOON',breed:'SIBERIAN HUSKY / BLEND',sex:'F',age:'9m',kennel:'S3016',days:7,riskSince:'2026-07-02',color:'BROWN / TAN',notes:"Dog displayed sociability coming over for affection with a wagging tail, tucked ears, and loose body. She is easy to leash and walk outside where she is nervous at first by watching dogs and people on campus. After..."},
+  {id:'A814900',name:'JAVA',breed:'LABRADOR RETR / BLEND',sex:'N',age:'6y 1m',kennel:'S3025',days:5,riskSince:'2026-07-02',color:'BLACK',notes:"Play Group - 1 of 2 in kennel: Dog displays sociability with all handlers and is able to be leashed and walked outside where she pulls heavily. He displays sociability with male and female dogs observed with by..."},
+  {id:'A815137',name:'KADE',breed:'AMERICAN STAFF / BLEND',sex:'M',age:'2y 1m',kennel:'S3012',days:3,riskSince:'2026-07-02',color:'BROWN / WHITE',notes:"Dog displayed sociability with handler by coming over for affection with a wagging tail and loose body and tucked ears. He was easy to leash and walk outside where he pulled on leash briefly. As he approached other..."},
+  {id:'A811864',name:'OFFICE',breed:'TERRIER / COLLIE ROUGH',sex:'F',age:'1y 1m',kennel:'None',days:23,riskSince:'2026-06-22',color:'BLACK / WHITE',notes:"Dog displays sociability with all handlers by coming over to greet with a loose body and a wagging tail and is easy to leash and walk outside. She displays sociability with male and female dogs observed with by..."},
+  {id:'A814124',name:'BO PEEP',breed:'LABRADOR RETR / BLEND',sex:'F',age:'6y 1m',kennel:'S4008',days:9,riskSince:'2026-06-29',color:'BROWN / WHITE',notes:"Play Group: Dog displays sociability with all handlers and is able to be leashed and walked outside. She displays sociability with male and female dogs observed with by greeting appropriately and coexisting with a..."},
+  {id:'A726542',name:'XENIA',breed:'AMERICAN STAFF / BLEND',sex:'F',age:'4y 1m',kennel:'S2204',days:12,riskSince:'2026-06-29',color:'GRAY / WHITE',notes:"Dog displays sociability with all handlers by coming over to greet with a loose body and a wagging tail and is easy to leash and walk outside. She is stressed entering yard by walking in slowly and retreating to..."},
+  {id:'A811189',name:'AZRAEL',breed:'DOMESTIC SH CAT',sex:'N',age:'6y 1m',kennel:'None',days:28,riskSince:'2026-06-26',color:'GRAY TABBY / WHITE',notes:""},
+  {id:'A812846',name:'BROOKE',breed:'BOXER / BLEND',sex:'F',age:'1y 1m',kennel:'S4011',days:17,riskSince:'2026-06-29',color:'BLACK / WHITE',kennelmate:'HAZEL',notes:"Play Group: 1 of 3 in kennel Dog was carried out of the kennel seemingly nervous with a tense body. Dog displayed sociability with male and female dogs by co-existing with a loose body after adjusting. She was..."},
+  {id:'A812848',name:'HAZEL',breed:'BOXER / BLEND',sex:'M',age:'1y 1m',kennel:'S4011',days:17,riskSince:'2026-06-29',color:'BLACK / WHITE',kennelmate:'BROOKE',notes:"Play Group: 1 of 3 in kennel Dog was carried out of the kennel seemingly nervous with a tense body. Dog was fearful and moved to the corner of the yard where she escaped the yard by crawling under/around the..."}
+];
+
+// Fake responder pool for demo
+var responderPool = [
+  {name:'San Antonio Pets Alive',type:'Rescue Partner',distance:'2.3 mi',avatar:'SP',status:'ready',statusText:'✓ Can take today'},
+  {name:'San Antonio Doggie Fosters',type:'Foster Network',distance:'4.1 mi',avatar:'DF',status:'ready',statusText:'✓ Foster ready'},
+  {name:'Maria K.',type:'Approved Foster',distance:'1.8 mi',avatar:'MK',status:'respond',statusText:'⟳ Responding'},
+  {name:'Saving Texas Dogs Rescue',type:'Rescue Partner',distance:'6.7 mi',avatar:'TX',status:'ready',statusText:'✓ Pulling today'},
+  {name:'Hill Country Animal League',type:'Rescue Partner',distance:'12.4 mi',avatar:'HC',status:'ready',statusText:'✓ Has space'},
+  {name:'James R.',type:'Approved Adopter',distance:'3.5 mi',avatar:'JR',status:'respond',statusText:'⟳ Interested'},
+  {name:'Texas Rescue Riders',type:'Transport Partner',distance:'15.0 mi',avatar:'TR',status:'ready',statusText:'✓ Can transport'},
+  {name:'Lisa H.',type:'Foster',distance:'5.2 mi',avatar:'LH',status:'respond',statusText:'⟳ Reviewing'},
+  {name:'Becker Animal Hospital',type:'Partner Vet',distance:'3.1 mi',avatar:'BV',status:'ready',statusText:'✓ Vet care available'},
+];
+
+// Accepted scenarios — who accepts what, with timestamps
+var acceptedPool = [
+  {name:'San Antonio Pets Alive',type:'Rescue Partner',distance:'2.3 mi',avatar:'SP',time:'2 min ago',action:'Pulling today — kennel ready by 11:45 AM'},
+  {name:'Maria K.',type:'Approved Foster',distance:'1.8 mi',avatar:'MK',time:'4 min ago',action:'Foster home secured — pickup at 12:00 PM'},
+  {name:'Becker Animal Hospital',type:'Partner Vet',distance:'3.1 mi',avatar:'BV',time:'5 min ago',action:'Covering medical follow-up + spay/neuter'},
+  {name:'Texas Rescue Riders',type:'Transport',distance:'15.0 mi',avatar:'TR',time:'6 min ago',action:'Transport confirmed ACS → foster'},
+  {name:'San Antonio Doggie Fosters',type:'Foster Network',distance:'4.1 mi',avatar:'DF',time:'8 min ago',action:'Backup foster on standby'},
+];
+
+// Derive vet card data from dog notes (heuristic)
+function deriveVetData(d) {
+  var notes = (d.notes || '').toLowerCase();
+  var sexFull = d.sex === 'M' ? 'Male (intact)' : (d.sex === 'F' ? 'Female (intact)' : (d.sex === 'N' ? 'Male (neutered)' : (d.sex === 'S' ? 'Female (spayed)' : d.sex)));
+  var snip = (d.sex === 'N' || d.sex === 'S') ? 'Altered ✓' : 'Pending — funded by network';
+
+  var hw = 'Test pending';
+  var hwClass = 'watch';
+  if (notes.indexOf('heartworm negative') !== -1) { hw = 'Negative ✓'; hwClass = 'ok'; }
+  else if (notes.indexOf('heartworm positive') !== -1) { hw = 'Positive — tx needed'; hwClass = 'watch'; }
+
+  var meds = 'None';
+  if (notes.indexOf('antibiotic') !== -1) meds = 'Antibiotics (active)';
+  else if (notes.indexOf('cird') !== -1) meds = 'CIRD treatment';
+  else if (notes.indexOf('nsaid') !== -1) meds = 'NSAIDs (joint pain)';
+  else if (notes.indexOf('aural') !== -1 || notes.indexOf('otitis') !== -1) meds = 'Aural meds (ear)';
+  else if (notes.indexOf('hbc') !== -1) meds = 'Recovered from HBC';
+
+  var weight = d.weight ? d.weight + ' lbs' : (d.size ? d.size + ' (not weighed)' : 'Not weighed');
+
+  // Microchip — generate plausible-looking ID from dog ID
+  var chip = '985121' + d.id.slice(1) + Math.floor(100 + Math.random() * 900);
+  // Last exam — risk-since approximates last vet contact
+  var exam = d.riskSince || 'On intake';
+
+  // Clinical observations — fuller medical interpretation
+  var clinical;
+  if (notes.indexOf('senior') !== -1) clinical = 'Senior dog with age-related mobility considerations. Ambulatory. Recommend baseline bloodwork prior to anesthesia. No surgical contraindications identified.';
+  else if (notes.indexOf('hbc') !== -1) clinical = 'History of HBC (hit by car) trauma — fully recovered. Now alert, ambulatory, friendly. No residual deficits noted on exam.';
+  else if (notes.indexOf('healing') !== -1 || notes.indexOf('wound') !== -1) clinical = 'Active wound under treatment. Continue prescribed antibiotic course. Clean and monitor daily until fully healed.';
+  else if (notes.indexOf('cird') !== -1) clinical = 'Currently being treated for Canine Infectious Respiratory Disease. Quarantine recommended for 7–10 days post-pull. Continue meds as directed.';
+  else if (notes.indexOf('aural') !== -1 || notes.indexOf('otitis') !== -1) clinical = 'Otitis externa under treatment. Continue aural meds for full 10-day course. Recheck recommended.';
+  else if (notes.indexOf('mobility') !== -1) clinical = 'Joint pain managed with NSAIDs. Senior gentle handling recommended. Soft bedding and ground-level kennel ideal.';
+  else if (notes.indexOf('trembling') !== -1 || notes.indexOf('fearful') !== -1 || notes.indexOf('nervous') !== -1 || notes.indexOf('tense') !== -1) clinical = 'No active medical concerns. Behaviorally undersocialized — recommend low-stim environment for decompression. Healthy on physical exam.';
+  else if (notes.indexOf('bite') !== -1) clinical = 'No active medical concerns. Behavioral history noted (mild bite incident, 2024). Suitable for adult-only or experienced home.';
+  else clinical = 'No active medical concerns identified on intake exam. Cleared for placement.';
+
+  // Care note — short, actionable
+  var note;
+  if (notes.indexOf('senior') !== -1 || notes.indexOf('mobility') !== -1) note = '⚠ Senior care plan — gentle pacing, soft bedding, joint support diet.';
+  else if (notes.indexOf('recovered from hbc') !== -1) note = '✓ Healed from trauma. Cleared for adoption.';
+  else if (notes.indexOf('healing') !== -1 || notes.indexOf('wound') !== -1) note = '⚠ Continue antibiotic course. Daily wound check.';
+  else if (notes.indexOf('cird') !== -1) note = '⚠ Keep separated from other animals for 7–10 days post-pull.';
+  else if (notes.indexOf('aural') !== -1 || notes.indexOf('otitis') !== -1) note = '⚠ Continue ear meds for full 10-day course.';
+  else if (notes.indexOf('fearful') !== -1 || notes.indexOf('nervous') !== -1 || notes.indexOf('tense') !== -1) note = '✓ Healthy. Recommend behavioral decompression in quiet home.';
+  else note = '✓ Cleared for placement. No active medical concerns.';
+
+  return { snip:snip, sexFull:sexFull, hw:hw, hwClass:hwClass, meds:meds, weight:weight, chip:chip, exam:exam, clinical:clinical, note:note };
+}
+
+// Format date as M/D/YYYY
+function fmtDate(iso) {
+  if (!iso) return '—';
+  var p = iso.split('-');
+  if (p.length !== 3) return iso;
+  return parseInt(p[1],10) + '/' + parseInt(p[2],10) + '/' + p[0];
+}
+
+// ====== RENDER DOG GRID ======
+function paw() {
+  return '<svg viewBox="0 0 100 100" fill="currentColor"><path d="M50,91 C33,91 24,80 24,68 C24,56 33,49 50,49 C67,49 76,56 76,68 C76,80 67,91 50,91 Z"/><ellipse cx="21" cy="40" rx="9.5" ry="13" transform="rotate(-18 21 40)"/><ellipse cx="39" cy="27" rx="9.5" ry="13" transform="rotate(-6 39 27)"/><ellipse cx="57" cy="27" rx="9.5" ry="13" transform="rotate(6 57 27)"/><ellipse cx="73" cy="40" rx="9.5" ry="13" transform="rotate(18 73 40)"/></svg>';
+}
+
+function renderDogs() {
+  var grid = document.getElementById('dogs-grid');
+  var html = '';
+  dogs.forEach(function(d, i) {
+    var photoUrl = '../ACS-tracking/photos/' + d.id + '.jpg';
+    html += '<div class="dog-card critical" onclick="openModal(' + i + ')">' +
+      '<div class="dog-photo">' +
+        '<img src="' + photoUrl + '" alt="' + d.name + '" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
+        '<div class="dog-photo-placeholder" style="display:none;">' + paw() + '<div class="ph-label">Photo from ACS</div></div>' +
+        '<div class="days-badge">' + d.days + ' days</div>' +
+        '<div class="risk-badge risk-immediate card-timer" title="Time until today\'s 5:00 PM capacity cutoff">⏰ <span class="card-timer-val pulse" data-card-timer>--:--:--</span></div>' +
+      '</div>' +
+      '<div class="dog-info">' +
+        '<div class="dog-name">' + d.name + '</div>' +
+        '<div class="dog-id">ID ' + d.id + ' · Kennel ' + d.kennel + '</div>' +
+        '<div class="dog-meta">' +
+          '<span class="dog-tag">' + d.sex + '</span>' +
+          '<span class="dog-tag">' + d.age + '</span>' +
+          (d.size ? '<span class="dog-tag">' + d.size + '</span>' : '') +
+          (d.weight ? '<span class="dog-tag">' + d.weight + ' lbs</span>' : '') +
+        '</div>' +
+        '<div class="dog-breed">' + d.breed + ' · ' + d.color + '</div>' +
+        '<div class="dog-notes">' + d.notes + '</div>' +
+        '<div class="dog-action">' +
+          '<div class="dog-kennel">At risk since ' + d.riskSince.slice(5).replace('-', '/') + '</div>' +
+          '<button class="dog-action-btn" onclick="event.stopPropagation();openModal(' + i + ')">Try Voyce →</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  });
+  grid.innerHTML = html;
+}
+
+// ====== COUNTDOWN ======
+// ACS capacity deadlines: Mon-Fri 5:00 PM · Sat 12:30 PM · Sun closed
+function setDeadlineByDay(d){
+  var day = d.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  if (day === 6) { d.setHours(12,30,0,0); }     // Saturday 12:30 PM
+  else { d.setHours(17,0,0,0); }                 // Mon-Fri 5:00 PM
+  return d;
+}
+function updateCountdown() {
+  var now = new Date();
+  var deadline = new Date(now);
+  setDeadlineByDay(deadline);
+  // Roll forward past closed days / passed deadlines
+  while (deadline <= now) {
+    deadline.setDate(deadline.getDate() + 1);
+    setDeadlineByDay(deadline);
+    if (deadline.getDay() === 0) { deadline.setDate(deadline.getDate() + 1); setDeadlineByDay(deadline); }
+  }
+  var diff = deadline - now;
+  var clockEl = document.getElementById('countdown-clock');
+  var cardTimers = document.querySelectorAll('[data-card-timer]');
+  if (diff < 0) {
+    if (clockEl) clockEl.textContent = 'PASSED';
+    cardTimers.forEach(function(el){ el.textContent = 'PASSED'; el.classList.remove('pulse'); });
+    return;
+  }
+  var h = Math.floor(diff / 3600000);
+  var m = Math.floor((diff % 3600000) / 60000);
+  var s = Math.floor((diff % 60000) / 1000);
+  var heroFmt = String(h).padStart(2,'0') + ' : ' + String(m).padStart(2,'0') + ' : ' + String(s).padStart(2,'0');
+  var cardFmt = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  if (clockEl) clockEl.textContent = heroFmt;
+  cardTimers.forEach(function(el){ el.textContent = cardFmt; });
+}
+
+// ====== MODAL & DEMO FLOW ======
+var currentStage = 1;
+var currentDog = null;
+
+function openModal(idx) {
+  currentDog = dogs[idx];
+  document.getElementById('modal-dog-name').textContent = currentDog.name;
+  document.getElementById('modal-dog-meta').textContent = currentDog.breed + ' · ' + currentDog.age + ' · ID ' + currentDog.id;
+  document.getElementById('modal-bg').classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  var vet = deriveVetData(currentDog);
+
+  // Populate rescue card — full ACS info
+  document.getElementById('rc-name').textContent = currentDog.name;
+  document.getElementById('rc-id').textContent = 'ID ' + currentDog.id + ' · Kennel ' + currentDog.kennel;
+  document.getElementById('rc-aid').textContent = currentDog.id;
+  document.getElementById('rc-kennel').textContent = currentDog.kennel;
+  document.getElementById('rc-breed').textContent = currentDog.breed;
+  document.getElementById('rc-color').textContent = currentDog.color || '—';
+  document.getElementById('rc-age').textContent = currentDog.age;
+  document.getElementById('rc-sex').textContent = vet.sexFull;
+  document.getElementById('rc-days').textContent = currentDog.days + ' days';
+  document.getElementById('rc-risk').textContent = fmtDate(currentDog.riskSince);
+  document.getElementById('rc-due').textContent = 'Today · 5/21/2026';
+  document.getElementById('rc-size').textContent = currentDog.weight ? currentDog.weight + ' lbs' : (currentDog.size || 'Not weighed');
+  document.getElementById('rc-notes').textContent = currentDog.notes;
+
+  // Populate vet card — full medical info
+  document.getElementById('vc-name').textContent = currentDog.name;
+  document.getElementById('vc-id').textContent = 'ID ' + currentDog.id + ' · Kennel ' + currentDog.kennel;
+  document.getElementById('vc-aid').textContent = currentDog.id;
+  document.getElementById('vc-chip').textContent = vet.chip;
+  document.getElementById('vc-snip').textContent = vet.snip;
+  document.getElementById('vc-hw').textContent = vet.hw;
+  document.getElementById('vc-hw').className = 'value ' + vet.hwClass;
+  document.getElementById('vc-weight').textContent = vet.weight;
+  document.getElementById('vc-exam').textContent = fmtDate(vet.exam);
+  document.getElementById('vc-meds').textContent = vet.meds;
+  document.getElementById('vc-clinical').textContent = vet.clinical;
+  document.getElementById('vc-note').textContent = vet.note;
+
+  // Accepted stage / email link code removed — stages 3+4 deleted 2026-06-25
+
+  // Reset to stage 1
+  goToStage(1);
+  runScanAnimation();
+
+  // Start the mission timer — visual proof we measure every second
+  startMissionTimer();
+}
+
+function closeModal() {
+  document.getElementById('modal-bg').classList.remove('open');
+  document.body.style.overflow = '';
+  stopMissionTimer();
+}
+
+// ====== MISSION TIMER ======
+// Concept-only: ticks while modal is open. NO promise of specific times.
+// Proves "Voyce measures every second between seeing this animal and helping them."
+var missionTimerStart = null;
+var missionTimerInterval = null;
+function startMissionTimer() {
+  missionTimerStart = Date.now();
+  var el = document.getElementById('mission-timer-val');
+  if (el) el.textContent = '0:00';
+  if (missionTimerInterval) clearInterval(missionTimerInterval);
+  missionTimerInterval = setInterval(function(){
+    if (!missionTimerStart) return;
+    var s = Math.floor((Date.now() - missionTimerStart) / 1000);
+    var m = Math.floor(s / 60);
+    var sec = s % 60;
+    var v = document.getElementById('mission-timer-val');
+    if (v) v.textContent = m + ':' + (sec < 10 ? '0' : '') + sec;
+  }, 1000);
+}
+function stopMissionTimer() {
+  if (missionTimerInterval) clearInterval(missionTimerInterval);
+  missionTimerInterval = null;
+  missionTimerStart = null;
+}
+
+function goToStage(n) {
+  currentStage = n;
+  // Only stages 1 and 2 exist now (3+4 removed 2026-06-25)
+  for (var i = 1; i <= 2; i++) {
+    var el = document.getElementById('stage-' + i);
+    if (el) el.classList.toggle('active', i === n);
+  }
+}
+
+function nextStage() { if (currentStage < 2) goToStage(currentStage + 1); }
+function prevStage() { if (currentStage > 1) goToStage(currentStage - 1); }
+
+function runScanAnimation() {
+  var items = ['si-1', 'si-2', 'si-3', 'si-4'];
+  var labels = [
+    'Reading photo metadata...',
+    'Identifying breed & age...',
+    'Pulling ACS shelter location...',
+    'Calculating urgency window...',
+    '✓ AI scan complete'
+  ];
+  // reset
+  items.forEach(function(id) { document.getElementById(id).classList.remove('done'); });
+  document.getElementById('stage-1-next').disabled = true;
+  document.getElementById('scan-label').textContent = labels[0];
+
+  items.forEach(function(id, idx) {
+    setTimeout(function() {
+      document.getElementById(id).classList.add('done');
+      document.getElementById('scan-label').textContent = labels[idx + 1] || labels[labels.length - 1];
+      if (idx === items.length - 1) {
+        document.getElementById('stage-1-next').disabled = false;
+      }
+    }, (idx + 1) * 700);
+  });
+}
+
+function populateResponders() {
+  // Pick 5 random responders
+  var shuffled = responderPool.slice().sort(function(){ return Math.random() - 0.5; });
+  var picks = shuffled.slice(0, 5);
+  var html = '';
+  picks.forEach(function(r, i) {
+    html += '<div class="responder-row" style="opacity:0;animation:fadeIn .4s ease forwards;animation-delay:' + (i * 0.18) + 's;">' +
+      '<div class="responder-avatar">' + r.avatar + '</div>' +
+      '<div style="flex:1;">' +
+        '<div class="responder-name">' + r.name + '</div>' +
+        '<div class="responder-detail">' + r.type + ' · ' + r.distance + '</div>' +
+      '</div>' +
+      '<div class="responder-status ' + r.status + '">' + r.statusText + '</div>' +
+    '</div>';
+  });
+  document.getElementById('responders').innerHTML = html;
+}
+
+function populateAccepted() {
+  // Show 3 accepted partners with staggered fade-in
+  var picks = acceptedPool.slice(0, 3);
+  document.getElementById('acc-count').textContent = picks.length + ' partners';
+  var html = '';
+  picks.forEach(function(r, i) {
+    html += '<div class="accepted-row" style="opacity:0;animation:fadeIn .45s ease forwards;animation-delay:' + (i * 0.22) + 's;">' +
+      '<div class="responder-avatar">' + r.avatar + '</div>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div class="acc-name">' + r.name + '</div>' +
+        '<div class="acc-meta">' + r.type + ' &middot; ' + r.distance + '</div>' +
+        '<div class="acc-action">&quot;' + r.action + '&quot;</div>' +
+      '</div>' +
+      '<div class="acc-time">' + r.time + '</div>' +
+    '</div>';
+  });
+  document.getElementById('accepted-list').innerHTML = html;
+}
+
+// ====== OUTCOMES TIMELINE ======
+function loadOutcomes() {
+  fetch('ACS-tracking/outcomes.json')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      document.getElementById('o-today').textContent = data.today.atRisk;
+      document.getElementById('o-removed').textContent = data.today.removedFromYesterday;
+      document.getElementById('o-tracked-days').textContent = data.allTime.trackedDays;
+      document.getElementById('o-unique').textContent = data.allTime.uniqueDogs;
+      if (data.today.note) {
+        document.getElementById('outcomes-note').innerHTML = '<strong>📅 ' + data.todayDate + ':</strong> ' + data.today.note;
+      }
+      var removedEl = document.getElementById('outcomes-removed');
+      var seen = {};
+      var allR = [];
+      (data.recentRemovals || []).concat(data.previousDogs || []).forEach(function(d) {
+        if (d && d.id && !seen[d.id]) { seen[d.id] = true; allR.push(d); }
+      });
+      if (allR.length > 0) {
+        removedEl.innerHTML = allR.slice(0,8).map(function(d) {
+          var tag = d.status === 'removed-pre-tracking' ? 'Was on list · unverified' : 'Removed · unverified';
+          return '<div class="outcomes-row"><div style="flex:1;min-width:0;"><div class="o-name">' + d.name + '</div><div class="o-meta">ID ' + d.id + (d.note ? ' · ' + d.note : '') + '</div></div><div class="o-tag unverified">' + tag + '</div></div>';
+        }).join('');
+      }
+      var longEl = document.getElementById('outcomes-longest');
+      if (data.longestStays && data.longestStays.length > 0) {
+        longEl.innerHTML = data.longestStays.slice(0,8).map(function(d) {
+          return '<div class="outcomes-row"><div style="flex:1;min-width:0;"><div class="o-name">' + d.name + '</div><div class="o-meta">ID ' + d.id + ' · ' + d.note + '</div></div><div class="o-tag atrisk">At risk · day ' + d.days + '</div></div>';
+        }).join('');
+      } else {
+        longEl.innerHTML = '<div class="outcomes-empty">No data yet.</div>';
+      }
+      if (data.caveat) {
+        document.getElementById('outcomes-caveat').innerHTML = '<strong>Important:</strong> ' + data.caveat;
+      }
+    })
+    .catch(function(err) {
+      console.error('Outcomes load failed:', err);
+    });
+}
+
+// ====== LIVE SUPABASE SYNC ======
+// Same pattern as voyce-acs-cards-merged.html — localStorage cache for instant render,
+// Supabase fetch in background, hot-swap on success, embedded fallback if cloud fails.
+var SUPA_URL_DOGS = 'https://okmukfrhvqkxphzueqww.supabase.co';
+var SUPA_KEY_DOGS = 'sb_publishable_e_OWsyXVeFqgV6EVGAKKTw_sgEV2cTN';
+var DOGS_CACHE_KEY = 'voyce_sanantonio_dogs_v1';
+var DOGS_CACHE_AT_KEY = 'voyce_sanantonio_dogs_at_v1';
+
+function _rowToSADog(r) {
+  return {
+    id:        r.id,
+    name:      r.name || '',
+    breed:     r.breed || '',
+    sex:       r.sex || '',
+    age:       r.age || r.age_raw || '',
+    kennel:    r.kennel || 'None',
+    days:      r.days != null ? r.days : 0,
+    riskSince: r.risk_since || '',
+    color:     r.color || '',
+    notes:     r.notes || '',
+    weight:    r.weight || '',
+    size:      r.size || ''
+  };
+}
+
+function _updateLiveCounts(n) {
+  var el1 = document.getElementById('live-dog-count');
+  var el2 = document.getElementById('live-dog-count-cta');
+  if (el1) el1.textContent = n;
+  if (el2) el2.textContent = n;
+  var dateEl = document.getElementById('live-update-date');
+  if (dateEl) {
+    var d = new Date();
+    dateEl.textContent = (d.getMonth()+1) + '/' + d.getDate() + '/' + d.getFullYear();
+  }
+}
+
+function _hotSwapDogs(newDogs) {
+  if (!newDogs || !newDogs.length) return;
+  dogs.length = 0;
+  newDogs.forEach(function(d){ dogs.push(d); });
+  renderDogs();
+  _updateLiveCounts(dogs.length);
+  // updateCountdown will re-pick up the new [data-card-timer] spans on next tick
+}
+
+function liveFetchDogs() {
+  var url = SUPA_URL_DOGS + '/rest/v1/acs_animals?select=*&order=days.desc,status_key.asc';
+  fetch(url, { headers: { apikey: SUPA_KEY_DOGS, Authorization: 'Bearer ' + SUPA_KEY_DOGS } })
+    .then(function(r){ if (!r.ok) throw new Error('Supabase HTTP ' + r.status); return r.json(); })
+    .then(function(rows){
+      if (!rows || !rows.length) throw new Error('Supabase returned 0 rows');
+      var newDogs = rows.map(_rowToSADog);
+      _hotSwapDogs(newDogs);
+      // Cache for next pageload
+      try {
+        localStorage.setItem(DOGS_CACHE_KEY, JSON.stringify(newDogs));
+        localStorage.setItem(DOGS_CACHE_AT_KEY, String(Date.now()));
+      } catch(e) { /* quota or private mode — silent */ }
+      console.log('[voyce] Live ACS dogs synced from Supabase:', newDogs.length);
+    })
+    .catch(function(e){
+      console.warn('[voyce] Supabase fetch failed, keeping current dogs:', e.message);
+    });
+}
+
+// ====== INIT ======
+// 1) Try localStorage cache FIRST — instant render with most recent data
+try {
+  var cached = localStorage.getItem(DOGS_CACHE_KEY);
+  if (cached) {
+    var cachedDogs = JSON.parse(cached);
+    if (cachedDogs && cachedDogs.length) {
+      dogs.length = 0;
+      cachedDogs.forEach(function(d){ dogs.push(d); });
+      console.log('[voyce] Loaded', cachedDogs.length, 'dogs from cache');
+    }
+  }
+} catch(e) { /* silent */ }
+
+// 2) Render whatever we have (cache OR embedded snapshot)
+renderDogs();
+_updateLiveCounts(dogs.length);
+updateCountdown();
+setInterval(updateCountdown, 1000);
+loadOutcomes();
+
+// 3) Background fetch fresh from Supabase + re-fetch every 15 minutes
+liveFetchDogs();
+setInterval(liveFetchDogs, 15 * 60 * 1000);
+
+// Esc to close modal
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModal();
+});
+</script>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- ADD YOUR SHELTER — placed near the bottom after the urgency -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<style id="voyce-add-shelter-acs">
+.acs-add-shelter{max-width:900px;margin:60px auto 40px;padding:38px 36px;background:linear-gradient(135deg,rgba(255,210,79,.06),rgba(0,0,0,.5));border:1.5px solid rgba(255,210,79,.32);border-radius:22px;text-align:center;position:relative;overflow:hidden}
+.acs-add-shelter::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,rgba(255,210,79,.10),transparent 60%);pointer-events:none}
+.acs-add-shelter-kicker{display:inline-flex;align-items:center;gap:7px;font-family:'Inter',sans-serif;font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#FFD24F;margin-bottom:14px;position:relative}
+.acs-add-shelter-kicker::before{content:"";width:6px;height:6px;border-radius:50%;background:#FFD24F;box-shadow:0 0 8px rgba(255,210,79,.7);animation:pulse 1.6s ease-in-out infinite}
+.acs-add-shelter h2{font-family:'Fraunces',serif;font-size:clamp(24px,3vw,34px);font-weight:500;color:#fff7ea;line-height:1.2;margin:0 0 12px;letter-spacing:-.01em;position:relative}
+.acs-add-shelter h2 em{font-style:italic;color:#FFD24F}
+.acs-add-shelter p{font-size:15.5px;color:rgba(245,237,225,.78);line-height:1.6;margin:0 auto 26px;max-width:640px;position:relative}
+.acs-add-shelter-btn{display:inline-flex;align-items:center;gap:9px;background:linear-gradient(135deg,#FFD24F,#F0A516);color:#2a1c05;border:none;padding:15px 32px;border-radius:12px;font-family:'Inter',sans-serif;font-size:15px;font-weight:800;cursor:pointer;text-decoration:none;box-shadow:0 10px 26px rgba(216,138,18,.32);transition:transform .15s;position:relative}
+.acs-add-shelter-btn:hover{transform:translateY(-2px);box-shadow:0 14px 32px rgba(216,138,18,.42)}
+.acs-add-shelter-note{font-size:12.5px;color:rgba(245,237,225,.55);margin-top:16px;font-style:italic;position:relative}
+
+/* Signup modal styles (light theme inside dark page) */
+.vsm-modal{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:20px}
+.vsm-modal.on{display:flex}
+.vsm-inner{background:#fff;border-radius:20px;max-width:540px;width:100%;max-height:90vh;overflow-y:auto;padding:28px 30px 24px;box-shadow:0 30px 80px rgba(0,0,0,.55);border:1.5px solid #F3B62B;position:relative}
+.vsm-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:#f5ead0;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#777570;font-size:18px}
+.vsm-kicker{display:inline-flex;align-items:center;gap:7px;font-family:'Inter',sans-serif;font-size:10.5px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#C9871A;margin-bottom:10px}
+.vsm-kicker::before{content:"";width:6px;height:6px;border-radius:50%;background:#C9871A;display:inline-block}
+.vsm-title{font-family:'Fraunces',Georgia,serif;font-size:22px;font-weight:600;color:#0B0B0C;margin:0 0 8px;line-height:1.25}
+.vsm-sub{font-size:14px;color:#4B4945;line-height:1.55;margin:0 0 20px}
+.vsm-field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.vsm-label{font-size:12px;font-weight:700;color:#0B0B0C}
+.vsm-label .vsm-opt{color:#777570;font-weight:500;font-style:italic}
+.vsm-input,.vsm-textarea{font-family:'Inter',sans-serif;font-size:14px;color:#0B0B0C;border:1.5px solid rgba(11,11,12,.12);border-radius:10px;padding:11px 14px;background:#fff}
+.vsm-input:focus,.vsm-textarea:focus{outline:none;border-color:#C9871A;box-shadow:0 0 0 3px rgba(201,135,26,.12)}
+.vsm-textarea{resize:vertical;min-height:70px}
+.vsm-submit{background:linear-gradient(135deg,#FFD24F,#F0A516);color:#2a1c05;border:none;padding:13px 24px;border-radius:12px;font-family:'Inter',sans-serif;font-size:14px;font-weight:800;cursor:pointer;width:100%;margin-top:6px;box-shadow:0 8px 20px rgba(216,138,18,.28)}
+.vsm-success{text-align:center;padding:14px 0 4px}
+.vsm-success-em{font-size:46px;margin-bottom:10px}
+.vsm-success-h{font-family:'Fraunces',serif;font-size:21px;font-weight:600;color:#2F7D4E;margin:0 0 8px}
+.vsm-success-p{font-size:14px;color:#4B4945;line-height:1.55;margin:0 0 18px}
+.vsm-error{background:rgba(200,54,43,.08);border:1px solid rgba(200,54,43,.25);color:#C8362B;font-size:13px;padding:10px 12px;border-radius:8px;margin-bottom:12px}
+.vsm-consent{display:flex;align-items:flex-start;gap:9px;margin:14px 0 8px;font-size:12.5px;color:#4B4945;line-height:1.5;padding:11px 13px;background:#FAFAFA;border:1px solid rgba(11,11,12,.08);border-radius:9px}
+.vsm-consent input[type="checkbox"]{margin-top:3px;flex-shrink:0;width:16px;height:16px;accent-color:#C9871A;cursor:pointer}
+.vsm-consent label{cursor:pointer;flex:1}
+.vsm-consent a{color:#C9871A;font-weight:700;text-decoration:underline}
+</style>
+
+<section class="acs-add-shelter">
+  <span class="acs-add-shelter-kicker">Your shelter could be next</span>
+  <h2>Bring your shelter to Voyce. <em>Save your animals the same way.</em></h2>
+  <p>Every shelter in the U.S. has dogs and cats running out of time. If your shelter publishes a capacity PDF, intake list, or at-risk list anywhere on the web, Voyce can already surface your animals to the network &mdash; just like we&rsquo;re doing for ACS San Antonio. No formal partnership required.</p>
+  <a href="javascript:void(0)" onclick="vsmOpen('shelter')" class="acs-add-shelter-btn">+ Add your shelter &rarr;</a>
+  <div class="acs-add-shelter-note">Takes 60 seconds. We&rsquo;ll review your shelter&rsquo;s public data and get back to you within a few days.</div>
+</section>
+
+<div class="vsm-modal" id="vsmModal" role="dialog">
+  <div class="vsm-inner" onclick="event.stopPropagation()">
+    <button class="vsm-close" onclick="vsmClose()">&times;</button>
+    <div id="vsmBody"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var SB_URL='https://okmukfrhvqkxphzueqww.supabase.co';
+  var SB_KEY='sb_publishable_e_OWsyXVeFqgV6EVGAKKTw_sgEV2cTN';
+  var sb=null;
+  if(typeof supabase!=='undefined'){try{sb=supabase.createClient(SB_URL,SB_KEY);}catch(e){console.warn(e);}}
+  window.voyceSupabase=sb;
+  var modal=document.getElementById('vsmModal'), body=document.getElementById('vsmBody');
+  function shelterForm(){
+    return '<div class="vsm-kicker">For Shelters</div>'+
+      '<div class="vsm-title">Add your shelter to Voyce.</div>'+
+      '<p class="vsm-sub">If your shelter publishes a capacity PDF, intake list, or at-risk list anywhere on the web, we can route your animals to the network. No formal partnership required.</p>'+
+      '<form onsubmit="vsmSubmit(event)">'+
+        '<div class="vsm-field"><label class="vsm-label">Shelter name</label><input class="vsm-input" name="shelter_name" required placeholder="e.g. ACS San Antonio"></div>'+
+        '<div class="vsm-field"><label class="vsm-label">URL of public data <span class="vsm-opt">(optional)</span></label><input class="vsm-input" name="public_data_url" type="url" placeholder="https://"></div>'+
+        '<div class="vsm-field"><label class="vsm-label">Region <span class="vsm-opt">(optional)</span></label><input class="vsm-input" name="region" placeholder="e.g. San Antonio, TX"></div>'+
+        '<div class="vsm-field"><label class="vsm-label">Contact name <span class="vsm-opt">(optional)</span></label><input class="vsm-input" name="contact_name" placeholder="Your name"></div>'+
+        '<div class="vsm-field"><label class="vsm-label">Contact email</label><input class="vsm-input" name="contact_email" type="email" required placeholder="you@shelter.org"></div>'+
+        '<div class="vsm-field"><label class="vsm-label">Notes <span class="vsm-opt">(optional)</span></label><textarea class="vsm-textarea" name="notes"></textarea></div>'+
+        '<div class="vsm-consent"><input type="checkbox" id="vsmConsent" name="consent" required><label for="vsmConsent">I understand Voyce is pre-launch and agree to be contacted. I have read and agree to the <a href="voyce_privacy.html" target="_blank" rel="noopener">Privacy Policy</a> and <a href="voyce_terms.html" target="_blank" rel="noopener">Terms of Use</a>.</label></div>'+
+        '<div class="vsm-error" id="vsmErr" style="display:none"></div>'+
+        '<button class="vsm-su

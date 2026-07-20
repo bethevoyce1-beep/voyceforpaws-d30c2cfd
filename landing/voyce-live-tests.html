@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Voyce · Live Tests — Real shelter kill lists</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --cream:#FFF8E7; --cream2:#FBF5E4;
+    --ink:#0B0B0C; --muted:#6b6258;
+    --gold:#FFD24F; --gold-deep:#C9871A; --gold-soft:#FCE9A8;
+    --line:#ece3cf;
+    --red:#C8362B; --redbg:#FBEAE5;
+    --amber:#D2913C; --amberbg:#FDF1D4;
+    --green:#5F8A68; --greenbg:#E9F3EA;
+    --blue:#3a5a86;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased;min-height:100vh;}
+  a{color:inherit;text-decoration:none;}
+
+  /* Top bar */
+  .topbar{background:var(--ink);color:var(--cream);padding:10px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+  .topbar .brand{display:flex;align-items:center;gap:10px;font-family:'Fraunces',serif;font-weight:500;letter-spacing:.02em;}
+  .topbar .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--gold);box-shadow:0 0 10px var(--gold);animation:pulse 1.6s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.3);opacity:.6;}}
+  .topbar a.back{color:var(--gold);font-size:13px;font-weight:600;text-decoration:none;}
+  .topbar a.back:hover{color:#fff;}
+
+  /* Hero */
+  .hero{max-width:1100px;margin:0 auto;padding:56px 28px 24px;text-align:center;}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;background:#fff;border:1px solid var(--line);border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-deep);margin-bottom:18px;}
+  .eyebrow .live{width:7px;height:7px;border-radius:50%;background:var(--red);box-shadow:0 0 8px var(--red);animation:pulse 1.4s infinite;}
+  h1{font-family:'Fraunces',serif;font-weight:500;font-size:clamp(30px,5vw,52px);line-height:1.1;margin-bottom:14px;color:var(--ink);max-width:900px;margin-left:auto;margin-right:auto;}
+  h1 em{font-style:italic;color:var(--gold-deep);}
+  h1 .red{color:var(--red);font-style:italic;}
+  .hero-sub{font-size:17px;color:var(--muted);max-width:760px;line-height:1.55;margin:0 auto 8px;}
+  .hero-sub b{color:var(--ink);}
+
+  /* Honest note */
+  .note{max-width:880px;margin:28px auto 0;padding:14px 20px;background:#fff8e1;border:1px solid #fde68a;border-left:4px solid var(--gold-deep);border-radius:10px;font-size:13.5px;color:#7c5a1c;line-height:1.55;text-align:left;}
+  .note strong{color:#9a3412;}
+
+  /* Stats strip */
+  .stats{max-width:900px;margin:30px auto 8px;padding:16px 24px;display:flex;gap:36px;flex-wrap:wrap;justify-content:center;background:#fff;border:1px solid var(--line);border-radius:14px;}
+  .stat{text-align:center;}
+  .stat-num{font-family:'Fraunces',serif;font-size:32px;font-weight:600;color:var(--ink);line-height:1;}
+  .stat-num.red{color:var(--red);}
+  .stat-num.green{color:var(--green);}
+  .stat-lbl{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:4px;}
+
+  /* Shelter tiles grid */
+  .grid{max-width:1100px;margin:36px auto 24px;padding:0 28px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  @media (max-width:900px){.grid{grid-template-columns:repeat(2,1fr);}}
+  @media (max-width:600px){.grid{grid-template-columns:1fr;}}
+
+  .tile{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px 22px 20px;display:flex;flex-direction:column;gap:10px;transition:transform .2s,box-shadow .2s,border-color .2s;position:relative;}
+  .tile:hover{transform:translateY(-3px);box-shadow:0 18px 36px rgba(15,10,3,.1);border-color:var(--gold-deep);}
+  .tile.live{border-color:var(--green);background:linear-gradient(180deg,#fff,#f5fbf6);}
+  .tile.live:hover{border-color:var(--green);box-shadow:0 18px 36px rgba(95,138,104,.18);}
+
+  .tile-status{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;padding:4px 10px;border-radius:999px;font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;}
+  .tile-status.live{background:var(--green);color:#fff;}
+  .tile-status.live .dot{width:6px;height:6px;border-radius:50%;background:#fff;animation:pulse 1.4s infinite;}
+  .tile-status.coming{background:var(--gold-soft);color:#7c5a1c;border:1px solid rgba(201,135,26,.3);}
+
+  .tile-name{font-family:'Fraunces',serif;font-weight:500;font-size:24px;line-height:1.15;color:var(--ink);}
+  .tile-loc{font-size:13px;color:var(--muted);}
+  .tile-count{display:flex;align-items:baseline;gap:8px;padding:12px 14px;background:var(--cream2);border-radius:10px;border:1px solid var(--line);margin-top:6px;}
+  .tile-count .num{font-family:'Fraunces',serif;font-size:30px;font-weight:600;color:var(--red);line-height:1;}
+  .tile-count .lbl{font-size:12px;color:var(--muted);line-height:1.3;}
+  .tile-count .lbl b{color:var(--ink);}
+  .tile-meta{font-size:11.5px;color:var(--muted);}
+
+  .tile-actions{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding-top:12px;}
+  .tile-cta{display:inline-flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 18px;background:var(--ink);color:var(--gold);border-radius:10px;font-size:13px;font-weight:800;letter-spacing:.02em;text-decoration:none;transition:all .15s;border:none;cursor:pointer;font-family:inherit;}
+  .tile-cta:hover{background:var(--gold-deep);color:#fff;transform:translateX(2px);}
+  .tile-cta .arrow{font-size:16px;font-weight:700;}
+  .tile-cta.outline{background:#fff;color:var(--ink);border:1px solid var(--line);}
+  .tile-cta.outline:hover{background:var(--gold-soft);color:var(--ink);border-color:var(--gold-deep);}
+
+  /* Why this is "at-risk only" callout */
+  .scope{max-width:880px;margin:36px auto 0;padding:24px 26px;background:linear-gradient(135deg,#FFFCEF,#FFF7DD);border:1px solid rgba(201,135,26,.28);border-radius:16px;}
+  .scope-eyebrow{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-deep);margin-bottom:8px;}
+  .scope h3{font-family:'Fraunces',serif;font-weight:500;font-size:22px;color:var(--ink);margin-bottom:6px;}
+  .scope p{font-size:14px;color:#4B4945;line-height:1.6;}
+  .scope p + p{margin-top:8px;}
+
+  /* Shelter staff CTA */
+  .staff-block{max-width:880px;margin:36px auto 60px;padding:32px 28px;background:var(--ink);color:var(--cream);border-radius:18px;}
+  .staff-block h3{font-family:'Fraunces',serif;font-weight:500;font-size:24px;color:var(--gold);margin-bottom:8px;}
+  .staff-block p{font-size:14px;color:rgba(255,248,231,.78);line-height:1.55;margin-bottom:16px;}
+  .staff-cta{display:inline-flex;align-items:center;gap:10px;padding:14px 24px;background:var(--gold);color:var(--ink);border-radius:999px;font-weight:800;font-size:14px;text-decoration:none;cursor:pointer;border:none;font-family:inherit;transition:all .15s;}
+  .staff-cta:hover{background:#fff;color:var(--ink);}
+
+  footer{padding:32px 28px;text-align:center;color:var(--muted);font-size:12px;letter-spacing:.06em;border-top:1px solid var(--line);}
+  footer a{color:var(--gold-deep);text-decoration:underline;}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="brand"><span class="dot"></span>Voyce <span style="color:var(--gold)">for Paws</span></div>
+  <a class="back" href="index.html">← Back to landing</a>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <span class="eyebrow"><span class="live"></span>Pre-launch testing · Real shelter data</span>
+  <h1>See Voyce on <em>real shelter</em> <span class="red">euthanasia lists</span> — today.</h1>
+  <p class="hero-sub">
+    Every animal here is a real shelter dog or cat at <b>immediate risk of euthanasia</b>.
+    Names, photos, kennel IDs, deadlines — pulled from each shelter's public capacity list.
+    Click a live shelter to see today's at-risk animals.
+  </p>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-num red" id="stat-atrisk">24</div><div class="stat-lbl">At risk today (ACS)</div></div>
+    <div class="stat"><div class="stat-num green">1</div><div class="stat-lbl">Live shelter</div></div>
+    <div class="stat"><div class="stat-num">4</div><div class="stat-lbl">Coming next</div></div>
+  </div>
+
+  <div class="note">
+    <strong>Honest scope.</strong> This page is only for animals at <b>immediate risk of euthanasia</b> in public shelters — not all shelter listings.
+    Voyce takes each shelter's daily list of animals about to be euthanized and turns it into shareable cards so the rescue network can act before deadlines.
+    Voyce has <b>no partnership</b> with the shelters listed here yet — we're using their public data and reaching out to add them.
+  </div>
+</section>
+
+<!-- WHY SAN ANTONIO FIRST -->
+<style>
+  .why-sa{max-width:1100px;margin:36px auto 0;padding:0 28px;}
+  .why-sa-head{text-align:center;margin-bottom:22px;}
+  .why-sa-kicker{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;background:var(--ink);color:var(--gold);border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;}
+  .why-sa h2{font-family:'Fraunces',serif;font-weight:500;font-size:clamp(24px,3vw,34px);color:var(--ink);line-height:1.15;margin-bottom:8px;}
+  .why-sa h2 em{font-style:italic;color:var(--gold-deep);}
+  .why-sa-sub{font-size:15px;color:var(--muted);max-width:720px;margin:0 auto;line-height:1.55;}
+  .why-sa-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:24px;}
+  @media (max-width:900px){.why-sa-grid{grid-template-columns:repeat(2,1fr);}}
+  @media (max-width:520px){.why-sa-grid{grid-template-columns:1fr;}}
+  .why-sa-card{background:#fff;border:1px solid var(--line);border-top:3px solid var(--gold-deep);border-radius:14px;padding:20px 18px;display:flex;flex-direction:column;gap:8px;}
+  .why-sa-card.is-cta{border-top-color:var(--green,#2F7D4E);background:linear-gradient(180deg,#fff 0%,#F4FAF4 100%);}
+  .why-sa-num{font-family:'Fraunces',serif;font-size:18px;font-weight:600;color:var(--gold-deep);}
+  .why-sa-card.is-cta .why-sa-num{color:var(--green,#2F7D4E);}
+  .why-sa-card h3{font-family:'Fraunces',serif;font-weight:500;font-size:17px;color:var(--ink);line-height:1.25;}
+  .why-sa-card p{font-size:13px;color:#4B4945;line-height:1.55;}
+  .why-sa-card p b{color:var(--ink);}
+  .why-sa-cta{margin-top:6px;display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--green,#2F7D4E);color:#fff;font-size:12.5px;font-weight:800;letter-spacing:.02em;padding:9px 14px;border-radius:999px;text-decoration:none;text-align:center;box-shadow:0 6px 14px rgba(47,125,78,.22);transition:transform .15s,box-shadow .15s;}
+  .why-sa-cta:hover{transform:translateY(-1px);box-shadow:0 10px 20px rgba(47,125,78,.32);}
+</style>
+<section class="why-sa">
+  <div class="why-sa-head">
+    <span class="why-sa-kicker">⚡ The Strategy</span>
+    <h2>Why <em>San Antonio first?</em></h2>
+    <p class="why-sa-sub">We're not partnered with ACS. We're not a San Antonio-only tool. ACS is our <b>proof of concept</b> — every other shelter that publishes a list is next.</p>
+  </div>
+  <div class="why-sa-grid">
+    <div class="why-sa-card">
+      <span class="why-sa-num">01</span>
+      <h3>📋 Their list is public.</h3>
+      <p>ACS publishes a daily daily euthanasia PDF on <b>sanantonio.gov</b>. No partnership needed. No secret deals. No special permissions. We just take what they already share with the world.</p>
+    </div>
+    <div class="why-sa-card">
+      <span class="why-sa-num">02</span>
+      <h3>⏰ The stakes are real and verifiable.</h3>
+      <p>33 real dogs today, with names, deadlines, and ACS contact emails. Anyone can <b>cross-check on ACS's own page</b>. No fake data, no marketing fluff.</p>
+    </div>
+    <div class="why-sa-card">
+      <span class="why-sa-num">03</span>
+      <h3>🔁 Template for every shelter.</h3>
+      <p>Once Voyce works for ACS, the <b>same setup works for any shelter</b> that publishes a list. BARC Houston, Austin AC, LA Animal Services, NYC ACC — onboarded one at a time.</p>
+    </div>
+    <div class="why-sa-card is-cta">
+      <span class="why-sa-num">04</span>
+      <h3>🚀 Faster reach. More saves. Zero extra work.</h3>
+      <p>Voyce takes the daily list you already publish and gets it in front of every nearby rescue, foster, and adopter &mdash; in minutes, not days. <b>More eyes = more pulls. More pulls = fewer euthanasias.</b></p>
+      <p>You don&rsquo;t email anyone, copy anything, or learn new software. <b>No list yet?</b> We&rsquo;ll help you publish one and get you live quickly.</p>
+      <a class="why-sa-cta" href="javascript:void(0)" onclick="openShelterOrgSignup()">📧 Get your shelter added &rarr;</a>
+    </div>
+  </div>
+</section>
+
+<!-- SHELTER TILES -->
+<section class="grid">
+
+  <!-- LIVE: ACS San Antonio -->
+  <article class="tile live">
+    <span class="tile-status live"><span class="dot"></span>Live · Testing now</span>
+    <div class="tile-name">San Antonio ACS</div>
+    <div class="tile-loc">📍 San Antonio, TX · ~1.4M residents served</div>
+    <div class="tile-count">
+      <div class="num" id="acs-count">24</div>
+      <div class="lbl"><b>dogs at risk</b><br>as of <span id="acs-date">6/21/2026</span></div>
+    </div>
+    <div class="tile-meta">
+      Capacity deadline: <b>5:00 PM Mon-Fri / 12:30 PM Sat</b> · Source: <a href="https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf" target="_blank" rel="noopener" style="color:var(--gold-deep);text-decoration:underline;">ACS public PDF →</a>
+    </div>
+    <div class="tile-actions">
+      <a class="tile-cta" href="voyce-acs-cards-merged.html">
+        <span>🎯 See today's at-risk cards</span>
+        <span class="arrow">→</span>
+      </a>
+    </div>
+  </article>
+
+  <!-- COMING: BARC Houston -->
+  <article class="tile">
+    <span class="tile-status coming">🟡 Coming next</span>
+    <div class="tile-name">BARC Houston</div>
+    <div class="tile-loc">📍 Houston, TX · ~2.3M residents served</div>
+    <div class="tile-count">
+      <div class="num" style="color:var(--muted);">—</div>
+      <div class="lbl">Setting up to<br>pull their daily list</div>
+    </div>
+    <div class="tile-meta">Houston has one of the largest shelter intakes in TX. Source list is public.</div>
+    <div class="tile-actions">
+      <a class="tile-cta outline" href="javascript:void(0)" onclick="openNotify('BARC Houston')">
+        <span>🔔 Notify me when BARC is live</span>
+        <span class="arrow">→</span>
+      </a>
+    </div>
+  </article>
+
+  <!-- COMING: Austin Animal Center -->
+  <article class="tile">
+    <span class="tile-status coming">🟡 Coming next</span>
+    <div class="tile-name">Austin Animal Center</div>
+    <div class="tile-loc">📍 Austin, TX · ~965K residents served</div>
+    <div class="tile-count">
+      <div class="num" style="color:var(--muted);">—</div>
+      <div class="lbl">Setting up to<br>pull their daily list</div>
+    </div>
+    <div class="tile-meta">AAC is the largest no-kill municipal shelter in the US. We're surfacing their at-risk overflow.</div>
+    <div class="tile-actions">
+      <a class="tile-cta outline" href="javascript:void(0)" onclick="openNotify('Austin Animal Center')">
+        <span>🔔 Notify me when Austin AC is live</span>
+        <span class="arrow">→</span>
+      </a>
+    </div>
+  </article>
+
+  <!-- COMING: LA Animal Services -->
+  <article class="tile">
+    <span class="tile-status coming">🟡 Coming next</span>
+    <div class="tile-name">LA Animal Services</div>
+    <div class="tile-loc">📍 Los Angeles, CA · ~3.9M residents served</div>
+    <div class="tile-count">
+      <div class="num" style="color:var(--muted);">—</div>
+      <div class="lbl">Setting up to<br>pull their daily list</div>
+    </div>
+    <div class="tile-meta">LA's six city shelters publish at-risk data. We're targeting their euthanasia notice format.</div>
+    <div class="tile-actions">
+      <a class="tile-cta outline" href="javascript:void(0)" onclick="openNotify('LA Animal Services')">
+        <span>🔔 Notify me when LA AS is live</span>
+        <span class="arrow">→</span>
+      </a>
+    </div>
+  </article>
+
+  <!-- COMING: NYC ACC -->
+  <article class="tile">
+    <span class="tile-status coming">🟡 Coming next</span>
+    <div class="tile-name">NYC ACC</div>
+    <div class="tile-loc">📍 New York, NY · ~8.4M residents served</div>
+    <div class="tile-count">
+      <div class="num" style="color:var(--muted);">—</div>
+      <div class="lbl">Setting up to<br>pull their daily list</div>
+    </div>
+    <div class="tile-meta">NYC Animal Care Centers publishes "At Risk" lists daily. We're working on the integration.</div>
+    <div class="tile-actions">
+      <a class="tile-cta outline" href="javascript:void(0)" onclick="openNotify('NYC ACC')">
+        <span>🔔 Notify me when NYC ACC is live</span>
+        <span class="arrow">→</span>
+      </a>
+    </div>
+  </article>
+
+  <!-- ADD A SHELTER -->
+  <article class="tile" style="background:linear-gradient(180deg,var(--cream2),#fff);border-style:dashed;">
+    <span class="tile-status coming" style="background:var(--ink);color:var(--gold);border-color:var(--ink);">+ Your shelter</span>
+    <div class="tile-name">Your shelter?</div>
+    <div class="tile-loc">If your shelter publishes a public euthanasia list, we can surface it.</div>
+    <div class="tile-count" style="background:#fff;border-style:dashed;">
+      <div class="num" style="font-size:24px;">+1</div>
+      <div class="lbl"><b>Free during launch.</b><br>We do the parsing work.</div>
+    </div>
+    <div class="tile-meta">Email us your shelter name + list URL and we'll get you onto the next wave.</div>
+    <div class="tile-actions">
+      <a class="tile-cta" href="mailto:bethevoyce1@gmail.com?subject=Add%20our%20shelter%20to%20Voyce&body=Shelter%20name%3A%0AList%20URL%3A%0AContact%20person%3A%0APhone%3A%0A%0AAnything%20else%20we%20should%20know%3A">
+        <span>📧 Email to add your shelter</span>
+        <span class="arrow">→</span>
+      </a>
+    </div>
+  </article>
+
+</section>
+
+<!-- SCOPE EXPLAINER -->
+<section class="scope">
+  <div class="scope-eyebrow">Why "at-risk only"</div>
+  <h3>This zone is for animals on the kill list — nothing else.</h3>
+  <p>Voyce supports five missions: <b>Emergency</b> (injured strays), <b>At-Risk</b> (shelter euthanasia — <em>this page</em>), <b>Reunite</b> (lost &amp; found), <b>Prevention</b> (TNR, spay/neuter), and <b>Wildlife</b> (licensed rehabbers).</p>
+  <p>The "live testing" zone is narrowly focused on <b>shelter kill lists</b> because that's the most time-sensitive, most concrete, most provable use case. Each shelter publishes a daily list of animals about to be euthanized as a public PDF. Voyce takes that list, surfaces the animals as shareable cards, and alerts the rescue network — before the deadline.</p>
+</section>
+
+<!-- JOIN THE NETWORK (Polish 3) -->
+<section class="staff-block" style="background:linear-gradient(135deg,var(--ink),#1a1408);">
+  <div style="font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:10px">⚡ Be there when Voyce launches</div>
+  <h3 style="font-size:28px;">Join the network.</h3>
+  <p>Be the rescuer, foster, adopter, pledger or transport partner who acts the moment Voyce goes live. We'll email you when the app is ready and when at-risk animals near you need a hand.</p>
+  <button class="staff-cta" onclick="openJoinNetwork()" style="border:none;">🤝 Join the Voyce network</button>
+  <div style="font-size:11.5px;color:rgba(255,248,231,.5);margin-top:12px;font-style:italic;">Free during launch · Privacy-first · Unsubscribe anytime</div>
+</section>
+
+<!-- SHELTER STAFF -->
+<section class="staff-block">
+  <h3>You work at a shelter?</h3>
+  <p>If your shelter publishes a daily euthanasia or capacity list — a PDF, a webpage, a Google Sheet, anything public — we can have it on Voyce within a week. Zero cost during launch. We do the technical setup for you. You keep doing what you do. <b>No list yet?</b> We'll help you publish one and get you live quickly.</p>
+  <button type="button" class="staff-cta" onclick="openShelterOrgSignup()">📧 Get your shelter added</button>
+</section>
+
+<!-- RESCUE / NGO STAFF -->
+<section class="staff-block" style="background:linear-gradient(135deg,#1d160a,var(--ink));margin-top:-30px;">
+  <h3 style="color:#FFD24F;">You run a rescue or NGO?</h3>
+  <p>Voyce gets nearby at-risk animals in front of you in minutes — not days. We verify your EIN (or international equivalent), then route shelter cases your way as we onboard shelters in your area. <b>Pre-launch sign-up takes 60 seconds.</b></p>
+  <button type="button" class="staff-cta" onclick="openRescueOrgSignup()" style="background:#FFD24F;">🐾 Join Voyce as a rescue</button>
+</section>
+
+<footer>
+  <div>Voyce for Paws · Pre-launch testing zone</div>
+  <div style="margin-top:6px">All shelter data shown is public information. <a href="index.html">← Back to landing</a> · <a href="voyce_privacy.html">Privacy</a> · <a href="voyce_terms.html">Terms</a></div>
+</footer>
+
+<!-- ===== Email-capture modal (Privacy/Terms gated, used by Notify-me + Join-network) ===== -->
+<style>
+  .ec-modal{position:fixed;inset:0;background:rgba(11,11,12,.78);backdrop-filter:blur(8px);z-index:200;display:none;align-items:center;justify-content:center;padding:24px;}
+  .ec-modal.show{display:flex;animation:ecFade .2s ease;}
+  @keyframes ecFade{from{opacity:0;}to{opacity:1;}}
+  .ec-card{background:#fff;border-radius:18px;max-width:500px;width:100%;padding:30px 28px;max-height:92vh;overflow-y:auto;}
+  .ec-eyebrow{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-deep);margin-bottom:8px;}
+  .ec-card h3{font-family:'Fraunces',serif;font-weight:500;font-size:24px;color:var(--ink);margin-bottom:8px;line-height:1.2;}
+  .ec-card p{font-size:14px;color:var(--muted);line-height:1.55;margin-bottom:18px;}
+  .ec-input{width:100%;padding:13px 16px;border:1.5px solid var(--line);border-radius:12px;font-size:15px;font-family:inherit;outline:none;margin-bottom:14px;background:#fff;}
+  .ec-input:focus{border-color:var(--gold-deep);}
+  .ec-consent{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;background:var(--cream2);border:1px solid var(--line);border-radius:10px;margin-bottom:16px;font-size:12.5px;color:var(--ink);line-height:1.5;}
+  .ec-consent input{margin-top:2px;flex-shrink:0;cursor:pointer;}
+  .ec-consent a{color:var(--gold-deep);text-decoration:underline;font-weight:600;}
+  .ec-buttons{display:flex;gap:10px;}
+  .ec-btn{flex:1;padding:14px;border:none;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;transition:all .15s;}
+  .ec-btn.primary{background:var(--ink);color:var(--gold);}
+  .ec-btn.primary:hover{background:var(--gold-deep);color:#fff;}
+  .ec-btn.primary:disabled{opacity:.45;cursor:not-allowed;}
+  .ec-btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);}
+  .ec-btn.ghost:hover{background:var(--cream2);}
+  .ec-success{text-align:center;padding:18px 0;}
+  .ec-success .check{width:54px;height:54px;border-radius:50%;background:var(--green);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:12px;}
+  .ec-roles{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+  .ec-role{padding:8px 12px;border:1px solid var(--line);background:#fff;border-radius:999px;font-size:12px;font-weight:600;color:var(--ink);cursor:pointer;font-family:inherit;}
+  .ec-role.active{background:var(--ink);color:var(--gold);border-color:var(--ink);}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--ink);color:var(--gold);padding:12px 22px;border-radius:12px;font-size:14px;font-weight:600;box-shadow:0 12px 30px rgba(0,0,0,.25);transition:transform .3s;z-index:300;}
+  .toast.show{transform:translateX(-50%) translateY(0);}
+
+  /* ─────── Org Onboarding Modal (Shelter + Rescue) ─────── */
+  .org-modal{position:fixed;inset:0;background:rgba(11,11,12,.62);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:18px;z-index:400;overflow-y:auto;}
+  .org-modal.show{display:flex;}
+  .org-card{background:#fff;border-radius:20px;padding:28px 26px;max-width:520px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.32);max-height:92vh;overflow-y:auto;}
+  .org-eyebrow{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#2F7D4E;background:rgba(47,125,78,.1);border:1px solid rgba(47,125,78,.28);padding:5px 11px;border-radius:999px;margin-bottom:14px;}
+  .org-card h3{font-family:'Fraunces',serif;font-size:22px;font-weight:500;color:var(--ink);margin:0 0 6px;line-height:1.2;}
+  .org-sub{font-size:13.5px;color:var(--muted);line-height:1.55;margin:0 0 18px;}
+  .org-field{margin-bottom:14px;}
+  .org-label{display:block;font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);margin-bottom:5px;}
+  .org-label .req{color:#C8362B;margin-left:3px;}
+  .org-label .opt{color:var(--muted);font-weight:600;letter-spacing:.04em;text-transform:none;margin-left:4px;font-size:11px;}
+  .org-input,.org-select,.org-textarea{width:100%;box-sizing:border-box;font-family:'Inter',sans-serif;font-size:14px;color:var(--ink);background:#FBF8F1;border:1.5px solid var(--line);border-radius:10px;padding:11px 13px;transition:border-color .15s,background .15s;}
+  .org-input:focus,.org-select:focus,.org-textarea:focus{outline:none;border-color:var(--gold-deep);background:#fff;}
+  .org-textarea{resize:vertical;min-height:74px;line-height:1.5;}
+  .org-hint{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.45;font-style:italic;}
+  .org-ein-row{display:grid;grid-template-columns:120px 1fr;gap:10px;}
+  .org-ein-status{margin-top:6px;font-size:12px;font-weight:600;display:none;}
+  .org-ein-status.checking{display:block;color:var(--gold-deep);}
+  .org-ein-status.ok{display:block;color:#2F7D4E;}
+  .org-ein-status.error{display:block;color:#C8362B;}
+  .org-toggle{display:flex;gap:8px;}
+  .org-toggle button{flex:1;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;padding:10px;border-radius:10px;border:1.5px solid var(--line);background:#fff;cursor:pointer;transition:all .15s;}
+  .org-toggle button.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .org-list-conditional{display:none;}
+  .org-list-conditional.show{display:block;}
+  .org-consent{display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:var(--muted);line-height:1.55;margin:14px 0;}
+  .org-consent input{flex-shrink:0;margin-top:2px;}
+  .org-consent a{color:var(--gold-deep);text-decoration:underline;}
+  .org-buttons{display:flex;gap:10px;justify-content:flex-end;margin-top:6px;}
+  .org-btn{font-family:'Inter',sans-serif;font-size:13.5px;font-weight:800;padding:11px 20px;border-radius:999px;border:none;cursor:pointer;transition:transform .15s,box-shadow .15s,background .15s;}
+  .org-btn.ghost{background:#fff;color:var(--ink);border:1.5px solid var(--line);}
+  .org-btn.primary{background:#2F7D4E;color:#fff;box-shadow:0 6px 16px rgba(47,125,78,.25);}
+  .org-btn.primary:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 10px 22px rgba(47,125,78,.35);}
+  .org-btn.primary:disabled{background:#B8C8BC;cursor:not-allowed;box-shadow:none;}
+  .org-success{text-align:center;padding:12px 0;}
+  .org-success .check{font-size:54px;color:#2F7D4E;margin-bottom:14px;}
+  @media (max-width:520px){
+    .org-card{padding:22px 18px;}
+    .org-ein-row{grid-template-columns:1fr;}
+  }
+</style>
+
+<div class="ec-modal" id="ecModal">
+  <div class="ec-card">
+    <div id="ecForm">
+      <div class="ec-eyebrow" id="ecEyebrow">—</div>
+      <h3 id="ecTitle">—</h3>
+      <p id="ecSub">—</p>
+      <div id="ecRolesWrap" style="display:none;">
+        <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">I'd help as a…</div>
+        <div class="ec-roles" id="ecRoles"></div>
+      </div>
+      <input class="ec-input" type="email" id="ecEmail" placeholder="you@email.com" />
+      <label class="ec-consent">
+        <input type="checkbox" id="ecConsent" />
+        <span>I agree to Voyce's <a href="voyce_privacy.html" target="_blank">Privacy Policy</a> and <a href="voyce_terms.html" target="_blank">Terms of Use</a>.</span>
+      </label>
+      <div class="ec-buttons">
+        <button class="ec-btn ghost" id="ecBtnClose">Not now</button>
+        <button class="ec-btn primary" id="ecBtnPrimary" disabled>Notify me</button>
+      </div>
+    </div>
+    <div id="ecSuccess" class="ec-success" style="display:none;">
+      <div class="check">✓</div>
+      <h3 style="margin-bottom:6px;">You're on the list.</h3>
+      <p style="margin-bottom:18px;" id="ecSuccessMsg">We'll email you the moment Voyce launches.</p>
+      <button class="ec-btn ghost" onclick="document.getElementById('ecModal').classList.remove('show');" style="max-width:200px;margin:0 auto;display:block;">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SHELTER ONBOARDING MODAL (full EIN-based signup)
+     Opens from: Card 04 "Get your shelter added →" CTA
+     Submits to: Supabase org_signups (role='shelter')
+═══════════════════════════════════════════════════════════ -->
+<div class="org-modal" id="shelterOrgModal" role="dialog" aria-labelledby="shelterOrgTitle">
+  <div class="org-card">
+    <div id="shelterOrgForm">
+      <span class="org-eyebrow">🏠 Shelter onboarding · Step 1</span>
+      <h3 id="shelterOrgTitle">Get your shelter on Voyce</h3>
+      <p class="org-sub">A few essentials — we'll handle the rest. <b>Zero cost during launch.</b></p>
+
+      <div class="org-field">
+        <label class="org-label" for="shEinCountry">Country / Registration <span class="opt">— pick your country</span></label>
+        <div class="org-ein-row">
+          <select class="org-select" id="shEinCountry">
+            <option value="US">🇺🇸 USA (EIN)</option>
+            <option value="CA">🇨🇦 Canada (CRA #)</option>
+            <option value="UK">🇬🇧 UK (Charity #)</option>
+            <option value="IN">🇮🇳 India (12A/80G)</option>
+            <option value="AU">🇦🇺 Australia (ABN)</option>
+            <option value="IE">🇮🇪 Ireland (CHY #)</option>
+            <option value="OTHER">🌍 Other</option>
+          </select>
+          <input class="org-input" type="text" id="shEin" placeholder="EIN · 12-3456789 (or 'PENDING')" />
+        </div>
+        <div class="org-ein-status" id="shEinStatus"></div>
+        <div class="org-hint">If you're still applying, type <b>PENDING</b>. We'll work with you while it's processed.</div>
+      </div>
+
+      <div class="org-field">
+        <label class="org-label" for="shOrgName">Shelter / Organization name <span class="req">*</span></label>
+        <input class="org-input" type="text" id="shOrgName" placeholder="San Antonio Animal Care Services" required />
+      </div>
+
+      <div class="org-field">
+        <label class="org-label" for="shContactName">Your name <span class="req">*</span></label>
+        <input class="org-input" type="text" id="shContactName" placeholder="Jordan Rivera" required />
+      </div>
+
+      <div class="org-field">
+        <label class="org-label" for="shEmail">Email <span class="req">*</span></label>
+        <input class="org-input" type="email" id="shEmail" placeholder="you@yourshelter.org" required />
+      </div>
+
+      <div class="org-field">
+        <label class="org-label" for="shWebsite">Website or social <span class="opt">— optional</span></label>
+        <input class="org-input" type="text" id="shWebsite" placeholder="https://yourshelter.org · or Facebook/Instagram" />
+      </div>
+
+      <div class="org-field">
+        <label class="org-label">Do you publish a daily euthanasia / capacity list?</label>
+        <div class="org-toggle" id="shListToggle">
+          <button type="button" data-val="yes">Yes — we publish one</button>
+          <button type="button" data-val="no" class="active">Not yet</button>
+        </div>
+      </div>
+
+      <div class="org-field org-list-conditional" id="shListUrlWrap">
+        <label class="org-label" for="shListUrl">Link to your daily list <span class="opt">— PDF, webpage, Google Sheet</span></label>
+        <input class="org-input" type="text" id="shListUrl" placeholder="https://yourshelter.org/daily-list.pdf" />
+      </div>
+
+      <label class="org-consent">
+        <input type="checkbox" id="shConsent" />
+        <span>I agree to Voyce's <a href="voyce_privacy.html" target="_blank">Privacy Policy</a> and <a href="voyce_terms.html" target="_blank">Terms of Use</a>, and confirm I'm authorized to register this organization.</span>
+      </label>
+
+      <div class="org-buttons">
+        <button class="org-btn ghost" type="button" onclick="document.getElementById('shelterOrgModal').classList.remove('show');">Cancel</button>
+        <button class="org-btn primary" type="button" id="shSubmitBtn" disabled>Submit signup</button>
+      </div>
+    </div>
+
+    <div id="shelterOrgSuccess" class="org-success" style="display:none;">
+      <div class="check">✓</div>
+      <h3 style="margin-bottom:8px;">You're on the list.</h3>
+      <p style="font-size:13.5px;color:var(--muted);line-height:1.6;margin-bottom:18px;">We'll reach out within 48 hours to get your shelter live on Voyce. Watch your inbox.</p>
+      <button class="org-btn ghost" type="button" onclick="document.getElementById('shelterOrgModal').classList.remove('show');" style="margin:0 auto;display:block;">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     RESCUE ONBOARDING MODAL (full EIN-based signup)
+     Opens from: any "Add your rescue" CTA (call openRescueOrgSignup())
+     Submits to: Supabase org_signups (role='rescue')
+═══════════════════════════════════════════════════════════ -->
+<div class="org-modal" id="rescueOrgModal" role="dialog" aria-labelledby="rescueOrgTitle">
+  <div class="org-card">
+    <div id="rescueOrgForm">
+      <span class="org-eyebrow" style="color:#C9871A;background:rgba(201,135,26,.1);border-color:rgba(201,135,26,.28);">🐾 Rescue onboarding · Step 1</span>
+      <h3 id="rescueOrgTitle">Join Voyce as a rescue</h3>
+      <p class="org-sub">A few essentials so we can verify your rescue and start sending you nearby cases.</p>
+
+      <div class="org-field">
+        <label class="org-label" for="rsEinCountry">Country / Registration <span class="opt">— pick your country</span></label>
+        <div class="org-ein-row">
+          <select class="org-select" id="rsEinCountry">
+            <option value="US">🇺🇸 USA (EIN)</option>
+            <option value="CA">🇨🇦 Canada (CRA #)</option>
+            <option value="UK">🇬🇧 UK (Charity #)</option>
+            <option value="IN">🇮🇳 India (12A/80G)</option>
+            <option value="AU">🇦🇺 Australia (ABN)</option>
+            <option value="IE">🇮🇪 Ireland (CHY #)</option>
+            <option value="OTHER">🌍 Other</option>
+          </select>
+          <input class="org-input" type="text" id="rsEin" placeholder="EIN · 12-3456789 (or 'PENDING')" />
+        </div>
+        <div class="org-ein-status" id="rsEinStatus"></div>
+        <div class="org-hint">If you're still applying, type <b>PENDING</b>. We'll work with you while it's processed.</div>
+      </div>
+
+      <div class="org-field">
+        <label class="org-label" for="rsOrgName">Rescue / Organization name <span class="req">*</span></label>
+        <input class="org-input" type="text" id="rsOrgName" placeholder="Second Chance Rescue" required />
+      </div>
+
+      <div class="org-field">
+        <label class="org-label" for="rsContactName">Your name <span class="req">*</span></label>
+        <input class="org-input" type="text" id="rsContactName" placeholder="Alex Morgan" required />
+      </div>
+
+      <div class="org-field">
+        <label class="org-label" for="rsEmail">Email <span class="req">*</span></label>
+        <input class="org-input" type="email" id="rsEmail" placeholder="you@yourrescue.org" required />
+      </div>
+
+      <div class="org-field">
+        <label class="org-label" for="rsWebsite">Website or social <span class="opt">— optional</span></label>
+        <input class="org-input" type="text" id="rsWebsite" placeholder="https://yourrescue.org · or Facebook/Instagram" />
+      </div>
+
+      <label class="org-consent">
+        <input type="checkbox" id="rsConsent" />
+        <span>I agree to Voyce's <a href="voyce_privacy.html" target="_blank">Privacy Policy</a> and <a href="voyce_terms.html" target="_blank">Terms of Use</a>, and confirm I'm authorized to register this organization.</span>
+      </label>
+
+      <div class="org-buttons">
+        <button class="org-btn ghost" type="button" onclick="document.getElementById('rescueOrgModal').classList.remove('show');">Cancel</button>
+        <button class="org-btn primary" type="button" id="rsSubmitBtn" disabled>Submit signup</button>
+      </div>
+    </div>
+
+    <div id="rescueOrgSuccess" class="org-success" style="display:none;">
+      <div class="check">✓</div>
+      <h3 style="margin-bottom:8px;">Welcome to the network.</h3>
+      <p style="font-size:13.5px;color:var(--muted);line-height:1.6;margin-bottom:18px;">We'll verify your rescue and reach out within 48 hours with next steps.</p>
+      <button class="org-btn ghost" type="button" onclick="document.getElementById('rescueOrgModal').classList.remove('show');" style="margin:0 auto;display:block;">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+  var SB_URL = 'https://okmukfrhvqkxphzueqww.supabase.co';
+  var SB_KEY = 'sb_publishable_e_OWsyXVeFqgV6EVGAKKTw_sgEV2cTN';
+  var sb = null;
+  if (typeof supabase !== 'undefined') {
+    try { sb = supabase.createClient(SB_URL, SB_KEY); } catch(e) { console.warn('Supabase init failed:', e); }
+  }
+  var ROLES = ['Animal Lover','Adopter','Foster','Pledger','Rescuer','Shelter','Vet','Volunteer / Transport'];
+  var ecPending = {};
+  var ecSelectedRoles = [];
+
+  function toast(msg){
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(window._tt);
+    window._tt = setTimeout(function(){ t.classList.remove('show'); }, 2400);
+  }
+  window.toast = toast;
+
+  window.openNotify = function(shelterName){
+    ecPending = { source:'shelter-notify', shelter:shelterName };
+    document.getElementById('ecEyebrow').textContent = '🔔 ' + shelterName + ' · Coming next';
+    document.getElementById('ecTitle').textContent = "We'll notify you when " + shelterName + " is live.";
+    document.getElementById('ecSub').textContent = "Voyce is working to bring " + shelterName + "'s at-risk list onto the testing zone. Drop your email and we'll let you know the moment it's ready.";
+    document.getElementById('ecBtnPrimary').textContent = 'Notify me';
+    document.getElementById('ecRolesWrap').style.display = 'none';
+    document.getElementById('ecConsent').checked = false;
+    document.getElementById('ecEmail').value = '';
+    document.getElementById('ecBtnPrimary').disabled = true;
+    document.getElementById('ecSuccessMsg').textContent = "We'll email you the moment " + shelterName + " is live in the testing zone.";
+    document.getElementById('ecForm').style.display = 'block';
+    document.getElementById('ecSuccess').style.display = 'none';
+    document.getElementById('ecModal').classList.add('show');
+  };
+
+  window.openJoinNetwork = function(){
+    ecPending = { source:'live-tests' };
+    ecSelectedRoles = [];
+    document.getElementById('ecEyebrow').textContent = '🤝 Join the Voyce network';
+    document.getElementById('ecTitle').textContent = 'Be there when Voyce launches.';
+    document.getElementById('ecSub').textContent = "Pick one or more ways you'd help — we'll send you the alerts that fit when we go live.";
+    document.getElementById('ecBtnPrimary').textContent = 'Join the network';
+    var rolesEl = document.getElementById('ecRoles');
+    rolesEl.innerHTML = ROLES.map(function(r){ return '<button class="ec-role" data-role="'+r+'" type="button">'+r+'</button>'; }).join('');
+    rolesEl.querySelectorAll('.ec-role').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var r = this.dataset.role;
+        if (this.classList.contains('active')) {
+          this.classList.remove('active');
+          ecSelectedRoles = ecSelectedRoles.filter(function(x){ return x !== r; });
+        } else {
+          this.classList.add('active');
+          ecSelectedRoles.push(r);
+        }
+      });
+    });
+    document.getElementById('ecRolesWrap').style.display = 'block';
+    document.getElementById('ecConsent').checked = false;
+    document.getElementById('ecEmail').value = '';
+    document.getElementById('ecBtnPrimary').disabled = true;
+    document.getElementById('ecSuccessMsg').textContent = "We'll email you the moment Voyce launches.";
+    document.getElementById('ecForm').style.display = 'block';
+    document.getElementById('ecSuccess').style.display = 'none';
+    document.getElementById('ecModal').classList.add('show');
+  };
+
+  function ecFallback(record){
+    var subj = encodeURIComponent('Voyce signup — '+(record.source||''));
+    var body = encodeURIComponent('Email: '+record.email+'\nShelter: '+(record.shelter||'')+'\nRoles: '+(record.roles||'')+'\nSource: '+(record.source||'')+'\n');
+    window.location.href = 'mailto:bethevoyce1@gmail.com?subject='+subj+'&body='+body;
+  }
+
+  document.getElementById('ecConsent').addEventListener('change', function(){
+    document.getElementById('ecBtnPrimary').disabled = !this.checked;
+  });
+  document.getElementById('ecBtnClose').addEventListener('click', function(){
+    document.getElementById('ecModal').classList.remove('show');
+  });
+  document.getElementById('ecModal').addEventListener('click', function(e){
+    if (e.target.id === 'ecModal') this.classList.remove('show');
+  });
+  document.getElementById('ecBtnPrimary').addEventListener('click', function(){
+    var email = (document.getElementById('ecEmail').value||'').trim();
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { toast('Please enter a valid email'); return; }
+    if (!document.getElementById('ecConsent').checked) { toast('Please agree to Privacy + Terms'); return; }
+    var record = Object.assign({ email: email, consent: true }, ecPending);
+    if (ecSelectedRoles.length > 0) record.roles = ecSelectedRoles.join(', ');
+    if (!sb) { ecFallback(record); return; }
+    this.disabled = true; this.textContent = 'Saving…';
+    sb.from('network_signups').insert(record).then(function(res){
+      if (res.error) { console.error(res.error); ecFallback(record); }
+      else {
+        document.getElementById('ecForm').style.display = 'none';
+        document.getElementById('ecSuccess').style.display = 'block';
+      }
+    }).catch(function(err){ console.error(err); ecFallback(record); });
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // Dynamic ACS count + date — bulletproof: cached + live fetch
+  // ═══════════════════════════════════════════════════════════
+  // Strategy:
+  //   1. On page load, apply LAST CACHED stats instantly (no flash of stale hardcoded numbers)
+  //   2. Then fetch fresh from Supabase in the background
+  //   3. If Supabase succeeds → update UI + cache for next visit
+  //   4. If Supabase fails → cached data stays visible (silent fallback)
+  //   5. If no cache AND fetch fails → hardcoded HTML stays as ultimate fallback
+  (function fetchLiveAcs(){
+    var SB_URL = 'https://okmukfrhvqkxphzueqww.supabase.co';
+    var SB_KEY = 'sb_publishable_e_OWsyXVeFqgV6EVGAKKTw_sgEV2cTN';
+    var CACHE_KEY = 'voyce_live_tests_acs_stats';
+    var CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+    var c = document.getElementById('acs-count');
+    var d = document.getElementById('acs-date');
+    var s = document.getElementById('stat-atrisk');
+
+    function applyStats(stats){
+      if (!stats) return;
+      if (c && stats.atRisk != null) c.textContent = stats.atRisk;
+      if (d && stats.date) d.textContent = stats.date;
+      if (s && stats.atRisk != null) s.textContent = stats.atRisk;
+    }
+
+    // Step 1: Apply cached data immediately (instant render, no flash)
+    try {
+      var cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        var parsed = JSON.parse(cached);
+        if (parsed && parsed.stats) applyStats(parsed.stats);
+      }
+    } catch(e){}
+
+    // Step 2: Fetch fresh from Supabase
+    fetch(SB_URL + '/rest/v1/acs_animals?select=status_key,list_date&order=list_date.desc', {
+      headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY }
+    }).then(function(r){
+      if (!r.ok) throw new Error('HTTP '+r.status);
+      return r.json();
+    }).then(function(rows){
+      if (!rows || !rows.length) return;
+      var RISK = ['euthanasia','b6spt','outside_crit','immediate','scheduled','atrisk','office'];
+      var atRisk = rows.filter(function(r){ return RISK.indexOf(r.status_key) > -1; }).length;
+      var raw = rows[0].list_date;
+      var fmt = raw;
+      if (raw && /^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        var p = raw.split('-');
+        fmt = parseInt(p[1],10) + '/' + parseInt(p[2],10) + '/' + p[0];
+      }
+      var stats = { atRisk: atRisk, date: fmt };
+      // Step 3: Update UI + cache for next time
+      applyStats(stats);
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+          stats: stats,
+          cachedAt: Date.now()
+        }));
+      } catch(e){}
+    }).catch(function(e){
+      // Step 4: Silent fallback — cached data is already visible from Step 1
+      console.warn('[voyce-live-tests] Supabase fetch failed, using cached stats:', e && e.message);
+    });
+  })();
+
+  // ═══════════════════════════════════════════════════════════
+  // ORG ONBOARDING — Shelter + Rescue modals with EIN lookup
+  // ═══════════════════════════════════════════════════════════
+
+  // Open helpers (exposed globally so onclick attributes can call them)
+  window.openShelterOrgSignup = function(){
+    document.getElementById('shelterOrgForm').style.display = 'block';
+    document.getElementById('shelterOrgSuccess').style.display = 'none';
+    document.getElementById('shelterOrgModal').classList.add('show');
+  };
+  window.openRescueOrgSignup = function(){
+    document.getElementById('rescueOrgForm').style.display = 'block';
+    document.getElementById('rescueOrgSuccess').style.display = 'none';
+    document.getElementById('rescueOrgModal').classList.add('show');
+  };
+
+  // Click outside card to close
+  ['shelterOrgModal','rescueOrgModal'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('click', function(e){
+      if (e.target.id === id) this.classList.remove('show');
+    });
+  });
+
+  // EIN auto-lookup via ProPublica Nonprofit Explorer (US 501c3 only, no key needed)
+  function looksLikeUsEin(s){
+    return /^\d{2}-?\d{7}$/.test((s||'').trim());
+  }
+  function normalizeUsEin(s){
+    return (s||'').replace(/[^0-9]/g, '');
+  }
+  function lookupPropublica(ein, statusEl, orgNameEl, onResult){
+    if (!ein) return;
+    statusEl.className = 'org-ein-status checking';
+    statusEl.textContent = '⏳ Checking IRS records…';
+    var url = 'https://projects.propublica.org/nonprofits/api/v2/organizations/' + normalizeUsEin(ein) + '.json';
+    fetch(url)
+      .then(function(r){ if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(data){
+        if (data && data.organization && data.organization.name) {
+          var nm = data.organization.name;
+          statusEl.className = 'org-ein-status ok';
+          statusEl.textContent = '✓ Found: ' + nm;
+          // Auto-fill org name if empty
+          if (orgNameEl && !orgNameEl.value.trim()) orgNameEl.value = nm;
+          onResult && onResult({ ok: true, orgName: nm, raw: data.organization });
+        } else {
+          statusEl.className = 'org-ein-status error';
+          statusEl.textContent = '⚠ EIN not found in IRS records. You can still proceed manually.';
+          onResult && onResult({ ok: false });
+        }
+      })
+      .catch(function(){
+        statusEl.className = 'org-ein-status error';
+        statusEl.textContent = '⚠ Could not verify EIN (we\'ll review manually).';
+        onResult && onResult({ ok: false });
+      });
+  }
+
+  // Wire each modal: EIN lookup, list toggle, consent gating, submission
+  function wireOrgModal(opts){
+    // opts: { role, prefix } where prefix = 'sh' or 'rs'
+    var p = opts.prefix;
+    var einEl       = document.getElementById(p + 'Ein');
+    var countryEl   = document.getElementById(p + 'EinCountry');
+    var statusEl    = document.getElementById(p + 'EinStatus');
+    var orgNameEl   = document.getElementById(p + 'OrgName');
+    var contactEl   = document.getElementById(p + 'ContactName');
+    var emailEl     = document.getElementById(p + 'Email');
+    var websiteEl   = document.getElementById(p + 'Website');
+    var consentEl   = document.getElementById(p + 'Consent');
+    var submitBtn   = document.getElementById(p + 'SubmitBtn');
+    var formEl      = document.getElementById(opts.role + 'OrgForm');
+    var successEl   = document.getElementById(opts.role + 'OrgSuccess');
+
+    // Shelter-only: list toggle
+    var listToggle  = document.getElementById(p + 'ListToggle');
+    var listUrlWrap = document.getElementById(p + 'ListUrlWrap');
+    var listUrlEl   = document.getElementById(p + 'ListUrl');
+    var hasList     = false;
+
+    var einVerified = false;
+
+    // EIN lookup on blur (only for US)
+    if (einEl) {
+      einEl.addEventListener('blur', function(){
+        statusEl.className = 'org-ein-status';
+        statusEl.textContent = '';
+        einVerified = false;
+        var v = (einEl.value||'').trim();
+        if (!v) return;
+        if (v.toUpperCase() === 'PENDING') {
+          statusEl.className = 'org-ein-status checking';
+          statusEl.textContent = '⏳ Marked as pending — we\'ll check in with you.';
+          return;
+        }
+        if (countryEl.value === 'US' && looksLikeUsEin(v)) {
+          lookupPropublica(v, statusEl, orgNameEl, function(res){
+            einVerified = !!(res && res.ok);
+          });
+        } else {
+          // Non-US or non-standard format — just acknowledge
+          statusEl.className = 'org-ein-status checking';
+          statusEl.textContent = '✓ Will verify manually.';
+        }
+      });
+    }
+
+    // Shelter-only: list-toggle behavior
+    if (listToggle && listUrlWrap) {
+      listToggle.querySelectorAll('button').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          listToggle.querySelectorAll('button').forEach(function(b){ b.classList.remove('active'); });
+          btn.classList.add('active');
+          hasList = (btn.dataset.val === 'yes');
+          listUrlWrap.classList.toggle('show', hasList);
+        });
+      });
+    }
+
+    // Enable submit only when required fields + consent are present
+    function updateBtn(){
+      var ok = !!(
+        (orgNameEl && orgNameEl.value.trim()) &&
+        (contactEl && contactEl.value.trim()) &&
+        (emailEl && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailEl.value.trim())) &&
+        (consentEl && consentEl.checked)
+      );
+      submitBtn.disabled = !ok;
+    }
+    [orgNameEl, contactEl, emailEl, consentEl].forEach(function(el){
+      if (!el) return;
+      el.addEventListener('input', updateBtn);
+      el.addEventListener('change', updateBtn);
+    });
+
+    // Submit
+    submitBtn.addEventListener('click', function(){
+      if (submitBtn.disabled) return;
+      var record = {
+        role: opts.role,
+        ein: (einEl && einEl.value.trim()) || null,
+        ein_country: (countryEl && countryEl.value) || 'US',
+        org_name: orgNameEl.value.trim(),
+        contact_name: contactEl.value.trim(),
+        email: emailEl.value.trim(),
+        website: (websiteEl && websiteEl.value.trim()) || null,
+        has_daily_list: opts.role === 'shelter' ? hasList : false,
+        list_url: (opts.role === 'shelter' && hasList && listUrlEl) ? (listUrlEl.value.trim() || null) : null,
+        consent_privacy: true,
+        consent_terms: true,
+        ein_verified_via_propublica: einVerified,
+        source: 'voyce-live-tests',
+        user_agent: navigator.userAgent
+      };
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting…';
+
+      function showSuccess(){
+        formEl.style.display = 'none';
+        successEl.style.display = 'block';
+      }
+      function fallbackEmail(){
+        var subj = encodeURIComponent('Voyce ' + opts.role + ' signup · ' + record.org_name);
+        var body = encodeURIComponent(
+          'Role: ' + record.role +
+          '\nOrg: ' + record.org_name +
+          '\nEIN: ' + (record.ein || '(none)') + ' (' + record.ein_country + ')' +
+          '\nContact: ' + record.contact_name +
+          '\nEmail: ' + record.email +
+          '\nWebsite: ' + (record.website || '(none)') +
+          (opts.role === 'shelter' ? '\nHas daily list: ' + (record.has_daily_list ? 'yes — ' + (record.list_url||'') : 'no') : '')
+        );
+        window.location.href = 'mailto:bethevoyce1@gmail.com?subject=' + subj + '&body=' + body;
+      }
+
+      if (!sb) {
+        toast('Sending via email…');
+        setTimeout(fallbackEmail, 600);
+        return;
+      }
+      sb.from('org_signups').insert(record).then(function(res){
+        if (res.error) {
+          console.error('org_signups insert failed:', res.error);
+          toast('Save failed — opening email instead.');
+          setTimeout(fallbackEmail, 800);
+        } else {
+          showSuccess();
+        }
+        submitBtn.textContent = 'Submit signup';
+      }).catch(function(err){
+        console.error(err);
+        toast('Save failed — opening email instead.');
+        setTimeout(fallbackEmail, 800);
+        submitBtn.textContent = 'Submit signup';
+      });
+    });
+  }
+
+  wireOrgModal({ role: 'shelter', prefix: 'sh' });
+  wireOrgModal({ role: 'rescue',  prefix: 'rs' });
+})();
+</script>
+
+</body>
+</html>
