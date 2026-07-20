@@ -326,9 +326,10 @@ function PhotoThumb({ a }: { a: AcsAnimal }) {
   );
 }
 
-// Small live euthanasia badge. `euthanasia`/`b6spt` show an "in progress" chip
-// (no numeric timer); office_crit/immediate/scheduled tick down toward the
-// Central-time deadline, with the wall-clock time shown so no one does tz math.
+// Live euthanasia timer — shown as plain text (no pill) so the full label,
+// countdown and Central-time deadline read cleanly on the card. `euthanasia`/
+// `b6spt` show an "in progress" line (no numeric timer); office_crit/immediate/
+// scheduled tick down toward the Central-time deadline, wall clock included.
 function RowTimerBadge({ a }: { a: AcsAnimal }) {
   const key = normalizeStatusKey(a.status_key);
   const inRoom = key === "euthanasia" || key === "b6spt";
@@ -338,31 +339,47 @@ function RowTimerBadge({ a }: { a: AcsAnimal }) {
   // A dated animal whose Central deadline is already behind us shows a clean
   // "deadline has passed" state rather than a frozen 0s countdown.
   const past = !inRoom && hasTarget && msLeft <= 0;
-  const chip = inRoom
-    ? { label: "In progress — act now", bg: "#7F1D1D", text: "#FFFFFF", pulse: true }
+  const urgency = !inRoom && !past ? urgencyFor(msLeft) : null;
+
+  const label = inRoom
+    ? "In progress — act now"
     : past
-      ? { label: "Today's deadline has passed", bg: "#7F1D1D", text: "#FFFFFF", pulse: false }
-      : urgencyFor(msLeft);
+      ? "Today's deadline has passed"
+      : urgency!.label;
+  const pulse = inRoom || (urgency?.pulse ?? false);
+
+  // Readable ink now that the pill background is gone — text sits on the white card.
+  const ink =
+    inRoom || past
+      ? "#7F1D1D"
+      : urgency!.level === "under6"
+        ? "#991B1B"
+        : urgency!.level === "under12"
+          ? "#DC2626"
+          : urgency!.level === "under24"
+            ? "#C2410C"
+            : "#B45309"; // soon
+
   const countdown = !inRoom && hasTarget && msLeft > 0 ? formatCountdown(msLeft) : null;
   const clock = !inRoom && hasTarget && target && msLeft > 0 ? formatDeadlineClock(target) : null;
 
   return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-bold leading-tight ${
-        chip.pulse ? "motion-safe:animate-pulse" : ""
+    <div
+      className={`flex flex-wrap items-center gap-x-1.5 text-[11px] font-bold leading-tight ${
+        pulse ? "motion-safe:animate-pulse" : ""
       }`}
-      style={{ background: chip.bg, color: chip.text }}
+      style={{ color: ink }}
       role="status"
       aria-live="polite"
     >
-      <span>{chip.label}</span>
+      <span>{label}</span>
       {countdown && (
         <span className="tabular-nums">
           ⏳ {countdown}
           {clock && ` · by ${clock}`}
         </span>
       )}
-    </span>
+    </div>
   );
 }
 
