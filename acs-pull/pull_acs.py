@@ -46,8 +46,7 @@ Classification precedence (the right-side banner text beats a possibly-stale ken
   7. kennel OUTSIDE* (OUTSIDE3 etc.)                -> outside_crit (Critical (OUTSIDE3))
   8. "euthanized today"                             -> immediate (High risk today)
      "euthanized on {future date}"                  -> scheduled (Euthanasia date set)
-  9. "euthanized after {past date}"                 -> highrisk (eligible now)
-  10. otherwise (incl. "euthanized after {future date}") -> atrisk
+  9. otherwise (incl. "euthanized after {date}")    -> atrisk
 
 Env vars:
   SUPABASE_URL                (optional; host auto-detected/fixed)
@@ -366,16 +365,6 @@ def parse_rows(raw_text):
                 status_key = "scheduled"
                 d = datetime.strptime(euth_on_iso, "%Y-%m-%d")
                 public_status = f"Euthanasia date set · {d.strftime('%b')} {d.day}"
-
-        # Capacity dogs ("could be euthanized after {date}"): once that date
-        # has passed, the dog is eligible for euthanasia now -> High risk. A
-        # still-future date stays At risk (the window has not opened yet).
-        if status_key in ("atrisk", "office"):
-            _after = EUTH_AFTER_RE.search(block_text)
-            _after_iso = parse_date_iso(_after.group(1)) if _after else None
-            if _after_iso and _after_iso <= today_iso:
-                status_key = "highrisk"
-                public_status = PUBLIC["highrisk"]
 
         # Critical/scheduled animals carry a deadline for the countdown.
         euth_date = euth_on or (
