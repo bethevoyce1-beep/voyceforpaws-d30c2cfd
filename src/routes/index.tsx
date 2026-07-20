@@ -521,6 +521,25 @@ function Home() {
       );
     }
 
+    // At-risk shelter dogs ALWAYS render the single unified AcsShareCard —
+    // never the photo-capture ReportDetails / RescueReport assessment screens.
+    // Picking a board dog sets captured+assessment (for the card photo), which
+    // used to make those "second card" stages reachable via back/forward. This
+    // guard closes every path into them automatically — no refresh needed.
+    if (
+      mission === "at-risk-shelter" &&
+      acsAnimal &&
+      (stage === "details" ||
+        stage === "processing" ||
+        stage === "alerting" ||
+        stage === "report" ||
+        stage === "share")
+    ) {
+      return withBack(
+        <AcsShareCard animal={acsAnimal} onContinue={() => setStage("timeline")} />
+      );
+    }
+
     if (stage === "details" && captured && assessment) {
       return withBack(
         <ReportDetails
