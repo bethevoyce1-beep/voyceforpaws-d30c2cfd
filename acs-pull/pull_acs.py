@@ -10,7 +10,7 @@ table via acs_apply_pull().
 Status model (status_key -> public_status):
   euthanasia  -> Euthanasia in progress — act immediately
   b6spt       -> SOS (B6-SPT) · save now         office_crit -> Critical · Office
-  immediate   -> Critical · euthanasia date set · save today (euthanized today)
+  immediate   -> Critical · save today (euthanized today)
   scheduled   -> Euthanasia date set · high risk (firm future date)
   atrisk      -> At risk (capacity date, no active/passed date)   office -> Office
   adopthold   -> ACS Adoption Hold               adoption    -> ACS Rescue Hold
@@ -131,7 +131,7 @@ PUBLIC = {
     "b6spt": "SOS (B6-SPT) · save now",
     "office_crit": "Critical · Office",
     "outside_crit": "Critical (OUTSIDE3) · save now",
-    "immediate": "Critical · euthanasia date set · save today",
+    "immediate": "Critical · save today",
     "highrisk": "Euthanasia date set · high risk",
     "scheduled": "Euthanasia date set · high risk",
     "atrisk": "At risk",
@@ -361,7 +361,7 @@ def parse_rows(raw_text):
         # Split "immediate" into today vs a set future date ("Euthanasia date set").
         if status_key == "immediate":
             if euth_today or not euth_on_iso or euth_on_iso <= today_iso:
-                public_status = "Critical · euthanasia date set · save today"
+                public_status = "Critical · save today"
             else:
                 status_key = "scheduled"
                 public_status = "Euthanasia date set · high risk"
