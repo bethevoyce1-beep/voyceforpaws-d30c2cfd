@@ -460,7 +460,7 @@ function AnimalRow({ a, onPick }: { a: AcsAnimal; onPick: (a: AcsAnimal) => void
           )}
           {euthDay && (
             <span className="rounded-md bg-[#FBE3E3] px-1.5 py-0.5 text-[10px] font-semibold text-[#7F1D1D]">
-              Euth date {euthDay}
+              Euth {normalizeStatusKey(a.status_key) === "atrisk" ? "after" : "date"} {euthDay}
             </span>
           )}
         </div>
