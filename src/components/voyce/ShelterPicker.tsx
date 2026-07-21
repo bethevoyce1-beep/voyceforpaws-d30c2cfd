@@ -165,6 +165,14 @@ const SECTIONS: SectionDef[] = [
     accent: "#9CA3AF",
   },
   {
+    id: "following_up",
+    title: "Following up with ACS",
+    action: "Dropped off ACS's list with no posted outcome — we've emailed ACS to ask what happened.",
+    badgeBg: "#E0E7FF",
+    badgeText: "#3730A3",
+    accent: "#6366F1",
+  },
+  {
     id: "unknown",
     title: "Unknown",
     action: "A status Voyce didn't recognize — open the ACS record to check.",
@@ -193,6 +201,7 @@ const CHIPS: ChipDef[] = [
   { id: "pending", label: "Foster Pending", sections: ["foster_pending"] },
   { id: "secured", label: "Secured", sections: ["secured"] },
   { id: "memoriam", label: "In Memoriam", sections: ["in_memoriam"] },
+  { id: "followup", label: "Following up with ACS", sections: ["following_up"] },
   { id: "unknown", label: "Unknown", sections: ["unknown"] },
 ];
 
