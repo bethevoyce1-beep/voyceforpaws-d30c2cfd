@@ -141,6 +141,7 @@ PUBLIC = {
     "foster": "ACS Foster Hold",
     "watch": "Foster Pending",
     "secured": "Secured",
+    "following_up": "Following up with ACS",
     "unknown": "Unknown",
 }
 
@@ -507,6 +508,63 @@ def write_debug(pdf_url, page_count, parsed_rows, raw_text, notes):
         log(f"DEBUG WRITE EXCEPTION: {e}")
 
 
+def resolve_unknowns():
+    """Follow-up on any dog that dropped off the list without a written outcome.
+    Re-check its ACS PetSearch page and route it where it belongs:
+      * page still live ("Available for adoption") -> still at the shelter -> atrisk
+      * "Animal ID not found"                        -> it has left ACS and the
+        outcome is not published -> following_up (Voyce then asks ACS directly).
+    Runs every pull so nothing sits in limbo. Uses the service key (full access).
+    """
+    from datetime import datetime as _dt, timezone as _tz
+    try:
+        r = requests.get(
+            f"{REST}/acs_animals?status_key=in.(unknown,following_up)&select=id,pet_search_url",
+            headers=HEADERS, timeout=60,
+        )
+        if r.status_code >= 300:
+            log(f"resolve_unknowns list {r.status_code}: {r.text[:200]}")
+            return {}
+        rows = r.json()
+    except Exception as e:
+        log(f"resolve_unknowns list failed: {e}")
+        return {}
+    now_iso = _dt.now(_tz.utc).isoformat()
+    counts = {"atrisk": 0, "following_up": 0}
+    for row in rows:
+        aid = row.get("id")
+        if not aid:
+            continue
+        url = row.get("pet_search_url") or f"https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id={aid}"
+        try:
+            pr = requests.get(url, timeout=15, headers=UA)
+            html = pr.text if pr.status_code < 300 else ""
+        except Exception as e:
+            log(f"resolve_unknowns fetch {aid} failed: {e}")
+            continue
+        if not html:
+            continue
+        if "Animal ID not found" in html:
+            patch = {"status_key": "following_up", "public_status": "Following up with ACS",
+                     "status": "Following up with ACS", "updated_at": now_iso}
+            counts["following_up"] += 1
+        else:
+            patch = {"status_key": "atrisk", "public_status": "At risk",
+                     "status": "At risk", "updated_at": now_iso}
+            counts["atrisk"] += 1
+        try:
+            up = requests.patch(
+                f"{REST}/acs_animals?id=eq.{aid}",
+                headers={**HEADERS, "Prefer": "return=minimal"},
+                data=json.dumps(patch), timeout=30,
+            )
+            if up.status_code >= 300:
+                log(f"resolve_unknowns patch {aid} {up.status_code}: {up.text[:150]}")
+        except Exception as e:
+            log(f"resolve_unknowns patch {aid} failed: {e}")
+    return counts
+
+
 def main():
     started = datetime.now(timezone.utc).isoformat()
     log(f"Supabase target: {SUPABASE_URL} (live acs_animals via acs_apply_pull)")
@@ -528,6 +586,14 @@ def main():
     log(f"Enriched photos for {enriched} new animals")
     res = apply_pull(rows)
     log(f"acs_apply_pull result: {res}")
+
+    # Follow up on anything that dropped off without a written outcome: re-check
+    # the ACS page and route it (still-listed -> At risk; gone -> Following up).
+    try:
+        rc = resolve_unknowns()
+        log(f"resolve_unknowns: {rc}")
+    except Exception as e:
+        log(f"resolve_unknowns skipped (non-fatal): {e}")
 
     # Per-dog ACS PDF crops — isolated so any failure here never affects the
     # data pull above (which has already been written).
