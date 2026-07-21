@@ -1,0 +1,1633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Voyce × San Antonio ACS — Live Rescue Cards</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --cream:#FBF8F1; --cream2:#F6F0DC;
+    --ink:#1F1F1F; --muted:#8a8175;
+    --gold:#F3B62B; --gold-deep:#C9871A; --gold-soft:#FCE9A8; --yellow:#FFD24A;
+    --line:#ece2d2;
+    --red:#CE6E5C; --redfill:#D06A53; --redbg:#FBEEEA; --redbg-edge:#E7C3B8;
+    --amber:#E59A33; --amberbg:#FDF1D4;
+    --green:#5F8A68; --greenbg:#E9F3EA;
+    --blue:#3a5a86; --bluebg:#EEF2F8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased;}
+  a{color:inherit;text-decoration:none;}
+
+  /* Top brand bar */
+  .topbar{background:var(--ink);color:var(--cream);padding:10px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+  .topbar .brand{display:flex;align-items:center;gap:10px;font-family:'Fraunces',serif;font-weight:500;letter-spacing:.02em;}
+  .topbar .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--gold);box-shadow:0 0 10px var(--gold);animation:pulse 1.6s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.3);opacity:.6;}}
+  .topbar .meta{font-size:12px;color:rgba(255,248,231,.7);letter-spacing:.06em;text-transform:uppercase;}
+  .topbar .meta b{color:var(--gold);}
+
+  /* Hero */
+  .hero{max-width:1280px;margin:0 auto;padding:44px 28px 16px;}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;background:#fff;border:1px solid var(--line);border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold-deep);margin-bottom:14px;}
+  .eyebrow .live{width:7px;height:7px;border-radius:50%;background:var(--red);box-shadow:0 0 8px var(--red);animation:pulse 1.4s infinite;}
+  h1{font-family:'Fraunces',serif;font-weight:500;font-size:clamp(28px,4vw,46px);line-height:1.08;margin-bottom:12px;color:var(--ink);}
+  h1 em{font-style:italic;color:var(--gold-deep);}
+  h1 .red{color:var(--red);font-style:italic;}
+  .hero-sub{font-size:16px;color:var(--muted);max-width:760px;line-height:1.55;margin-bottom:4px;}
+  .hero-sub b{color:var(--ink);}
+
+  /* Meta strip */
+  .meta-strip{max-width:1280px;margin:18px auto 0;padding:14px 28px;display:flex;gap:32px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+  .meta-item{display:flex;flex-direction:column;gap:2px;}
+  .meta-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+  .meta-value{font-size:14px;font-weight:700;color:var(--ink);}
+  .meta-value.urgent{color:var(--red);}
+  .meta-value a{color:var(--gold-deep);text-decoration:underline;}
+
+  /* Honest note */
+  .note{max-width:1280px;margin:18px auto 0;padding:14px 18px;background:#fff8e1;border:1px solid #fde68a;border-left:4px solid var(--gold-deep);border-radius:8px;font-size:13px;color:#7c5a1c;line-height:1.55;margin-left:28px;margin-right:28px;}
+  .note strong{color:#9a3412;}
+
+  /* Filters */
+  .filters{max-width:1280px;margin:24px auto 6px;padding:0 28px;display:flex;gap:8px;flex-wrap:wrap;}
+  .chip{background:#fff;border:1px solid var(--line);color:var(--ink);font-size:13px;font-weight:600;padding:9px 16px;border-radius:999px;cursor:pointer;transition:all .15s;font-family:inherit;}
+  .chip:hover{border-color:var(--gold-deep);}
+  .chip.active{background:var(--ink);color:var(--gold);border-color:var(--ink);}
+  .chip .c{margin-left:6px;opacity:.7;font-size:11px;font-weight:700;}
+  /* "Euthanasia date set" — make it read urgent (a set euth date is serious). */
+  .chip[data-key="scheduled"]{border-color:#EA580C;color:#C2410C;background:#FFF3E6;font-weight:700;}
+  .chip[data-key="scheduled"]:hover{border-color:#C2410C;background:#FFE8D1;}
+  .chip[data-key="scheduled"].active{background:#EA580C;color:#fff;border-color:#EA580C;}
+  .chip[data-key="scheduled"].active .c{opacity:.9;}
+
+  /* Section heads (per status group) */
+  .group{max-width:1280px;margin:24px auto 8px;padding:0 28px;}
+  .group-head{display:flex;align-items:center;gap:10px;font-family:'Fraunces',serif;font-weight:500;font-size:20px;color:var(--ink);margin-bottom:14px;}
+  .group-head .gcount{font-family:'Inter',sans-serif;font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;color:#fff;letter-spacing:.06em;}
+  .group-head .dot{width:10px;height:10px;border-radius:50%;}
+
+  /* Grid */
+  .grid{max-width:1280px;margin:0 auto;padding:0 28px 24px;display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:18px;}
+
+  /* Card — phone-style clean white with warm shadow */
+  .card{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s;box-shadow:0 4px 14px rgba(0,0,0,.05);}
+  .card:hover{transform:translateY(-3px);box-shadow:0 18px 36px rgba(15,10,3,.1);}
+  .card.immediate{border-color:rgba(200,54,43,.35);}
+  .card.atrisk{border-color:rgba(210,145,60,.35);}
+  .card.adoption{border-color:rgba(217,119,6,.35);}
+  .card.foster{border-color:rgba(147,51,234,.35);}
+  .card.b6spt{border-color:rgba(127,29,29,.65);}
+  .card.euthanasia{border-color:rgba(26,26,26,.85);}
+  .card.office{border-color:rgba(210,145,60,.5);}
+  .card.office_crit{border-color:rgba(153,27,27,.6);}
+  .card.outside_crit{border-color:rgba(200,54,43,.6);}
+  .card.highrisk{border-color:rgba(232,89,12,.55);}
+
+  /* Euthanasia-in-progress banner — sits above the photo, unmissable */
+  .euth-banner{background:#7F1D1D;color:#fff;font-weight:800;font-size:13px;letter-spacing:.03em;
+    text-transform:uppercase;text-align:center;padding:10px 14px;line-height:1.35;
+    animation:euthPulse 1.4s ease-in-out infinite;}
+  @keyframes euthPulse{0%,100%{background:#7F1D1D;}50%{background:#9B1C1C;}}
+  .euth-banner.now{background:#111;animation:euthNow 1s ease-in-out infinite;}
+  @keyframes euthNow{0%,100%{background:#111;}50%{background:#3F0D0D;}}
+
+  /* Photo */
+  .photo{position:relative;width:100%;aspect-ratio:4/3;background:linear-gradient(135deg,#f5ecd2,#e6d5a8);overflow:hidden;}
+  .photo img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s;}
+  .card:hover .photo img{transform:scale(1.04);}
+  .photo-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:48px;color:rgba(11,11,12,.25);}
+  .badge{position:absolute;padding:5px 11px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.06em;backdrop-filter:blur(8px);}
+  .badge.status{top:12px;right:12px;color:#fff;font-size:10px;padding:4px 9px;letter-spacing:.03em;font-weight:800;text-shadow:0 1px 3px rgba(0,0,0,.6);box-shadow:0 2px 10px rgba(0,0,0,.3);}
+  .badge.status.b6spt{background:#A11212;}
+  .badge.status.euthanasia{background:#0F0F0F;}
+  .badge.status.euthtoday{background:#4B5563;}
+  .badge.status.office{background:#D97A16;}
+  .badge.status.office_crit{background:#BE1B1B;}
+  .badge.status.outside_crit{background:#DC2626;}
+  .badge.status.highrisk{background:#EA580C;}
+  .card.euthtoday{border-color:rgba(75,85,99,.5);}
+  .badge.status.immediate{background:#E11414;}
+  .badge.status.scheduled{background:#EA580C;}
+  .badge.status.atrisk{background:#E08910;}
+  .badge.status.hold{background:#5F8A68;}
+  .badge.status.adoption{background:#D97706;color:#fff;}
+  .badge.status.adopthold{background:#DB2777;color:#fff;}
+  .badge.status.foster{background:#9333EA;color:#fff;}
+  .badge.status.watch{background:#2563EB;}
+  .badge.status.secured{background:#2E7D46;}
+  .badge.status.euthanized{background:#6B7280;}
+  .badge.status.unknown{background:#8A8F98;}
+  .badge.status.listed{background:#463E34;}
+  .badge.days{bottom:12px;left:12px;background:rgba(0,0,0,.62);color:#fde68a;}
+
+  /* Body — phone-style padding */
+  .body{padding:14px 16px 16px;flex:1;display:flex;flex-direction:column;}
+  .name-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px;}
+  .name{font-family:'Fraunces',serif;font-weight:500;font-size:24px;line-height:1.1;color:var(--ink);}
+  .id{font-size:11px;color:var(--muted);letter-spacing:.06em;}
+  .meta-line{font-size:12.5px;color:var(--muted);margin:2px 0 8px;line-height:1.45;}
+  .preview-text{font-size:13.5px;line-height:1.55;color:#4a4338;margin:0 0 4px;}
+  .preview-text.muted-text{color:var(--muted);font-style:italic;}
+  .tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;}
+  .tag{font-size:11px;padding:3px 8px;border-radius:6px;background:var(--cream2);color:var(--ink);border:1px solid var(--line);font-weight:500;}
+
+  /* Color-coded section blocks (match detail modal) */
+  /* Clean Placement Info grid — inline (mirrors detail modal) */
+  .pi-block{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px 10px;margin-bottom:12px;}
+  .pi-block h4{font-family:'Fraunces',serif;font-size:14px;font-weight:600;color:var(--ink);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+  .pi-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;}
+  .pi-row{display:flex;flex-direction:column;gap:1px;padding:5px 0;border-bottom:1px dashed rgba(11,11,12,.07);}
+  .pi-row:nth-last-child(-n+2){border-bottom:0;}
+  .pi-row .pi-lbl{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);}
+  .pi-row .pi-val{font-size:13px;color:var(--ink);font-weight:700;}
+  .pi-row .pi-val.ok{color:var(--green);}
+  .pi-row .pi-val.warn{color:var(--red);}
+  .pi-row .pi-val.dim{color:var(--muted);font-weight:500;}
+
+  .sec-block{position:relative;border-radius:10px;padding:11px 13px;margin-bottom:10px;border-left:4px solid;font-size:13px;line-height:1.5;}
+  .sec-block .sec-lbl{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;}
+  /* 💛 Story — gold */
+  .sec-block.story{background:linear-gradient(180deg,#FFFCEF,#fff);border-left-color:var(--gold-deep);color:#3a3128;}
+  .sec-block.story .sec-lbl{color:var(--gold-deep);}
+  /* 🚨 Rescue (risk warning + placement) — red */
+  .sec-block.rescue{background:#FBEAE5;border-left-color:var(--red);color:#7a2419;font-weight:600;}
+  .sec-block.rescue .sec-lbl{color:var(--red);}
+  .sec-block.rescue.hold{background:var(--greenbg);border-left-color:var(--green);color:#2a5234;}
+  .sec-block.rescue.hold .sec-lbl{color:var(--green);}
+  .sec-block.rescue.adoption{background:#FFF3DD;border-left-color:#D97706;color:#7a5215;}
+  .sec-block.rescue.adoption .sec-lbl{color:#D97706;}
+  .sec-block.rescue.foster{background:#F4EEFF;border-left-color:#9333EA;color:#4F2D8B;}
+  .sec-block.rescue.foster .sec-lbl{color:#9333EA;}
+  .sec-block.rescue.secured{background:var(--bluebg);border-left-color:var(--blue);color:#1f3a5a;}
+  .sec-block.rescue.secured .sec-lbl{color:var(--blue);}
+  /* 🩺 Health / Vet — blue */
+  .sec-block.vet{background:var(--bluebg);border-left-color:var(--blue);color:#2a4365;}
+  .sec-block.vet .sec-lbl{color:var(--blue);}
+  /* 📋 ACS Notes — gray dashed */
+  .sec-block.notes{background:#fff;border:1px dashed var(--line);border-left:4px solid var(--muted);color:#5a4f44;font-size:12.5px;}
+  .sec-block.notes .sec-lbl{color:var(--muted);}
+
+  /* Health pill row inside the vet block */
+  .vet-pills{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
+  .vet-pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:#fff;border:1px solid rgba(58,90,134,.25);color:var(--blue);}
+  .vet-pill.warn{background:#FBEAE5;border-color:rgba(200,54,43,.25);color:var(--red);}
+  .vet-pill.ok{background:var(--greenbg);border-color:rgba(95,138,104,.3);color:var(--green);}
+
+  /* Risk line */
+  .risk{font-size:12px;color:var(--red);font-weight:600;margin-bottom:10px;line-height:1.4;}
+  .risk.hold{color:var(--green);}
+  .risk.secured{color:var(--blue);}
+
+  /* Actions — phone-style filled gold + yellow + outline */
+  .actions{display:flex;gap:7px;margin-top:11px;}
+  .actions.five{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+  .act{flex:1;font-size:12.5px;font-weight:800;padding:11px 6px;border-radius:10px;border:none;cursor:pointer;font-family:inherit;text-align:center;transition:all .15s;}
+  .act:hover{transform:translateY(-1px);}
+  /* Five-pill row: ACS-style action colors */
+  .actions.five .act{font-size:11.5px;padding:10px 4px;letter-spacing:.02em;}
+  .actions.five .act:nth-child(1){background:var(--redfill);color:#fff;}      /* HELP */
+  .actions.five .act:nth-child(2){background:var(--gold);color:#2a230f;}      /* RESCUE */
+  .actions.five .act:nth-child(3){background:var(--yellow);color:#3a2f08;}    /* FOSTER */
+  .actions.five .act:nth-child(4){background:#fff;border:1px solid var(--line);color:var(--ink);} /* ADOPT */
+  .actions.five .act:nth-child(5){background:#fff;border:1px solid var(--line);color:var(--ink);} /* SHARE */
+
+  /* ACS link — the star feature */
+  .acs-link{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:linear-gradient(135deg,#0B0B0C,#1a1408);color:var(--cream);border-radius:10px;font-size:12px;font-weight:600;margin-top:6px;cursor:pointer;border:1px solid var(--ink);transition:all .15s;}
+  .acs-link:hover{background:var(--gold-deep);color:#fff;transform:translateX(2px);}
+  .acs-link .left{display:flex;flex-direction:column;gap:1px;}
+  .acs-link .top{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);}
+  .acs-link:hover .top{color:#fff8e7;}
+  .acs-link .bot{font-size:13px;font-weight:700;}
+  .acs-link .arrow{font-size:18px;font-weight:700;}
+  /* Secondary link to the source PDF list */
+  .acs-link.pdf{background:#fff;color:var(--ink);border:1px solid var(--gold-deep);margin-top:6px;}
+  .acs-link.pdf .top{color:var(--gold-deep);}
+  .acs-link.pdf:hover{background:var(--gold-soft);color:var(--ink);transform:translateX(2px);}
+  .acs-link.pdf:hover .top{color:var(--gold-deep);}
+
+  /* Auto-find videos row */
+  .vidrow{margin-top:8px;padding:10px 12px;background:var(--cream2);border:1px dashed var(--line);border-radius:10px;}
+  .vidlab{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--ink);margin-bottom:7px;}
+  .vidchips{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:6px;}
+  .vidchip{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:7px 6px;border-radius:7px;font-size:11px;font-weight:700;text-decoration:none;border:1px solid var(--line);background:#fff;color:var(--ink);transition:all .15s;cursor:pointer;}
+  .vidchip:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(0,0,0,.08);}
+  .vidchip.fb{border-color:#1877F2;color:#1877F2;}
+  .vidchip.fb:hover{background:#1877F2;color:#fff;}
+  .vidchip.yt{border-color:#FF0000;color:#FF0000;}
+  .vidchip.yt:hover{background:#FF0000;color:#fff;}
+  .vidchip.web{border-color:var(--gold-deep);color:var(--gold-deep);}
+  .vidchip.web:hover{background:var(--gold-deep);color:#fff;}
+  .vidnote{font-size:10.5px;color:var(--muted);line-height:1.4;}
+  .vidnote b{color:var(--ink);}
+
+  /* Footer */
+  .footer-block{max-width:1280px;margin:40px auto 0;padding:32px 28px;border-top:1px solid var(--line);background:var(--cream2);}
+  .footer-block h3{font-family:'Fraunces',serif;font-weight:500;font-size:22px;color:var(--ink);margin-bottom:8px;}
+  .footer-block p{font-size:14px;color:var(--muted);line-height:1.55;max-width:760px;margin-bottom:8px;}
+  .footer-block a{color:var(--gold-deep);text-decoration:underline;}
+  .acs-emails{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+  .acs-email{background:var(--ink);color:var(--gold);padding:10px 16px;border-radius:10px;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:8px;}
+
+  /* Pre-launch sticky banner */
+  .prelaunch-banner{position:sticky;top:0;z-index:80;background:linear-gradient(90deg,#FFD24F,#F0A516,#FFD24F);color:#2a1c05;padding:9px 24px;font-size:13px;font-weight:700;text-align:center;letter-spacing:.02em;display:flex;justify-content:center;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+  .prelaunch-banner b{font-weight:800;}
+  .prelaunch-banner .close{background:none;border:none;color:#2a1c05;font-size:18px;font-weight:700;cursor:pointer;opacity:.6;padding:0 6px;font-family:inherit;line-height:1;}
+  .prelaunch-banner .close:hover{opacity:1;}
+  .prelaunch-banner.hidden{display:none;}
+
+  /* Auto-syncing status bar — phone-style, prominent */
+  .refresh-bar{max-width:1280px;margin:18px auto 0;padding:14px 28px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;}
+  .last-updated{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:var(--green);}
+  .last-updated .pulse{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 var(--green);animation:syncpulse 1.8s infinite;}
+  @keyframes syncpulse{0%{box-shadow:0 0 0 0 rgba(95,138,104,.55);}70%{box-shadow:0 0 0 10px rgba(95,138,104,0);}100%{box-shadow:0 0 0 0 rgba(95,138,104,0);}}
+  .last-updated .meta{color:var(--muted);font-weight:500;}
+  .refresh-btn{background:#fff;border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-size:12.5px;font-weight:700;color:var(--ink);cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;transition:all .15s;}
+  .refresh-btn:hover{border-color:var(--gold-deep);background:var(--gold-soft);}
+
+  /* Per-card Open-in-Voyce-app handoff */
+  .openapp-link{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 14px;background:linear-gradient(135deg,#FFD24F,#F0A516);color:#2a1c05;border-radius:10px;font-size:13px;font-weight:800;margin-top:8px;cursor:pointer;border:none;font-family:inherit;text-decoration:none;transition:all .15s;letter-spacing:.01em;width:100%;text-align:left;}
+  .openapp-link:hover{box-shadow:0 8px 22px rgba(216,138,18,.4);transform:translateY(-1px);}
+  .openapp-link .left{display:flex;flex-direction:column;gap:1px;}
+  .openapp-link .top{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.7;}
+  .openapp-link .bot{font-size:13.5px;font-weight:800;}
+  .openapp-link .arrow{font-size:18px;font-weight:700;}
+
+  /* Email-capture modal (Privacy/Terms gated) */
+  .ec-modal{position:fixed;inset:0;background:rgba(11,11,12,.78);backdrop-filter:blur(8px);z-index:200;display:none;align-items:center;justify-content:center;padding:24px;}
+  .ec-modal.show{display:flex;animation:fade .2s ease;}
+  @keyframes fade{from{opacity:0;}to{opacity:1;}}
+  .ec-card{background:#fff;border-radius:18px;max-width:500px;width:100%;padding:30px 28px;max-height:92vh;overflow-y:auto;}
+  .ec-eyebrow{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-deep);margin-bottom:8px;}
+  .ec-card h3{font-family:'Fraunces',serif;font-weight:500;font-size:24px;color:var(--ink);margin-bottom:8px;line-height:1.2;}
+  .ec-card p{font-size:14px;color:var(--muted);line-height:1.55;margin-bottom:18px;}
+  .ec-input{width:100%;padding:13px 16px;border:1.5px solid var(--line);border-radius:12px;font-size:15px;font-family:inherit;outline:none;margin-bottom:14px;background:#fff;}
+  .ec-input:focus{border-color:var(--gold-deep);}
+  .ec-consent{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;background:var(--cream2);border:1px solid var(--line);border-radius:10px;margin-bottom:16px;font-size:12.5px;color:var(--ink);line-height:1.5;}
+  .ec-consent input{margin-top:2px;flex-shrink:0;cursor:pointer;}
+  .ec-consent a{color:var(--gold-deep);text-decoration:underline;font-weight:600;}
+  .ec-buttons{display:flex;gap:10px;}
+  .ec-btn{flex:1;padding:14px;border:none;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;transition:all .15s;}
+  .ec-btn.primary{background:var(--ink);color:var(--gold);}
+  .ec-btn.primary:hover{background:var(--gold-deep);color:#fff;}
+  .ec-btn.primary:disabled{opacity:.45;cursor:not-allowed;}
+  .ec-btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);}
+  .ec-btn.ghost:hover{background:var(--cream2);}
+  .ec-success{text-align:center;padding:18px 0;}
+  .ec-success .check{width:54px;height:54px;border-radius:50%;background:var(--green);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:12px;}
+
+  /* Live countdown timer on photo — bigger + brighter */
+  .countdown{position:absolute;bottom:12px;right:12px;background:rgba(20,14,6,.88);color:#fde047;padding:9px 16px;border-radius:12px;font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.06em;display:inline-flex;align-items:center;gap:6px;backdrop-filter:blur(8px);z-index:3;box-shadow:0 6px 18px rgba(0,0,0,.35);}
+  .countdown.immediate{background:rgba(200,54,43,.95);color:#fff;animation:cdpulse 1.6s infinite;box-shadow:0 6px 22px rgba(200,54,43,.55);}
+  .countdown.atrisk{background:rgba(229,154,51,.95);color:#fff;box-shadow:0 6px 22px rgba(229,154,51,.45);}
+  .countdown.passed{background:rgba(20,14,6,.88);color:#fca5a5;animation:none;}
+  /* The .countdown class is a floating pill on the photo. When it's reused inside
+     the in-body / modal "big number" banners, it must render as plain inline text —
+     otherwise it detaches and floats to the corner of the page. */
+  .bigcd-inline .countdown,.bigcd-banner .countdown{position:static;background:none;box-shadow:none;backdrop-filter:none;padding:0;border-radius:0;color:inherit;font-size:inherit;letter-spacing:inherit;z-index:auto;animation:none;}
+  @keyframes cdpulse{0%,100%{box-shadow:0 0 0 0 rgba(200,54,43,.55),0 6px 22px rgba(200,54,43,.55);}50%{box-shadow:0 0 0 12px rgba(200,54,43,0),0 6px 22px rgba(200,54,43,.55);}}
+
+  /* Detail modal — two-card view */
+  .detail-modal{position:fixed;inset:0;background:rgba(11,11,12,.82);backdrop-filter:blur(8px);z-index:300;display:none;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto;}
+  .detail-modal.show{display:flex;animation:fade .2s ease;}
+  .detail-card{background:var(--cream);border-radius:20px;max-width:980px;width:100%;max-height:none;overflow-y:visible;position:relative;margin:auto;}
+  .detail-close{position:absolute;top:16px;right:16px;width:42px;height:42px;border-radius:50%;background:rgba(0,0,0,.7);color:#fff;border:none;font-size:22px;cursor:pointer;z-index:10;display:flex;align-items:center;justify-content:center;font-family:inherit;}
+  .detail-close:hover{background:var(--ink);}
+  .detail-hero{position:relative;width:100%;aspect-ratio:2/1;overflow:hidden;border-radius:20px 20px 0 0;background:linear-gradient(135deg,#f5ecd2,#e6d5a8);}
+  .detail-hero img{width:100%;height:100%;object-fit:cover;}
+  .detail-hero .rb{position:absolute;top:16px;left:16px;padding:6px 14px;border-radius:999px;color:#fff;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;}
+  .detail-hero .eu{position:absolute;top:16px;right:16px;padding:6px 14px;border-radius:10px;background:rgba(200,54,43,.92);color:#fff;font-size:12px;font-weight:800;line-height:1.2;text-align:right;}
+  .bigcd-banner{margin:18px 22px 0;padding:18px 22px;background:linear-gradient(135deg,#FBEAE5,#FFFCEF);border:1.5px solid rgba(200,54,43,.35);border-radius:14px;text-align:center;}
+  .bigcd-banner.atrisk{background:linear-gradient(135deg,#FDF1D4,#FFFCEF);border-color:rgba(210,145,60,.35);}
+  .bigcd-banner .lbl{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-deep);margin-bottom:6px;}
+  .bigcd-banner .num{font-family:'Fraunces',serif;font-size:38px;font-weight:600;color:var(--red);line-height:1;letter-spacing:.02em;font-variant-numeric:tabular-nums;}
+  .bigcd-banner .num.atrisk{color:var(--amber);}
+  .bigcd-banner .sub{font-size:12px;color:var(--muted);margin-top:6px;}
+
+  .detail-body{padding:18px 22px 28px;}
+  .detail-name{font-family:'Fraunces',serif;font-size:32px;font-weight:500;color:var(--ink);margin-bottom:4px;}
+  .detail-sub{font-size:14px;color:var(--muted);margin-bottom:18px;}
+  .detail-pair{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media (max-width:760px){.detail-pair{grid-template-columns:1fr;}}
+  .detail-tab{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:5px 12px;border-radius:8px 8px 0 0;color:#fff;margin-bottom:0;}
+  .detail-tab.story{background:var(--gold-deep);}
+  .detail-tab.rescue{background:var(--red);}
+  .detail-tab.vet{background:var(--blue);}
+  .detail-block{background:#fff;border-radius:0 14px 14px 14px;padding:18px 20px;margin-bottom:18px;border:1px solid var(--line);}
+  .detail-block.story{border-color:rgba(201,135,26,.3);background:linear-gradient(180deg,#FFFCEF,#fff);}
+  .detail-block.rescue{border-color:rgba(200,54,43,.2);}
+  .detail-block.vet{border-color:rgba(58,90,134,.2);}
+  .detail-block h3{font-family:'Fraunces',serif;font-size:18px;font-weight:600;color:var(--ink);margin-bottom:10px;}
+  .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-top:4px;}
+  .detail-row{display:flex;flex-direction:column;gap:1px;padding:6px 0;border-bottom:1px dashed var(--line);}
+  .detail-row:last-child{border-bottom:0;}
+  .detail-row .lbl{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);}
+  .detail-row .val{font-size:13.5px;color:var(--ink);font-weight:600;}
+  .detail-row .val.ok{color:var(--green);}
+  .detail-row .val.warn{color:var(--red);}
+  .detail-row .val.dim{color:var(--muted);font-weight:500;}
+  .detail-story-text{font-size:14.5px;color:#3a3128;line-height:1.55;font-style:italic;}
+  .detail-warn{padding:10px 12px;background:#FBEAE5;border:1px solid rgba(200,54,43,.3);border-radius:10px;font-size:13px;color:#7a2419;margin-top:12px;line-height:1.5;}
+  .detail-warn.ok{background:var(--greenbg);border-color:rgba(95,138,104,.3);color:#2a5234;}
+  .detail-proc{padding:10px 12px;background:var(--cream2);border:1px solid var(--line);border-radius:10px;font-size:12.5px;color:#5a4f44;margin-top:10px;line-height:1.5;}
+
+  /* "View full record" — phone-style primary gold pill */
+  .viewfull{display:block;width:100%;margin-top:11px;padding:13px 14px;border-radius:12px;background:var(--gold);color:#2a230f;font-weight:800;font-size:13.5px;text-align:center;border:none;cursor:pointer;font-family:inherit;letter-spacing:.01em;transition:all .15s;box-shadow:0 4px 12px rgba(243,182,43,.25);}
+  .viewfull:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(243,182,43,.35);}
+
+  /* Phone-style: big countdown banner */
+  .bigcd-inline{margin-bottom:14px;background:#FBEEEA;border:1px solid #E7C3B8;border-radius:14px;padding:14px 16px;text-align:center;box-shadow:0 6px 18px rgba(201,107,91,.14);}
+  .bigcd-inline.atrisk{background:#FFF5E7;border-color:#F0DCA0;box-shadow:0 6px 18px rgba(229,154,51,.14);}
+  .bigcd-inline .t{font-size:10.5px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--redfill);}
+  .bigcd-inline.atrisk .t{color:#B07A12;}
+  .bigcd-inline .n{font-family:'Fraunces',serif;font-size:30px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:4px;letter-spacing:2px;color:var(--redfill);line-height:1;}
+  .bigcd-inline.atrisk .n{color:#B07A12;}
+  .bigcd-inline .s{font-size:11px;color:#9c6b5e;margin-top:5px;line-height:1.4;}
+  .euth-latenote{margin-top:9px;padding:8px 10px;border-radius:9px;background:#FCECEC;border:1px solid #E6B9B9;
+    color:#7F1D1D;font-size:11.5px;font-weight:700;line-height:1.45;}
+  .bigcd-inline.atrisk .s{color:#7a5a25;}
+
+  /* Phone-style: color-coded section tabs (gold, red, blue, brown) */
+  .ph-tab{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.6px;color:#fff;padding:6px 12px;border-radius:8px;margin-top:12px;cursor:pointer;user-select:none;}
+  .ph-tab::after{content:' \25B8';font-weight:700;opacity:.85;}
+  .ph-tab.open{border-radius:8px 8px 0 0;}
+  .ph-tab.open::after{content:' \25BE';}
+  .ph-tab.story{background:var(--gold);color:#2a230f;}
+  .ph-tab.rescue{background:var(--redfill);}
+  .ph-tab.vet{background:var(--blue);}
+  .ph-tab.beh{background:#6b4f1d;}
+
+  /* Phone-style: big card blocks under each tab */
+  .ph-block{border-radius:0 14px 14px 14px;padding:14px 16px 16px;border:1px solid var(--line);margin-bottom:8px;display:none;}
+  .ph-block.open{display:block;}
+  .ph-block.story{background:linear-gradient(180deg,#fffdf6,#fdf3d6);}
+  .ph-block.rescue{background:linear-gradient(180deg,#fffdf4,#fdf0c8);}
+  .ph-block.vet{background:linear-gradient(180deg,#f4f8ff,#e7f0fb);}
+  .ph-block.beh{background:#fff;}
+
+  /* Story text */
+  .ph-storytext{font-size:13.5px;line-height:1.62;color:#3a3128;}
+  .ph-storymeta{font-size:11.5px;color:var(--muted);margin-top:8px;font-style:italic;}
+
+  /* Rescue/Vet card head */
+  .ph-cardhead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;}
+  .ph-cardname{font-family:'Fraunces',serif;font-size:20px;font-weight:600;color:var(--ink);line-height:1.1;}
+  .ph-cardsub{font-size:11.5px;color:var(--muted);margin-top:1px;}
+  .ph-cardbadge{font-size:10.5px;font-weight:800;color:#fff;padding:5px 10px;border-radius:999px;letter-spacing:.04em;flex-shrink:0;}
+
+  /* 2-column grid for placement / vet info */
+  .ph-grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;margin-top:10px;border-top:1px dashed rgba(0,0,0,.10);padding-top:4px;}
+  .ph-gi{padding:7px 0;border-bottom:1px dashed rgba(0,0,0,.08);}
+  .ph-gi:nth-last-child(-n+2){border-bottom:0;}
+  .ph-gi .l{font-size:10px;font-weight:800;letter-spacing:.4px;color:var(--muted);text-transform:uppercase;}
+  .ph-gi .v{font-size:13.5px;font-weight:700;margin-top:1px;color:var(--ink);}
+  .ph-gi .v.warn{color:#B07A12;}
+  .ph-gi .v.ok{color:var(--green);}
+  .ph-gi .v.dim{color:var(--muted);font-weight:500;font-size:12.5px;}
+
+  /* Warning + procbox + info boxes (phone-style soft warmth) */
+  .ph-warnbox{background:#FBEEEA;border:1px solid #E7C3B8;color:#8a3b12;font-size:12.5px;font-weight:600;border-radius:10px;padding:10px 12px;margin-top:12px;line-height:1.45;}
+  .ph-warnbox.ok{background:#eefaf1;border-color:#bfe6cf;color:#15693f;}
+  .ph-procbox{background:#fff7e0;border:1px solid #f0dca0;color:#6f5400;font-size:11.5px;border-radius:10px;padding:10px 12px;margin-top:8px;line-height:1.5;}
+  .ph-procbox b{color:#4a3800;}
+  .ph-infobox{background:#eef4ff;border:1px solid #cdd9ea;color:#2a4365;font-size:12px;border-radius:10px;padding:10px 12px;margin-top:8px;line-height:1.45;}
+
+  /* Visibility chips */
+  .ph-vis{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;}
+  .ph-vis span{font-size:10.5px;font-weight:700;color:#5a6a85;border:1px solid #cdd9ea;background:#fff;border-radius:999px;padding:4px 10px;}
+
+  /* Behavior evaluation box */
+  .ph-evalbox{background:var(--cream);border-left:3px solid #6b4f1d;border-radius:8px;padding:11px 13px;margin-top:6px;font-size:12.5px;line-height:1.6;white-space:pre-wrap;max-height:260px;overflow:auto;}
+  .ph-evalsrc{font-size:10.5px;color:var(--muted);margin-top:8px;line-height:1.4;font-style:italic;}
+
+  /* Contact ACS row */
+  .ph-contacts{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:10px;}
+  .ph-contacts h4{font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);letter-spacing:.08em;margin-bottom:9px;}
+  .ph-crow{display:flex;gap:7px;margin-bottom:7px;}
+  .ph-crow:last-child{margin-bottom:0;}
+  .ph-crow a{flex:1;text-align:center;padding:10px;border-radius:10px;font-weight:800;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;}
+  .ph-crow .c-adopt{background:var(--gold);color:#2a230f;}
+  .ph-crow .c-foster{background:var(--yellow);color:#3a2f08;}
+  .ph-crow .c-call{background:#fff;border:1px solid var(--line);color:var(--ink);}
+  .ph-crow .c-map{background:#fff;border:1px solid var(--line);color:var(--ink);}
+
+  /* Original source & auto-find videos block */
+  .ph-srcbox{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:10px;}
+  .ph-srcbox h4{font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);letter-spacing:.08em;margin-bottom:3px;}
+  .ph-srcbox .sub2{font-size:11.5px;color:var(--muted);margin-bottom:8px;}
+  .ph-srow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line);}
+  .ph-sinfo{flex:1;min-width:0;}
+  .ph-splat{font-size:13px;font-weight:700;color:var(--ink);}
+  .ph-sby{font-size:11px;color:var(--muted);}
+  .ph-sbtn{background:var(--blue);color:#fff;font-weight:700;font-size:11.5px;padding:8px 13px;border-radius:9px;text-decoration:none;}
+  .ph-autorow{margin-top:9px;padding-top:9px;border-top:1px dashed var(--line);}
+  .ph-autolab{font-size:11.5px;font-weight:700;margin-bottom:7px;}
+  .ph-achips{display:flex;gap:6px;flex-wrap:wrap;}
+  .ph-achip{background:#eef2f8;border:1px solid #cdd9ea;color:var(--blue);font-weight:700;font-size:11px;padding:6px 11px;border-radius:999px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
+  .ph-autonote{font-size:10.5px;color:var(--muted);margin-top:7px;line-height:1.45;}
+  .ph-addvideo{display:block;width:100%;margin-top:11px;padding:12px;border-radius:11px;background:#eef2f8;border:1px solid #cdd9ea;color:var(--blue);font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;transition:all .15s;}
+  .ph-addvideo:hover{background:#dde6f3;border-color:var(--blue);}
+  .ph-added-list{margin-top:8px;}
+  .ph-added-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line);}
+  .ph-added-row .info{flex:1;min-width:0;}
+  .ph-added-row .platform{font-size:12.5px;font-weight:700;color:var(--ink);}
+  .ph-added-row .credit{font-size:11px;color:var(--muted);}
+  .ph-added-row a{background:var(--blue);color:#fff;font-weight:700;font-size:11.5px;padding:7px 12px;border-radius:8px;text-decoration:none;white-space:nowrap;}
+
+  /* Share menu modal */
+  .share-modal{position:fixed;inset:0;background:rgba(11,11,12,.78);backdrop-filter:blur(8px);z-index:250;display:none;align-items:center;justify-content:center;padding:24px;}
+  .share-modal.show{display:flex;animation:fade .2s ease;}
+  .share-card{background:#fff;border-radius:18px;max-width:560px;width:100%;padding:24px 24px 18px;max-height:92vh;overflow-y:auto;}
+  .share-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .share-head h3{font-family:'Fraunces',serif;font-weight:500;font-size:20px;color:var(--ink);}
+  .share-close{background:none;border:none;font-size:24px;color:var(--muted);cursor:pointer;font-family:inherit;line-height:1;padding:0 4px;}
+  .share-close:hover{color:var(--ink);}
+  .share-sub{font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5;}
+  .share-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  @media (max-width:520px){.share-grid{grid-template-columns:repeat(2,1fr);}}
+  .share-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px;padding:16px 10px;border-radius:14px;border:1.5px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;text-decoration:none;transition:all .15s;font-family:inherit;}
+  .share-btn:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(0,0,0,.08);}
+  .share-btn svg{width:32px;height:32px;margin-bottom:6px;display:block;}
+  .share-btn .lbl{font-size:13px;font-weight:800;color:var(--ink);}
+  .share-btn .hint{font-size:10.5px;font-weight:500;color:var(--muted);line-height:1.3;}
+  .share-btn.nextdoor:hover{background:#FFF7E8;border-color:#8FC740;}
+  .share-btn.facebook:hover{background:#EFF4FB;border-color:#1877F2;}
+  .share-btn.whatsapp:hover{background:#E9F8EF;border-color:#25D366;}
+  .share-btn.twitter:hover{background:#F5F5F5;border-color:#000;}
+  .share-btn.instagram:hover{background:#FDF1F5;border-color:#E1306C;}
+  .share-btn.email:hover{background:var(--cream2);border-color:var(--gold-deep);}
+  .share-btn.sms:hover{background:#F0F8F2;border-color:var(--green);}
+  .share-btn.linkedin:hover{background:#EAF2F8;border-color:#0A66C2;}
+  .share-btn.copy:hover{background:var(--gold-soft);border-color:var(--gold-deep);}
+  .share-btn.snapchat:hover{background:#FFFEEB;border-color:#FFFC00;}
+  .share-btn.telegram:hover{background:#E8F4FB;border-color:#229ED9;}
+  .share-btn.reddit:hover{background:#FFF1EB;border-color:#FF4500;}
+  .share-btn.messenger:hover{background:#E8F2FF;border-color:#0084FF;}
+  .share-btn.pinterest:hover{background:#FBE9EB;border-color:#E60023;}
+  .share-foot{font-size:11.5px;color:var(--muted);margin-top:14px;text-align:center;line-height:1.5;}
+
+  /* Toast */
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--ink);color:var(--gold);padding:12px 22px;border-radius:12px;font-size:14px;font-weight:600;box-shadow:0 12px 30px rgba(0,0,0,.25);transition:transform .3s;z-index:300;}
+  .toast.show{transform:translateX(-50%) translateY(0);}
+
+  @media (max-width:640px){
+    .hero{padding:32px 18px 12px;}
+    .meta-strip{margin-left:18px;margin-right:18px;padding:14px 0;gap:18px;}
+    .note{margin-left:18px;margin-right:18px;}
+    .filters{padding:0 18px;}
+    .group{padding:0 18px;}
+    .grid{padding:0 18px 24px;}
+    .actions.five{grid-template-columns:repeat(3,1fr);}
+  }
+</style>
+</head>
+<body>
+
+<!-- PRE-LAUNCH STICKY BANNER -->
+<div class="prelaunch-banner" id="prelaunchBanner">
+  <span>⚡ <b>Pre-launch testing</b> · Real ACS data, but Voyce alerts launch with the app. <a href="voyce-live-tests.html" style="color:#2a1c05;text-decoration:underline;font-weight:800;">Join the pack →</a></span>
+  <button class="close" onclick="document.getElementById('prelaunchBanner').classList.add('hidden');try{localStorage.setItem('vplBanner','1');}catch(e){}" aria-label="Dismiss">×</button>
+</div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="brand"><span class="dot"></span>Voyce <span style="color:var(--gold)">for Paws</span></div>
+  <div class="meta">Live ACS data · List dated <b id="topListDate">—</b> · <b id="topCount">—</b> animals</div>
+</div>
+
+<!-- AUTO-SYNC STATUS BAR (phone-style) -->
+<div class="refresh-bar">
+  <div class="last-updated">
+    <span class="pulse"></span>
+    <span>Auto-syncing every few minutes <span class="meta">· list <b id="lastUpdated">—</b> · <b id="syncCount">—</b> animals</span></span>
+  </div>
+  <button class="refresh-btn" onclick="window.location.reload()" title="Refresh now">↻ Refresh now</button>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <span class="eyebrow"><span class="live"></span>LIVE · San Antonio ACS daily kill list</span>
+  <h1>Every face here has a <em>real link</em> to <span class="red">a real animal</span> needing help.</h1>
+  <p class="hero-sub">
+    These cards are pulled from the <b>City of San Antonio Animal Care Services</b> daily list of animals about to be euthanized.
+    Each card links straight to that animal's <b>real ACS listing</b> — with their real photos, medical notes, and shelter contact.
+    Every dog here needs a rescue, foster, or adopter today.
+  </p>
+</section>
+
+<!-- META STRIP -->
+<div class="meta-strip">
+  <div class="meta-item">
+    <span class="meta-label">List date</span>
+    <span class="meta-value" id="listDate">—</span>
+  </div>
+  <div class="meta-item">
+    <span class="meta-label">Total on list</span>
+    <span class="meta-value" id="totalCount">—</span>
+  </div>
+  <div class="meta-item">
+    <span class="meta-label">Immediate risk</span>
+    <span class="meta-value urgent" id="immCount">—</span>
+  </div>
+  <div class="meta-item">
+    <span class="meta-label">Capacity deadline</span>
+    <span class="meta-value urgent">5:30 PM (Mon–Fri)</span>
+  </div>
+  <div class="meta-item">
+    <span class="meta-label">Source</span>
+    <span class="meta-value"><a href="https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf" target="_blank" rel="noopener">ACS public PDF →</a></span>
+  </div>
+</div>
+
+<!-- HONEST NOTE -->
+<div class="note">
+  <strong>Honest by design.</strong> Voyce shares what's already public. We don't have a partnership with ACS — this list comes from their public daily capacity report.
+  Placement requests must reach <a href="mailto:ACSRESCUE@sanantonio.gov">ACSRESCUE@sanantonio.gov</a> or
+  <a href="mailto:ACSFOSTER@sanantonio.gov">ACSFOSTER@sanantonio.gov</a> at least 30 minutes before the daily capacity deadline.
+  Click any "View on ACS" link to confirm details on the official shelter page.
+</div>
+
+<!-- FILTERS -->
+<div class="filters" id="filters"></div>
+
+<!-- CARD GROUPS RENDERED BY JS -->
+<div id="groups"></div>
+
+<!-- FOOTER -->
+<div class="footer-block">
+  <h3>Want to help today?</h3>
+  <p>Email ACS directly with the animal's ID. Both inboxes are checked daily — placement intentions submitted before the capacity deadline give the dog a chance.</p>
+  <div class="acs-emails">
+    <a class="acs-email" href="mailto:ACSRESCUE@sanantonio.gov?subject=Urgent%20Placement%20Inquiry">📧 ACSRESCUE@sanantonio.gov</a>
+    <a class="acs-email" href="mailto:ACSFOSTER@sanantonio.gov?subject=Foster%20Inquiry">🏠 ACSFOSTER@sanantonio.gov</a>
+    <a class="acs-email" href="tel:+12102076669" style="background:var(--gold-deep);color:#fff;">📞 (210) 207-6669</a>
+  </div>
+  <p style="margin-top:18px;font-size:12px;color:var(--muted);">
+    Voyce for Paws · This page is pre-launch. The full real-time alert pack launches with the app. <a href="index.html">← Back to landing page</a>
+  </p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script id="acsdata" type="application/json">{"listDate": "6/22/2026", "source": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "total": 33, "dogs": [{"id": "A426843", "status": "IMMEDIATE RISK", "statusKey": "immediate", "euthDate": "today", "due": "06/18/2026", "kennel": "S3037", "sex": "F", "ageRaw": "11 Years and 7 Months", "color": "BLACK", "breed": "LABRADOR RETR", "weight": 71, "size": null, "days": 5, "riskSince": "2026-06-20", "heartworm": "POS", "name": "LILA", "notes": "06/19/2026\nNo evaluation at this time due to medical.", "age": "11y 7m", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A426843", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A426843", "aboutMe": "I'm a med black dog.", "psAge": "11 YEARS", "gender": "Female", "waiting": "5 Day(s)", "psName": null, "story": "Soft, sweet, and totally devoted. Appreciates companionship without clinginess. Soft ears, big heart, elite friendship game strong.", "adoptStatus": "", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A426843/SANT/5"], "thumb": "https://24petconnect.com/image/A426843/SANT/5", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A763831", "status": "IMMEDIATE RISK", "statusKey": "immediate", "euthDate": "today", "due": "06/15/2026", "kennel": "S3034", "sex": "S", "ageRaw": "2 Years and 4 Months", "color": "BR BRINDLE / WHITE", "breed": "AMERICAN STAFF / BLEND", "weight": 59, "size": null, "days": 7, "riskSince": "2026-06-20", "heartworm": "NEG", "name": "SHAYLA", "notes": "02/28/2026\nActively nursing litter - no dog/dog interaction at this time.\nStaff reports dog is able to jump 6 foot fence, enjoys playing with toys and receiving affection.\nDog displays sociability by coming over to greet me with a loose body and a wagging tail where she is interested in treats and\naffection. She is easy to leash and walk outside where she walks well on leash and is seemingly house trained. She jumps up\nonto me seemingly for continued affection with a loose body and a wagging tail.\nNo barrier reactivity nor guarding of the litter observed at this time.\n03/25/2026\nDog displayed sociability by coming over for affection with a loose body and a wagging tail. She is easy to leash and walk outside\nwhere she walks well on leash and pulls briefly when excited. She is seemingly house trained. She jumps up onto me for\ncontinued affection and takes treats gently by hand. She knows \"sit\". She walks to the corner of the yard and attempts to jump\nthe 6 foot fence where she is interrupted by handler. She is easily returned to kennel.\n05/28/2026\nFoster return due to destructive in the home.\nDog is fearful upon approach by barking and growling with wide eyes and opening the kennel she retreats and comes over with a\nlow body, tucked ears, wide eyes and tucked tail. After talking to her, she low wags her tail and displays sociability allowing\naffection. She is easy to leash and walk outside. She greets other dogs at the fenceline with raised hackles and low wagging tail\nand was walked to an adjoining yard to decompress. She was not interested to greet other dogs and attempted to jump the\nfence. She was returned to kennel.\n06/19/2026\nAdoption return due to destruction and reactivity with specific people in the home.\nDog displayed sociability by coming over for affection with a wagging tail, loose body, wide eyes, and tucked ears when I started\ntalking to her. Initially, she was jumping and barking at people passing in the kennel. She came over for affection and is able to\nbe leashed and walked outside.\n06/21/2026\nPlay Group\nDog displays sociability with all handlers by coming over to greet with a loose body and a wagging tail and is easy to leash and\nwalk outside. She displays sociability with male and female dogs observed with by greeting appropriately and coexisting with a\nloose body and a wagging tail. She communicates appropriately for space at times. She is easy to return to kennel.", "age": "2y 4m", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A763831", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A763831", "aboutMe": "I'm a med brown brindle and white dog.", "psAge": "2 YEARS", "gender": "Female", "waiting": "7 Day(s)", "psName": null, "story": "Finds joy in every bounce and sprint. Thrives on adventure, from backyard safaris to park expeditions. Snack-happy and eager for adventures. A true social star—every person is a potential friend.", "adoptStatus": "", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A763831/SANT/5"], "thumb": "https://24petconnect.com/image/A763831/SANT/5", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A810913", "status": "IMMEDIATE RISK", "statusKey": "immediate", "euthDate": "today", "due": "06/07/2026", "kennel": "S3405", "sex": "M", "ageRaw": "1 Years and 6 Months", "color": "FAWN / WHITE", "breed": "AMERICAN STAFF", "weight": 41, "size": null, "days": 19, "riskSince": "2026-06-18", "heartworm": null, "name": "SPARKY", "notes": "06/05/2026\nLimited evaluation due to medical\nDog displayed sociability by coming over for affection and treats where he is nervous with a low tail, tucked ears, and furrowed\nbrow. He is able to be walked and leashed outside.\nVet Exam Notes:\n06/09/2026\nPt on vet exam list for paraphimosis\nQAR, calm, genitalia WNL, ambulatory no lameness, E/D well, stool in kennel WNL, BCS 2/9, PE otherwise unremarkable\nr/o Malnourishment, parasitism, other\nMonitor\n06/16/2026\nPt observed coughing in the kennels\nQAR, nares clear, ambulatory\n06/17/2026\nBeginning treatment course for presumptive infectious tracheobronchitis", "age": "1y 6m", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A810913", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A810913", "aboutMe": "I'm a med fawn and white dog.", "psAge": "1 YEAR 6 MONTHS", "gender": "Male", "waiting": "19 Day(s)", "psName": null, "story": "The type who spots someone across the room and heads right over to say hi. Can turn any lap into the happiest place on earth. Can’t resist a tasty morsel or two. A pleasure to walk and easygoing on the leash.", "adoptStatus": "", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A810913/SANT/2"], "thumb": "https://24petconnect.com/image/A810913/SANT/2", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A811599", "status": "IMMEDIATE RISK", "statusKey": "immediate", "euthDate": "today", "due": "06/13/2026", "kennel": "S3406", "sex": "M", "ageRaw": "3 Years", "color": "BROWN / WHITE", "breed": "RETRIEVER / BLEND", "weight": null, "size": "LARGE", "days": 15, "riskSince": "2026-06-18", "heartworm": null, "name": "KIDA", "notes": "06/08/2026\nPlay Group\nDog displays sociability with handler by coming over to greet with a loose body and a low wagging tail. He is fearful as handler\nenters kennel by retreating away from them with a tense body, wide eyes and a tucked tail. He communicates for space as\nhandler tries to leash him by growling and snapping with a tense body, wide eyes and a tucked tail. He is leashed where he\nadjusts and is easy to walk outside. He is nervous entering yard and displays sociability with male and female dogs observed\nwith by allowing them to greet him where he is interested to coexist with a tense body, pinned ears and a low wagging tail. He is\nmost interested in interacting with handlers and comes over, jumping up onto equipment near them for affection with a loose\nbody and a wagging tail. He is able to adjust and is interested to coexist and engage in courtship behavior with a loose body and\na wagging tail. He is easy to return to kennel.\n06/16/2026\nStaff reports that dog has displayed reactivity at barrier to select staff by growling and barking with a tense body, wide eyes and a\nhigh tail.\nUpon approach, he displays sociability with me by coming over to greet with a loose body and a wagging tail where he is\ninterested in treats offered to him by hand. He is easy to leash and walks outside where he pulls heavily on leash. He is\nseemingly house trained by urinating immediately after stepping into grass. He is easy to return to kennel and allows me to\nremove leash easily.\nVet Exam Notes:\n06/08/2026\nPt placed on vet exam list for biting the catchpole and bleeding from the mouth\nBAR, no oral bleeding observed during exam, mild visible left jowl swelling, ambulatory no lameness\nContinue monitoring", "age": "3y", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A811599", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A811599", "aboutMe": "I'm a large brown and white dog.", "psAge": "3 YEARS", "gender": "Male", "waiting": "15 Day(s)", "psName": null, "story": "Needs a patient hand to help them feel safe and brave. Melt-into-your-arms kind of pup. Wraps themselves around your heart and never lets go. Has big feelings about walks and is still figuring them out.", "adoptStatus": "", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A811599/SANT/2"], "thumb": "https://24petconnect.com/image/A811599/SANT/2", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A812367", "status": "IMMEDIATE RISK", "statusKey": "immediate", "euthDate": "today", "due": "06/16/2026", "kennel": "S3407", "sex": "F", "ageRaw": "1 Years", "color": "BROWN / WHITE", "breed": "AMERICAN STAFF / BLEND", "weight": null, "size": "MED", "days": 10, "riskSince": "2026-06-18", "heartworm": null, "name": "LENZY", "notes": "06/14/2026\nPlay Group - 1 of 2 in kennel\nDog is nervous in kennel and is easy to pick up and carry outside. She displays sociability with male and female dogs observed\nwith by allowing them to greet her where she is interested to coexist with a tense body, wide eyes, pinned ears and a tucked tail.\nShe communicates appropriately for space by growling and snapping with a tense body and a high tail as male dogs display\ncourtship behavior to her. She is most interested in interacting with kennel mate and is easy to return to kennel.", "age": "1y", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812367", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812367", "aboutMe": "I'm a med brown and white dog.", "psAge": "1 YEAR", "gender": "Female", "waiting": "10 Day(s)", "psName": null, "story": "Gentle and reserved, but full of love to give. Lives for quiet moments spent together. A sweetheart who’s calm, cool, and collected.", "adoptStatus": "", "atRiskDate": null, "photos": ["https://webapp1.sanantonio.gov/ACSPetAdopt/27430/A812367-_retake_2_20260622010803.png", "https://24petconnect.com/image/A812367/SANT/3"], "thumb": "https://24petconnect.com/image/A812367/SANT/3", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A812368", "status": "IMMEDIATE RISK", "statusKey": "immediate", "euthDate": "today", "due": "06/16/2026", "kennel": "S3408", "sex": "F", "ageRaw": "1 Years", "color": "BLACK / BROWN", "breed": "TERRIER / BLEND", "weight": null, "size": "MED", "days": 10, "riskSince": "2026-06-18", "heartworm": null, "name": "LOU LOU", "notes": "06/14/2026\nPlay Group - 1 of 2 in kennel\nDog is nervous in kennel and is easy to pick up and carry outside. She displays sociability with male and female dogs observed\nwith by allowing them to greet her where she is interested to coexist with a tense body, wide eyes, pinned ears and a tucked tail.\nShe is most interested in interacting with kennel mate and is easy to return to kennel.\nVet Exam Notes:\n06/15/2026\nPt on vet exam list for bleeding from a nail on a rear foot\nQAR, nice girl, no bleeding observed during exam, ambulatory with no lameness, PE unremarkable\nMonitor", "age": "1y", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812368", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812368", "aboutMe": "I'm a med black and brown dog.", "psAge": "1 YEAR", "gender": "Female", "waiting": "10 Day(s)", "psName": null, "story": "Soft-hearted and wary, looking for calm humans to love. Brings warmth, comfort, and cuddles wherever they go. Prefers calm moments, soft voices, and steady reassurance.", "adoptStatus": "", "atRiskDate": null, "photos": ["https://webapp1.sanantonio.gov/ACSPetAdopt/29874/A812368-_retake_2_20260622010820.png", "https://webapp1.sanantonio.gov/ACSPetAdopt/29874/A812368-_retake_3_20260622010820.png", "https://24petconnect.com/image/A812368/SANT/3"], "thumb": "https://24petconnect.com/image/A812368/SANT/3", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A812395", "status": "IMMEDIATE RISK", "statusKey": "immediate", "euthDate": "today", "due": "06/16/1961", "kennel": "S3404", "sex": "F", "ageRaw": "2 Years", "color": "BLACK / WHITE", "breed": "AMERICAN STAFF / BLEND", "weight": null, "size": "MED", "days": 10, "riskSince": "2026-06-18", "heartworm": null, "name": "MADDIE", "notes": "06/14/2026\nPlay Group\nDog displays sociability with all handlers by coming over to greet with a loose body and a wagging tail and is easy to leash and\nwalk outside. She is stressed entering yard by walking in slowly and retreating away from approaching dogs with a tense body,\nwide eyes, pinned ears and a tucked tail. She displays sociability with male and female dogs observed with by allowing them to\ngreet her where she is interested to coexist and communicates appropriately for space with a tense body, wide eyes, pinned\nears and a tucked tail. She is unable to adjust and is easy to return to kennel.\n06/16/2026\nPlay Group\nDog displays sociability with all handlers by coming over to greet with a loose body and a wagging tail and is easy to leash and\nwalk outside. She is stressed entering yard by walking in slowly and retreating away from approaching dogs with a tense body,\nwide eyes, pinned ears and a tucked tail.\nShe co-exists with male and female dogs observed with by allowing them to greet her where she is not interested to reciprocate\nthe greet and communicates appropriately for space with a tense body, wide eyes, pinned ears and a tucked tail to some dogs.\nShe is unable to adjust and is easy to return to kennel.\n06/18/2026\nPlay Group\nDog displays sociability with all handlers by coming over to greet with a loose body and a wagging tail and is easy to leash and\nwalk outside. She is stressed entering yard by walking in slowly and retreating away from approaching dogs with a tense body,\nwide eyes, pinned ears and a tucked tail.\nShe co-exists with male and female dogs observed with by allowing them to greet her where she communicates for space by\ngrowling and walking away. As dogs continue to attempt to interact with her, she snaps and bites a dog in the face. She is\nremoved from the yard and is easy to return to kennel.\n06/22/2026\nPlay Group:\nDog displays sociability with all handlers and is easy to leash and walk outside. She laid down in the yard with a tense body and\ntucked tail and allowed other dogs to greet her. She moved to lay down under a piece of agility equipment and stayed here for\nthe entire interaction. She greets dogs of lower energy with a tense body and tucked ears at times. Behavior possibly due to\nundersocialization.", "age": "2y", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812395", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812395", "aboutMe": "I'm a med black and white dog.", "psAge": "2 YEARS", "gender": "Female", "waiting": "10 Day(s)", "psName": null, "story": "Has a way of making fast friends everywhere they go. The perfect lap warmer and blanket substitute. Navigates new environments with ease when out on walks.", "adoptStatus": "", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A812395/SANT/2"], "thumb": "https://24petconnect.com/image/A812395/SANT/2", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A812953", "status": "IMMEDIATE RISK", "statusKey": "immediate", "euthDate": "today", "due": "06/21/2026", "kennel": "S4405", "sex": "F", "ageRaw": "3 Years", "color": "FAWN", "breed": "AMERICAN STAFF", "weight": null, "size": "MED", "days": 6, "riskSince": "2026-06-20", "heartworm": null, "name": "MILLY", "notes": "06/17/2026\nPlay Group:\nDog displays sociability with all handlers and is able to be leashed and walked outside. She is tense with a high wagging tail\nwhile tracking dogs on the other side of the barrier. She is muzzled and then rushes into the yard with a tense body. She\napproaches a female dog laying down in the shade and stands over her with a tense body, raised hackles, and a high tail where\nshe is difficult to redirect. She is removed from the interaction by securing her leash and being walked away where she is able to\nadjust and coexist with a loose body and wagging tail. She then inappropaitely greets another female dog with a tense body,\nraised hackles, a high tail. When this dog communicates for space appropriately, she reciprocates by growling and lunging\nforward where she is difficult to redirect. She is removed from the interaction and is returned to her kennel.", "age": "3y", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812953", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812953", "aboutMe": "I'm a med fawn dog.", "psAge": "3 YEARS", "gender": "Female", "waiting": "6 Day(s)", "psName": null, "story": null, "adoptStatus": "", "atRiskDate": null, "photos": ["https://webapp1.sanantonio.gov/ACSPetAdopt/29914/A812953_-_web_2_20260617031917.png", "https://webapp1.sanantonio.gov/ACSPetAdopt/29914/A812953_-_web_3_20260617031917.png", "https://webapp1.sanantonio.gov/ACSPetAdopt/29914/A812953_-_web_4_20260617031917.png", "https://24petconnect.com/image/A812953/SANT/3"], "thumb": "https://24petconnect.com/image/A812953/SANT/3", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A449396", "status": "AT RISK", "statusKey": "atrisk", "euthDate": "06/23/2026", "due": "05/03/2026", "kennel": "S3003", "sex": "N", "ageRaw": "12 Years and 9 Months", "color": "BROWN / BLACK", "breed": "BOXER / BLEND", "weight": 55, "size": null, "days": 68, "riskSince": "2026-06-22", "heartworm": "NEG", "name": "FITO", "notes": "05/08/2026\n1 of 2 in kennel\nDog is nervous upon approach with a tense body, tucked ears, and tucked tail. He attempts to move past handler when opening\nthe door is and easily blocked where he is slip leashed and walked outside. He is collared and leashed and walked into the play\nyard.\nHe displayed sociability with previously known male and female dogs with a loose body and adjusted walking around the yard\nco-existing. He was able to come over to handlers for brief chin scratches with a loose body and briefly wagging tail after\nadjusting. Previously, he charged and snapped at handlers seemingly fearful. He was easily returned to kennel.\n06/13/2026\nDog displays sociability with all handlers by coming over to greet with a tense body and low wagging tail and is easy to leash and\nwalk outside. He displays sociability with previously known male and female dogs by greeting appropriately and coexisting with a\nloose body and a wagging tail. As a known dog friendly adult female enters yard, he displays sociability by greeting appropriately\nand is interested to coexist with a loose body and a wagging tail. He allowed handlers to pet him briefly on chin and head where\nhe initially flinched with a tense body and a low tail. He is easy to return to kennel.\n06/21/2026\nPlay Group\nDog displays sociability with all handlers by coming over to greet with a loose body and a wagging tail and is easy to leash and\nwalk outside. He displays sociability with male and female dogs observed with by greeting appropriately and coexisting with a\nloose body and a wagging tail where he is most interested in urine marking and defecating in yard. He is easy to return to\nkennel.", "age": "12y 9m", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A449396", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A449396", "aboutMe": "I'm a med brown and black dog.", "psAge": "12 YEARS", "gender": "Male", "waiting": "68 Day(s)", "psName": null, "story": null, "adoptStatus": "", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A449396/SANT/5"], "thumb": "https://24petconnect.com/image/A449396/SANT/5", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A513966", "status": "AT RISK", "statusKey": "atrisk", "euthDate": "06/23/2026", "due": "05/03/2026", "kennel": "S3030", "sex": "M", "ageRaw": "8 Years and 2 Months", "color": "TAN", "breed": "BLACK MOUTH CUR", "weight": 43, "size": null, "days": 68, "riskSince": "2026-06-22", "heartworm": "NEG", "name": "BABY FIDO SCOOBYDOO", "notes": "05/08/2026\nDog displayed sociability by coming over for affection with a low wagging tail and holding his head low. He retreated at first\nseemingly nervous and slowly came back over. He was easy to leash and walk outside. He was nervous outside trembling and\nallowed affection from another handler. After spending time with him in the yard, he took treats gently by hand and loosened with\na briefly wagging tail. He was easily returned to kennel.\n06/13/2026\nDog displays sociability with all handlers by coming over to greet with a tense body and low a wagging tail and is easy to leash\nand walk outside. He displays sociability with previously known male and female dogs by greeting appropriately and coexisting\nwith a loose body and a wagging tail. As a known dog friendly adult female enters yard, he displays sociability by greeting\nappropriately and is interested to coexist with a tense body and a low tail. He allowed handlers to pet him on head and sides\nwhere he leans into their hands with a tense body and a low tail. He is easy to return to kennel.\nVet Exam Notes:\n06/12/2026\nPt on vet exam list for diarrhea with blood in it\nBAR, vocal and active, diarrhea with hematochezia in kennel, ambulatory\nr/o Intestinal parasitism, stress-induced colitis, dietary changes, other infection/inflammation\nBeginning course of intestinal antiparasitics", "age": "8y 2m", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A513966", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A513966", "aboutMe": "I'm a med tan dog.", "psAge": "8 YEARS", "gender": "Male", "waiting": "68 Day(s)", "psName": null, "story": null, "adoptStatus": "", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A513966/SANT/2"], "thumb": "https://24petconnect.com/image/A513966/SANT/2", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A800112", "status": "AT RISK", "statusKey": "atrisk", "euthDate": "06/23/2026", "due": "06/21/2026", "kennel": "S3033", "sex": "F", "ageRaw": "3 Years and 3 Months", "color": "WHITE", "breed": "AMERICAN STAFF / BLEND", "weight": null, "size": "MED", "days": 7, "riskSince": "2026-06-22", "heartworm": null, "name": "GEORGIA", "notes": "06/18/2026\nDog displayed sociability allowing affection where she seems nervous with a tense body, low tal, and slinking to handler. She is\nable to be leashed and walked outside slowly with multiple breaks and encouragement. Behavior possibly due to\nundersocialization.\n06/21/2026\nPlay Group\nDog is nervous with a tense body, wide eyes, pinned ears and a tucked tail and is easy to leash and walk outside where she\nwalks slowly on leash. She is stressed entering yard by walking in slowly and retreating further into yard with a tense body, wide\neyes, pinned ears and a tucked tail. She displays sociability with male and female dogs observed with by allowing them to greet\nher where she is interested to coexist with a tense body, wide eyes, pinned ears and a tucked tail. She lays down in the grass in\nthe far end of yard independently for majority of interaction. She is able to adjust and walks around yard where dogs approach\nher to greet. She communicates appropriately for space as multiple dogs greet her and retreats away from them. She retreats\nfrom handlers with a tense body, wide eyes, pinned ears and a tucked tail as they approach her to return her to kennel. She is\nguided into a holding pen where she is easy to pick up and carry back to kennel.\nVet Exam Notes:\n06/16/2026\nPt on vet exam list for copious fleas\nQAR, shy and runs to other side of kennel when approached, copious fleas, ambulatory\nRequesting Capstar", "age": "3y 3m", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A800112", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A800112", "aboutMe": "I'm a med white dog.", "psAge": "3 YEARS", "gender": "Female", "waiting": "7 Day(s)", "psName": null, "story": "Hesitant but hopeful, ready to blossom with care. Doesn’t seek attention, but appreciates gentle affection. Independent, but quietly attentive to those they love.", "adoptStatus": "", "atRiskDate": null, "photos": ["https://webapp1.sanantonio.gov/ACSPetAdopt/29906/A800112_RETAKE_2_20260621033145.png", "https://webapp1.sanantonio.gov/ACSPetAdopt/29906/A800112_RETAKE_3_20260621033145.png", "https://webapp1.sanantonio.gov/ACSPetAdopt/29906/A800112_RETAKE_4_20260621033145.png", "https://24petconnect.com/image/A800112/SANT/4"], "thumb": "https://24petconnect.com/image/A800112/SANT/4", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A811816", "status": "AT RISK", "statusKey": "atrisk", "euthDate": "06/23/2026", "due": "06/15/2026", "kennel": "S4027", "sex": "M", "ageRaw": "2 Years", "color": "TAN / BLACK", "breed": "GERM SHEPHERD / BLEND", "weight": 63, "size": null, "days": 13, "riskSince": "2026-06-22", "heartworm": null, "name": "MAVERICK", "notes": "06/10/2026\nPlay Group - 1 of 2 in kennel\nDog displays sociability with all handlers by coming over to greet with a loose body and a wagging tail and is easy to leash and\nwalk outside. He displays sociability with male and female dogs observed with by greeting appropriately, coexisting and engaging\nin courtship with a loose body and a wagging tail where he is not respectful of other dogs communications for space and is easy\nto redirect. He is easy to return to kennel.\nVet Exam Notes:\n06/18/2026\nKennelmate observed exhibiting mild mucoid nasal discharge and coughing\nPt QAR, calm, nares clear, no cough, stool in kennel WNL, ambulatory\nBeginning course of doxycyline as precaution", "age": "2y", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A811816", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A811816", "aboutMe": "I'm a large tan and black dog.", "psAge": "2 YEARS", "gender": "Male", "waiting": "13 Day(s)", "psName": null, "story": "Brings joy and energy to every moment. Enjoys strolls and checks in often with their person. Happy just to be near you. Loves praise, playtime, and learning new things.", "adoptStatus": "", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A811816/SANT/2"], "thumb": "https://24petconnect.com/image/A811816/SANT/2", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A811826", "status": "AT RISK", "statusKey": "atrisk", "euthDate": "06/23/2026", "due": "06/13/2026", "kennel": "S3035", "sex": "M", "ageRaw": "2 Years", "color": "BROWN / WHITE", "breed": "AMERICAN STAFF / BLEND", "weight": null, "size": "MED", "days": 13, "riskSince": "2026-06-22", "heartworm": null, "name": "BABYGORILLA", "notes": "06/10/2026\nPlay Group\nDog displays sociability with all handlers by coming over to greet with a loose body and a wagging tail and is easy to leash and\nwalk outside. He displays sociability with male and female dogs observed with by greeting appropriately and coexisting with a\nloose body and a wagging tail. He is easy to return to kennel.\nVet Exam Notes:\n06/16/2026\nPt on vet exam list for exhibiting yellow colored ocular discharge from both eyes\nBAR, anxious, eyes clear, ambulatory\nContinue monitoring", "age": "2y", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A811826", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A811826", "aboutMe": "I'm a med brown and white dog.", "psAge": "2 YEARS", "gender": "Male", "waiting": "13 Day(s)", "psName": null, "story": "Confident, calm, and unhurried. Smart, spirited, and full of potential. Soft ears, big heart, elite friendship game strong. Keeps walks interesting and loves sniff breaks.", "adoptStatus": "", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A811826/SANT/4"], "thumb": "https://24petconnect.com/image/A811826/SANT/4", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A811864", "status": "AT RISK", "statusKey": "atrisk", "euthDate": "06/23/2026", "due": "06/15/2026", "kennel": "S3040", "sex": "F", "ageRaw": "1 Years", "color": "BLACK / WHITE", "breed": "LABRADOR RETR / BLEND", "weight": null, "size": "MED", "days": 13, "riskSince": "2026-06-22", "heartworm": null, "name": "TIANA", "notes": "06/14/2026\nPlay Group\nDog displays sociability with all handlers by coming over to greet with a loose body and a wagging tail and is easy to leash and\nwalk outside. She displays sociability with male and female dogs observed with by greeting appropriately and coexisting with a\nloose body and a wagging tail. She is most interested to interact with handlers where she jumps up onto them repeatedly\nseemingly for affection and chases their shoes playfully with a loose, wiggly body and a wagging tail. She is easy to return to\nkennel.\n06/15/2026\nPlay Group\nDog displays sociability with all handlers by coming over to greet with a loose body and a wagging tail and is easy to leash and\nwalk outside. She displays sociability with male and female dogs observed with by allowing dogs to greet her where she lifts up\none paw, exposing her stomach seemingly in appeasement with a tense body, wide eyes and a tucked tail. She is able to adjust\nwhere she is interested to coexist with loose body and a wagging tail. She is most interested to interact with handlers where she\njumps up onto them repeatedly seemingly for affection with a loose, wiggly body and a wagging tail. She is easy to return to\nkennel.\n06/16/2026\nPlay Group\nDog displayed sociability with handlers with a wagging tail and loose body and was walked into the play yard.\nDog displayed sociability with male and female dogs by engaging in play with a wagging tail and loose body. She was easy to\nreturn to kennel. She is most interested to interact with handlers where she jumps up onto them repeatedly seemingly for\naffection with a loose, wiggly body and a wagging tail. She is easy to return to kennel.\n06/17/2026\nPlay Group\nDog displayed sociability with handlers with a wagging tail and loose body and was walked into the play yard.\nDog displayed sociability with male and female dogs by engaging in play with a wagging tail and loose body. She was easy to\nreturn to kennel. She is most interested to interact with handlers where she jumps up onto them repeatedly seemingly for\naffection with a loose, wiggly body and a wagging tail. She is easy to return to kennel.\n06/18/2026\nPlay Group\nDog displayed sociability with handlers with a wagging tail and loose body and was walked into the play yard.\nDog displayed sociability with male and female dogs by engaging in play with a wagging tail and loose body. She is most\ninterested to interact with handlers where she jumps up onto them repeatedly seemingly for affection with a loose, wiggly body\nand a wagging tail. She is easy to return to kennel.\n06/21/2026\nPlay Group\nDog displays sociability with all handlers by coming over to greet with a loose body and a wagging tail and is easy to leash and\nwalk outside. She displays sociability with male and female dogs observed with by greeting appropriately and coexisting with a\nloose body and a wagging tail. She is most interested to interact with handlers where she jumps up onto them repeatedly\nseemingly for affection with a loose, wiggly body and a wagging tail. She is easy to return to kennel.\n06/22/2026\nPlay Group:\nDog displays sociability with all handlers by coming over to greet with a loose body and a wagging tail and is easy to leash and\nwalk outside. She displays sociability with male and female dogs observed with by greeting appropriately and coexisting with a\nloose body and a wagging tail. She is most interested to interact with handlers where she jumps up onto them repeatedly\nseemingly for affection with a loose, wiggly body and a wagging tail. She is easy to return to kennel.", "age": "1y", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A811864", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A811864", "aboutMe": "I'm a med black and white dog.", "psAge": "1 YEAR", "gender": "Female", "waiting": "13 Day(s)", "psName": null, "story": null, "adoptStatus": "", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A811864/SANT/3"], "thumb": "https://24petconnect.com/image/A811864/SANT/3", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A812013", "status": "AT RISK", "statusKey": "atrisk", "euthDate": "06/23/2026", "due": "06/13/2026", "kennel": "S3022", "sex": "M", "ageRaw": "2 Years", "color": "BLACK / TRICOLOR", "breed": "SHEPHERD / BLEND", "weight": 43, "size": null, "days": 13, "riskSince": "2026-06-22", "heartworm": null, "name": "NIKE", "notes": "06/13/2026\n1 of 2 in kennel\nDog is laying down upon approach and is fearful as he notices me by retreating quickly away from me with a tense body, lowered\nhead with wide upturned eyes, pinned ears and a low tail while growling. Upon re-approach he retreats away from me as I enter\nkennel with a tense and trembling body, wide eyes, pinned ears and a tucked tail. He is interested in treats offered to him on\nground and takes treats from me hand after some time with same body language as before. When interacting with kennel maet\npresent, he is able to adjust and displays socaibility with me by coming over to greet me with a loose body, wide eyes, pinned\nears and a low wagging tail where he is interested in continued treats from hand and affection. He jumps up seemingly out of\nexcitement where he breifly makes contact with me with a loose, wiggly body and a wagging tail. He knows sit and waits for\ntreats.\nBehavior due to environment.\n06/14/2026\nPlay Group - 1 of 2 in kennel\nDog is nervous in kennel and is carried outside. He is stressed entering yard by walking in slowly and retreating away from\napproaching dogs with a tense body, wide eyes, pinned ears and a tucked tail. He is able to adjust where he displays sociability\nby greeting appropriately and coexisting with male and female dogs with a tense body, wide eyes and a low wagging tail where\nhe is most interested in interacting with kennel mate. When removing from yard, he jerks back on leash and vocalizes at\npressure on leash with a tense body, wide eyes and a tucked tail where leash is dropped. He is called over where he comes\nwhen called with a tense body, wide eyes and a low tail. He is easy to walk back to kennel.\n06/16/2026\nPlay Group - 1 of 2 in kennel\nDog displayed sociability with handlers by coming over for affection slowly and is slowly leashed and walked outside as his\nkennel mate walks with him. Without kennel mate, he stops walking on leash and attempts to jerk back out of the collar.\nDog displayed sociability with male and female dogs by co-existing with a wagging tail and loose body. He was most interested\nto interact with kennel mate and mount 1 other specific dog where he was redirected by handlers multiple times. He was slowly\nwalked back to kennel with kennel mate.\n06/17/2026\nPlay Group - 1 of 2 in kennel\nDog displayed sociability with handlers by coming over for affection slowly and is slowly leashed and walked outside as his\nkennel mate walks with him. Without kennel mate, he stops walking on leash and attempts to jerk back out of the collar.\nDog displayed sociability with male and female dogs by co-existing with a wagging tail and loose body. He was most interested\nto interact with kennel mate. He was slowly walked back to kennel with kennel mate.\nVet Exam Notes:\n06/11/2026\nPt presented from overnight clinic, placed on vet exam list for choking while on the catchpole\nQAR, calm, moderate scleral hemorrhaging OD, resp appears WNL, ambulatory no lameness\nContinue monitoring", "age": "2y", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812013", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812013", "aboutMe": "I'm a med black and tricolor dog.", "psAge": "2 YEARS", "gender": "Male", "waiting": "13 Day(s)", "psName": null, "story": null, "adoptStatus": "", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A812013/SANT/2"], "thumb": "https://24petconnect.com/image/A812013/SANT/2", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A812016", "status": "AT RISK", "statusKey": "atrisk", "euthDate": "06/23/2026", "due": "06/13/2026", "kennel": "S3022", "sex": "F", "ageRaw": "2 Years", "color": "BLACK / WHITE", "breed": "SHEPHERD / BLEND", "weight": null, "size": "LARGE", "days": 13, "riskSince": "2026-06-22", "heartworm": null, "name": "RORI", "notes": "06/13/2026\n1 of 2 in kennel\nDog is laying down upon approach with a relaxed body and does not move as I enter kennel. She is interested in treats offered\nto her on ground and from hand which she takes gently with a loose body and a low wagging tail. She displays sociability by\nstanding up and coming over for continued treats with a loose body and a wagging tail. She is easy to leash and walk outside\nwhere she walks well on leash and displays sociability with all handlers by greeting appropriately and taking treats gently from\nthem with a tense body and a low wagging tail. She is seemingly house trained and enjoys sniffing in grass. She is easy to return\nto kennel. While interacting with kennel mate present, she displays sociability with me by allowing me to pet her where she leans\ninto affection with a loose body and a wagging tail. She knows sit and waits for treat.\n06/14/2026\nPlay Group - 1 of 2 in kennel\nDog is nervous in kennel and is easy to carry outside. She displays sociability with male and female dogs observed with by\ngreeting appropriately and coexisting with a loose body and a wagging tail. She is most interested to interact with kennel mate\nand humps him at times seemingly due to over arousal where she is easy to redirect. She is easy to return to kennel.\n06/16/2026\nPlay Group - 1 of 2 in kennel\nDog displayed sociability with handlers by coming over for affection slowly and isleashed and walked outside with kennel mate.\nDog displayed sociability with male and female dogs by co-existing with a wagging tail and loose body. She was most interested\nto interact with kennel mate and mounted 1 other specific dog where she was redirected by handlers multiple times. She was\nslowly walked back to kennel with kennel mate.\n06/17/2026\nPlay Group - 1 of 2 in kennel\nDog displayed sociability with handlers by coming over for affection slowly and is leashed and walked outside with kennel mate.\nDog displayed sociability with male and female dogs by co-existing with a wagging tail and loose body. She was most interested\nto interact with kennel mate. She ignores other dog's communications for space at times by continuing to greet and/or lick their\nface. She was slowly walked back to kennel with kennel mate.", "age": "2y", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812016", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812016", "aboutMe": "I'm a large black and white dog.", "psAge": "2 YEARS", "gender": "Female", "waiting": "13 Day(s)", "psName": null, "story": "Ready to match your pace, fast or slow. Fun-loving but not over-the-top. Smart,and full of potential.", "adoptStatus": "", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A812016/SANT/2"], "thumb": "https://24petconnect.com/image/A812016/SANT/2", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A812497", "status": "AT RISK", "statusKey": "atrisk", "euthDate": "06/23/2026", "due": "06/18/2026", "kennel": "S3020", "sex": "F", "ageRaw": "1 Years", "color": "TAN", "breed": "SHEPHERD / BLEND", "weight": 51, "size": null, "days": 10, "riskSince": "2026-06-22", "heartworm": null, "name": "STELLA", "notes": "06/19/2026\nDog displayed sociability by coming over for affection with a wagging tail and loose body. She was nervous lip licking at first and\nadjusted jumping up for affection. She is able to be leashed and walked ourtside where she knows \"sit\" and takes treats gently\nby hand.\n06/22/2026\nPlay Group:\nDog displays sociability with all handlers and is able to be leashed and walked outside. She displays sociability with both male\nand female dogs observed with by engaging in play with a wagging tail. She is easy to return to his kennel.\nVet Exam Notes:\n06/16/2026\nPt on vet exam list for a leg injury\nQAR, calm, ambulatory with intermittent toe-touching lameness on left thoracic limb, visible swelling along left antebrachium\n(susp left radial/ulnar fx)\nr/o Blunt force trauma, HBC trauma, other trauma\n06/17/2026\nBegin NSAIDs/analgesics", "age": "1y", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812497", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812497", "aboutMe": "I'm a med tan dog.", "psAge": "1 YEAR", "gender": "Female", "waiting": "10 Day(s)", "psName": null, "story": "Always polite, always pleasant, always people-ready. Soft ears, big heart, elite friendship game strong. Moves at a steady, comfortable rhythm in time with their person when going on walks.", "adoptStatus": "", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A812497/SANT/2"], "thumb": "https://24petconnect.com/image/A812497/SANT/2", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A812524", "status": "AT RISK", "statusKey": "atrisk", "euthDate": "06/23/2026", "due": "06/16/2026", "kennel": "S3005", "sex": "M", "ageRaw": "2 Years", "color": "TAN / BLACK", "breed": "SHEPHERD / BLEND", "weight": null, "size": "MED", "days": 10, "riskSince": "2026-06-22", "heartworm": null, "name": "BOJO", "notes": "06/14/2026\nPlay Group - 1 of 2 in kennel\nDog displays sociability with all handlers by coming over to greet with a loose body and a wagging tail and is easy to leash and\nwalk outside. He is stressed entering yard by walking in slowly and retreating away from approaching dogs with a tense body,\nraised hackles, wide eyes, pinned ears and a tucked tail. He displays sociability with male and female dogs observed with by\nallowing them to greet him where he is interested to coexist and communicates for space with a tense body, wide eyes, pinned\nears and a tucked tail. He is unable to adjust and as dogs reciprocate his greetings he greets inappropriately by growling with a\ntense body, wide eyes, raised hackles and a high tail. He is easy to return to kennel.", "age": "2y", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812524", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812524", "aboutMe": "I'm a med tan and black dog.", "psAge": "2 YEARS", "gender": "Male", "waiting": "10 Day(s)", "psName": null, "story": "Loves meeting new faces and making them smile. Lives for quiet moments spent together. Stays right by your side on walks and enjoys the journey.", "adoptStatus": "", "atRiskDate": null, "photos": ["https://webapp1.sanantonio.gov/ACSPetAdopt/28062/A812524_web_2_20260613015226.png", "https://webapp1.sanantonio.gov/ACSPetAdopt/28062/A812524_web_20260613015226.png", "https://24petconnect.com/image/A812524/SANT/2"], "thumb": "https://24petconnect.com/image/A812524/SANT/2", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A812525", "status": "AT RISK", "statusKey": "atrisk", "euthDate": "06/23/2026", "due": "06/16/2026", "kennel": "S3005", "sex": "F", "ageRaw": "2 Years", "color": "BROWN / WHITE", "breed": "AMERICAN STAFF / BLEND", "weight": null, "size": "MED", "days": 10, "riskSince": "2026-06-22", "heartworm": null, "name": "DOJO", "notes": "06/14/2026\nPlay Group - 1 of 2 in kennel\nDog displays sociability with all handlers by coming over to greet with a loose body and a wagging tail and is easy to leash and\nwalk outside. She is stressed entering yard by walking in slowly with a tense body, wide eyes, pinned ears and a tucked tail. She\ndisplays sociability with male and female dogs observed with by allowing them to greet her where she is interested to coexist\nwith a tense body, wide eyes, pinned ears and a tucked tail. She communicates appropriately for space by growling with a tense\nbody, pinned ears and a tucked tail. After kennel mate is returned to kennel, she paces at barrier with a tense body, pinned ears\nand a wagging tail while whining. She jumps up onto barrier seemingly interested in leaving yard with same body language and is\neasy to return to kennel.", "age": "2y", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812525", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812525", "aboutMe": "I'm a med brown and white dog.", "psAge": "2 YEARS", "gender": "Female", "waiting": "10 Day(s)", "psName": null, "story": "Always polite, always pleasant, always people-ready. Finds joy in every bounce and sprint. A true go-getter who makes every day exciting.", "adoptStatus": "", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A812525/SANT/2"], "thumb": "https://24petconnect.com/image/A812525/SANT/2", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A812924", "status": "AT RISK", "statusKey": "atrisk", "euthDate": "06/23/2026", "due": "06/21/2026", "kennel": "S4028", "sex": "F", "ageRaw": "1 Years", "color": "BLACK / WHITE", "breed": "SHEPHERD / BLEND", "weight": 52, "size": null, "days": 7, "riskSince": "2026-06-22", "heartworm": null, "name": "BABY", "notes": "06/20/2026\nLimited evaluation due to medical - no dog/dog interaction nor outside observation at this time.\nDog displays sociability at barrier by coming over to greet me with a loose body and a low wagging tail where she is interested in\ntreats offered through barrier. She retreats away form me with a tense body, wide eyes and a low tall as I enter kennel. She is\nseemingly conflicted by quickly returning for continued treats offered by hand. She allows me to pet her with a tense body,\nsquinted eyes, and an appeasement grin while turning head away. After pulling hands away, she is not interested in further\ninteraction by retreating away from me with a tense body, wide eyes and a tucked tail. She is interested in continued treats\noffered to her on ground and maintains space.\nVet Exam Notes:\n06/18/2026\nPt on vet exam list for reportedly being HBC several days ago resulting in a possible broken front leg and bloody stool\nQAR, shy and runs to other side of kennel when approached, nonweight bearing on right thoracic limb, multiple small lacerations\non right carpus, scarring on left carpus, no stool observed during exam\nFecal exam positive for hookworms\nBeginning course of deworming, antibiotics, and NSAIDs/analgesics", "age": "1y", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812924", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812924", "aboutMe": "I'm a med black and white dog.", "psAge": "1 YEAR", "gender": "Female", "waiting": "7 Day(s)", "psName": null, "story": "Lives for attention, conversation, and companionship. Full of love and never shy about showing it. A playful heart who knows how to make every moment brighter.", "adoptStatus": "", "atRiskDate": null, "photos": ["https://webapp1.sanantonio.gov/ACSPetAdopt/29909/A812924_RETAKE_2_20260621033314.png", "https://webapp1.sanantonio.gov/ACSPetAdopt/29909/A812924_RETAKE_20260621033314.png", "https://24petconnect.com/image/A812924/SANT/2"], "thumb": "https://24petconnect.com/image/A812924/SANT/2", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A812928", "status": "AT RISK", "statusKey": "atrisk", "euthDate": "06/23/2026", "due": "06/19/2026", "kennel": "S3007", "sex": "F", "ageRaw": "2 Years", "color": "BLACK / TAN", "breed": "SHEPHERD / BLEND", "weight": 56, "size": null, "days": 7, "riskSince": "2026-06-22", "heartworm": null, "name": "GRANOLA", "notes": "06/19/2026\nLimited evaluation due to medical\nDog was laying down upon approach with a tense body and she allowed me to sit next to her feed treats gently by hand. She\nwas nervous of affection at first flinching away from me and holding her head back not interested in continued pets. She stayed\nlaying down for the duration of our interaction with a tucked tail and leaned closer to me again for treats. Per staff, she is able to\nbe slowly leashed and walked outside.\nVet Exam Notes:\n06/16/2026\nPt on vet exam list for a swollen belly and slightly limping\nQAR, shy but ok to examine, moderate sanguineous vulvar discharge, slight abdominal distension, moderate mammary\ndevelopment, ambulatory no lameness\nr/o Parasitic-induced ascites, pregnancy, pyometra, other\n06/17/2026\nBeginning course of antibiotics", "age": "2y", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812928", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812928", "aboutMe": "I'm a med black and tan dog.", "psAge": "2 YEARS", "gender": "Female", "waiting": "7 Day(s)", "psName": null, "story": null, "adoptStatus": "", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A812928/SANT/2"], "thumb": "https://24petconnect.com/image/A812928/SANT/2", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A813284", "status": "AT RISK", "statusKey": "atrisk", "euthDate": "06/23/2026", "due": "06/23/2026", "kennel": "S4008", "sex": "M", "ageRaw": "3 Years", "color": "TAN / WHITE", "breed": "AMERICAN STAFF / BLEND", "weight": null, "size": "MED", "days": 4, "riskSince": "2026-06-22", "heartworm": null, "name": "BUD", "notes": "06/21/2026\nDog displays sociability with all handlers by coming over to greet with a loose body and a wagging tail and is easy to leash and\nwalk outside where he pulls on leash. He greets male and female dogs inappropriately through barrier with a tense body, wide\nside eyes, pinned ears, raised hackles and a high tail. He is easy to return to kennel.", "age": "3y", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A813284", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A813284", "aboutMe": "I'm a med tan and white dog.", "psAge": "3 YEARS", "gender": "Male", "waiting": "4 Day(s)", "psName": null, "story": "Stays right by your side on walks and enjoys the journey. Always polite, always pleasant, always people-ready. Has a head start on being a great companion. Shows signs of having had a little structure.", "adoptStatus": "", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A813284/SANT/2"], "thumb": "https://24petconnect.com/image/A813284/SANT/2", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A811800", "status": "AT RISK", "statusKey": "atrisk", "euthDate": "06/15/2026", "due": "06/13/2026", "kennel": "S4051", "sex": "S", "ageRaw": "2 Years", "color": "BROWN / WHITE", "breed": "AMERICAN STAFF", "weight": 46, "size": null, "days": 13, "riskSince": "2026-06-15", "heartworm": "NEG", "name": "CHERRIE MACBETH", "notes": "06/13/2026\nDog is laying down in kennel upon approach with a tense body, wide eyes, pinned ears and a tucked tail. She retreats away from\nme with same body language while trembling as I enter kennel. She is interested in treats offered to her on ground and comes\ncloser for continued treats where she retreats after taking them. She freezes with a tense and trembling body, wide eyes, pinned\nears and a tucked tail as I offer her high value treats from hand and retreats from me uninterested in taking any further treats.\nShe is given space.\nBehaviors due to environment and/or under-socialization\nVet Exam Notes:\n06/18/2026\nPt presented for OHE, on vet exam list for coughing\nQAR, anxious and runs to other side of kennel when approached, mild nasal crusts, no coughing during exam, moderate\nabdominal distension, moderate mammary development\nr/o CIRD, pregnancy, parasitic-induced ascites, other\nSx declined - Requested rescheduling on a 1/2 dkt combo day and to be placed last in rotation, beginning Tx course for\npresumptive CIRD", "age": "2y", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A811800", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A811800", "aboutMe": "I'm a med brown and white dog.", "psAge": "2 YEARS", "gender": "Female", "waiting": "13 Day(s)", "psName": null, "story": null, "adoptStatus": "", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A811800/SANT/1"], "thumb": "https://24petconnect.com/image/A811800/SANT/1", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A812117", "status": "AT RISK", "statusKey": "atrisk", "euthDate": "06/22/2026", "due": "06/14/2026", "kennel": "S4052", "sex": "M", "ageRaw": "2 Years", "color": "TAN", "breed": "TERRIER / BLEND", "weight": null, "size": "MED", "days": 12, "riskSince": "2026-06-22", "heartworm": null, "name": "BILLY", "notes": "06/14/2026\nPlay Group - 1 of 2 in kennel\nDog displays sociability with all handlers by coming over to greet with a loose body and a wagging tail and is easy to leash and\nwalk outside. He displays sociability with male and female dogs observed with by greeting appropriately and coexisting with a\nloose body and a wagging tail. He rolls over onto back in appeasement with a tense body, wide eyes and a low wagging tail as\ndogs initiate rough play. He is easy to return to kennel.\n06/16/2026\nPlay Group - 1 of 2 in kennel\nDog displays sociability with all handlers by coming over to greet with a loose body and a wagging tail and is easy to leash and\nwalk outside. He displays sociability with male and female dogs observed with by greeting appropriately and coexisting with a\nloose body and a wagging tail. He rolls over onto back in appeasement with a tense body and a low wagging tail as dogs initiate\nrough play. He is easy to return to kennel.\n06/17/2026\nPlay Group - 1 of 2 in kennel\nDog displays sociability with all handlers by coming over to greet with a loose body and a wagging tail and is easy to leash and\nwalk outside. He displays sociability with male and female dogs observed with by greeting appropriately and coexisting with a\nloose body and a wagging tail. He comes over to handlers for affection. He is easy to return to kennel.\nVet Exam Notes:\n06/15/2026\nPt on vet exam list for possible worms\nQAR, friendly boy, no stool or worms observed during exam, BCS 3/9, E/D well, ambulatory, no reports of V/D\nr/o Malnourishment, parasitism, other\nContinue monitoring", "age": "2y", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812117", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812117", "aboutMe": "I'm a med tan dog.", "psAge": "2 YEARS", "gender": "Male", "waiting": "12 Day(s)", "psName": null, "story": "Timid at first, but blossoms with care and consistency. A quiet observer who warms with love and attention. A gentle wallflower who thrives in calm, loving environments. Has the walking basics down and gets better with practice.", "adoptStatus": "", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A812117/SANT/2"], "thumb": "https://24petconnect.com/image/A812117/SANT/2", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A812118", "status": "AT RISK", "statusKey": "atrisk", "euthDate": "06/22/2026", "due": "06/14/2026", "kennel": "S4052", "sex": "M", "ageRaw": "2 Years", "color": "WHITE / BLACK", "breed": "SHEPHERD / BLEND", "weight": null, "size": "MED", "days": 12, "riskSince": "2026-06-22", "heartworm": null, "name": "BENNY", "notes": "06/14/2026\nPlay Group - 1 of 2 in kennel\nDog displays sociability with all handlers by coming over to greet with a loose body and a low wagging tail and is easy to leash\nand walk outside. He displays sociability with male and female dogs observed with by greeting appropriately and coexisting with\na loose body and a wagging tail. He is easy to return to kennel.\n06/16/2026\nPlay Group - 1 of 2 in kennel\nDog displays sociability with all handlers by coming over to greet with tucked ears and is easy to leash and walk outside. He\ndisplays sociability with male and female dogs observed with by greeting appropriately and coexisting with a loose body and\ntucked ears. He is easy to return to kennel.\n06/17/2026\nPlay Group - 1 of 2 in kennel\nDog displays sociability with all handlers by coming over to greet with tucked ears and is easy to leash and walk outside. He\ndisplays sociability with male and female dogs observed with by greeting appropriately and coexisting with a loose body and\ntucked ears. He seems nervous at times holding his head low and is most interested to interact walking around the yard. He is\neasy to return to kennel.\nVet Exam Notes:\n06/15/2026\nPt on vet exam list for possible worms\nQAR, calm sweet boy, healing abrasive wound with granulation on right hip, no stool or worms observed during exam, BCS 2/9,\nE/D well, ambulatory, no reports of V/D\nr/o Malnourishment, parasitism, other\nContinue monitoring", "age": "2y", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812118", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812118", "aboutMe": "I'm a med white and black dog.", "psAge": "2 YEARS", "gender": "Male", "waiting": "12 Day(s)", "psName": null, "story": "Moves slowly, but every step shows growing trust. Gentle and reserved, but full of love to give. Finds comfort in slow introductions and familiar routines. New to leash walking and working on building confidence.", "adoptStatus": "", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A812118/SANT/3"], "thumb": "https://24petconnect.com/image/A812118/SANT/3", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A812469", "status": "AT RISK", "statusKey": "atrisk", "euthDate": "06/18/2026", "due": "06/16/2026", "kennel": "S3403", "sex": "F", "ageRaw": "1 Years", "color": "RED TICK / TAN", "breed": "HOUND / BLEND", "weight": null, "size": "MED", "days": 10, "riskSince": "2026-06-18", "heartworm": null, "name": "BUTTERNUT", "notes": "06/16/2026\nPlay Group\nDog displayed sociability with handlers with a tense body, low head, tucked tail, and flinched when first collaring and was walked\ninto the play yard.\nDog displayed sociability with male and female dogs by engaging in play with a wagging tail and loose body after adjusting. She\nmounted other dog at times during play and was redirected by handler. She was easy to return to kennel.\n06/17/2026\nPlay Group:\nDog displays sociability with all handlers and is able to be leashed and walked outside. She displays sociability with both male\nand female dogs observed with by engaging in play with a wagging tail. She escalates play at times by pinning a select dog with\na tense body and raised hackles while growling. She is easily redirected when needed. She is easy to return to his kennel.\n06/18/2026\nPlay Group\nDog displays sociability with all handlers and is able to be leashed and walked outside with a loose body and wagging tail. She\ncomes into the yard and immediately moves towards Oakland A812623 (who she has previously played with) and jumps on top\nof her. She is redirected where she jumps on top of Oakland again growling and has to be physically removed and walked out of\nthe yard. She is easy to return to his kennel.", "age": "1y", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812469", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812469", "aboutMe": "I'm a med red ticked and tan dog.", "psAge": "1 YEAR", "gender": "Female", "waiting": "10 Day(s)", "psName": null, "story": "Has a way of making fast friends everywhere they go. Wraps themselves around your heart and never lets go. A pleasure to walk and easygoing on the leash.", "adoptStatus": "", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A812469/SANT/2"], "thumb": "https://24petconnect.com/image/A812469/SANT/2", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A799247", "status": "AT RISK", "statusKey": "atrisk", "euthDate": "03/24/2026", "due": "03/24/2026", "kennel": "OFFICE", "sex": "N", "ageRaw": "7 Years and 3 Months", "color": "BLACK / WHITE", "breed": "AMER BULLDOG / PLOTT HOUND", "weight": 66, "size": null, "days": 95, "riskSince": "2026-03-24", "heartworm": "NEG", "name": "BUCK", "notes": "03/23/2026\nDog displayed sociability by coming over for affection with a wagging tail and loose body. He is able to be leashed and walked\noutside and receive affection from multiple handlers. He viewed another dog approaching the gate and quickly walked over to\ngreet her where he began barking, growling, and kicking possibly scent marking with a tense body and was redirected away by\nhandler after the other dog walked away. He was returned to his kennel. He was previously separated from kennel mate due to\nfighting.", "age": "7y 3m", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A799247", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A799247", "aboutMe": "I'm a large black and white dog.", "psAge": "7 YEARS", "gender": "Male", "waiting": "95 Day(s)", "psName": null, "story": "Lights up when humans are around. Brings a bit of enthusiasm to every walk. Fun-loving but not over-the-top. Always there to offer comfort, love, and closeness.", "adoptStatus": "", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A799247/SANT/4"], "thumb": "https://24petconnect.com/image/A799247/SANT/4", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A808981", "status": "SECURED", "statusKey": "secured", "euthDate": null, "due": "05/24/2026", "kennel": "OUTSIDE3", "sex": "F", "ageRaw": "4 Years and 1 Month", "color": "BR BRINDLE / WHITE", "breed": "BOXER / BLEND", "weight": 28, "size": null, "days": 33, "riskSince": "2026-06-18", "heartworm": null, "name": "MARY", "notes": "06/16/2026\nDog displays sociability by coming over to greet me with a loose body and a wagging tail where she is interested in treats and\naffection. She is easy to leash and walk outside where she is seemingly house trained by urinating quickly after stepping in\ngrass. She pulls at end of leash and bounces around playfully with a loose, wiggly body and a wagging tail.\n06/17/2026\nPlay Group:\nDog displays sociability with all handlers and is easy to leash and walk outside. She initially walked into the yard slowly with a\nhigh tail, raised hackles, and tense body. She adjusted by greeting both male and female dogs observed with appropriately and\nengaging in play with a loose body and a wagging tail. She escalates play quickly by growling and snapping with raised hackles\npossibly due to high arousal. She is easily redirected. She is easy to return to her kennel.\nVet Exam Notes:\n05/23/2026\npatient examined and tx by dr johnson, exhibiting OD injury- advise enucleation\nbegin medications\n05/31/2026\npatient exhibiting nasal discharge and cough, CIRD, r/o kennel cough vs viral\nbegin tx for presumptive infectious tracheobronchitis", "age": "4y 1m", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A808981", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A808981", "aboutMe": null, "psAge": null, "gender": null, "waiting": null, "psName": null, "story": null, "adoptStatus": "", "atRiskDate": null, "photos": [], "thumb": "https://24petconnect.com/image/A808981/SANT/2", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A811696", "status": "RESCUE HOLD", "statusKey": "hold", "euthDate": null, "due": "06/14/2026", "kennel": "SAPA", "sex": "M", "ageRaw": "3 Years", "color": "BLACK / WHITE", "breed": "COLLIE / BLEND", "weight": null, "size": "MED", "days": 14, "riskSince": "2026-06-18", "heartworm": null, "name": "LEO", "notes": "06/09/2026\nPlay Group\nDog displayed sociability with handlers with a loose body and was slowly walked into the play yard.\nDog displayed sociability with male and female dogs by co-existing with a loose body and wagging tail after adjusting and that\nrespected his space. He was nervous coming in with raised hackles and moved to the side of the fence line to watch other dogs.\nHe was easy to return to kennel.\n06/17/2026\nPlay Group\nDog displayed sociability with handlers with a loose body and was walked into the play yard. He engages in play with handler in\nkennel.\nDog displayed sociability with male and female dogs by co-existing with a loose body and wagging tail. He communicated for\nspace to other dogs and was tense at times with another male. He greets other dogs directly face to face not respecting their\ncommunication for space. He was easy to return to kennel.", "age": "3y", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A811696", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A811696", "aboutMe": "I'm a med black and white dog.", "psAge": "3 YEARS", "gender": "Male", "waiting": "14 Day(s)", "psName": null, "story": "Transfer Hold A shelter partner is interested in me, however, I'm still available for adoption. Contact acsadoptions@sanantonio.gov as soon as possible! Enjoys belly rubs, ear scratches, and close company. Professional greeter specializing in unsolicited joyful hellos daily. Walks feel calm and connected with this pup.", "adoptStatus": "", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A811696/SANT/2"], "thumb": "https://24petconnect.com/image/A811696/SANT/2", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A811766", "status": "ADOPTION HOLD", "statusKey": "hold", "euthDate": null, "due": "06/12/2026", "kennel": "S2206", "sex": "N", "ageRaw": "2 Years", "color": "BLACK / TAN", "breed": "GERM SHEPHERD / BLEND", "weight": 56, "size": null, "days": 14, "riskSince": "2026-06-18", "heartworm": "POS", "name": "MILO", "notes": "06/10/2026\nPlay Group\nDog is nervous in kennel with a tense body, pinned ears and a tucked tail and is easy to leash and walk outside where he is able\nto slightly adjust and walks well on leash. He displays sociability with male and female dogs observed with by greeting\nappropriately and coexisting with a loose body and a wagging tail where he is interested in sitting in shade near handlers. He is\neasy to return to kennel.\n06/15/2026\nPlay Group\nDog displays sociability with all handlers by coming over to greet with a loose body and a wagging tail and is easy to leash and\nwalk outside. He displays sociability with male and female dogs observed with by greeting appropriately, coexisting and engaging\nin play behavior with a loose body and a wagging tail. While grooming himself, he walks into another dog, Titan where Titan\ncommunicates inappropriately for space by lunging on top of Ocean and snapping at him where no contact is made. Ocean\nretreats quickly away from Titan with a tense body, wide eyes, pinned ears and a tucked tail and is offered affection. He retreats\nto barrier near handlers where he is interested to coexist and communicates appropriately for space with a loose body and a low\ntail. He is easy to return to kennel.\n06/17/2026\nPlay Group\nDog is nervous in kennel with a tense body, pinned ears and a tucked tail and is easy to leash and walk outside where he is able\nto slightly adjust and walks well on leash. He displays sociability with male and female dogs observed with by greeting\nappropriately and coexisting with a loose body and a wagging tail where he is interested in sitting in shade near handlers. He is\neasy to return to kennel.\n06/18/2026\nPlay Group\nDog displayed sociability with handlers with a wagging tail and loose body and was walked into the play yard.\nDog displayed sociability with male and female dogs by co-existing with a wagging tail and loose body. He was most interested\nto follow a specific female to mount and was redirected. He was easy to return to kennel.", "age": "2y", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A811766", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A811766", "aboutMe": "I'm a med black and tan dog.", "psAge": "2 YEARS", "gender": "Male", "waiting": "14 Day(s)", "psName": null, "story": "Adoption In Progress - Woohoo! Contact acsadoptions@sanantonio.gov to ask about backup interest. Hesitant at first glance, but loyal once you’re a friend. Cozy companion who adores being held close. Melt-into-your-arms kind of pup. Might stop or hesitate when the leash goes on but opens up with patience.", "adoptStatus": "Adoption In Progress", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A811766/SANT/4"], "thumb": "https://24petconnect.com/image/A811766/SANT/4", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A811954", "status": "ADOPTION HOLD", "statusKey": "hold", "euthDate": null, "due": "06/13/2026", "kennel": "OUTSIDE3", "sex": "F", "ageRaw": "8 Months", "color": "BLACK / TAN", "breed": "SHEPHERD / BLEND", "weight": 25, "size": null, "days": 13, "riskSince": "2026-06-18", "heartworm": null, "name": "KIMCHI", "notes": "06/14/2026\nLimited evaluation due to medical - No dog/dog observation at this time.\nPup stays in place with a loose body and wide eyes. She leans her head into my hand and is easy to leash and carry outside.\nWhile outside, she has a tense body, tucked tail, and wide eyes. After some time, she is interested in walking around to sniff the\ngrass with the same body language. She is easy to lift and carry back inside. When placing her in her kennel, she approaches\nme with a wagging tail and leans into me seemingly for affection.\nVet Exam Notes:\n06/16/2026\nPt on vet exam list for a possible broken right hind limb due to susp HBC\nBAR, very sweet and approaches for cuddles, ambulatory with nonweight bearing lameness on right pelvic limb, palpable firm\nswelling distal to right stifle (susp right tibial fx)\n06/17/2026\nBegin NSAIDs/analgesics", "age": "8m", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A811954", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A811954", "aboutMe": "I'm a med black and tan dog.", "psAge": "8 MONTHS", "gender": "Female", "waiting": "13 Day(s)", "psName": null, "story": "Adoption In Progress - Woohoo! Contact acsadoptions@sanantonio.gov to ask about backup interest.", "adoptStatus": "Adoption In Progress", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A811954/SANT/2"], "thumb": "https://24petconnect.com/image/A811954/SANT/2", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A812653", "status": "SECURED", "statusKey": "secured", "euthDate": null, "due": "06/19/2026", "kennel": "S4003", "sex": "S", "ageRaw": "9 Years", "color": "BROWN / TAN", "breed": "DOBERMAN PINSCH / BLEND", "weight": 44, "size": null, "days": 9, "riskSince": "2026-06-18", "heartworm": "NEG", "name": "FLORRY", "notes": "06/17/2026\nLimited evaluation due to medical - no dog/dog interaction nor outside observation at this time.\nDog is laying down upon approach with a tense and trembling body. She does not move as I enter kennel and displays sociability\nwith me by extending her neck out to sniff my clothing and hands with same body language. She allows me to pet his head, chin\nand rear end with a tense and trembling body. As I discontinue petting and pull my hands back she lowers his head and nudges\nmy hands seemingly interested in continued affection with a tense and trembling body. She allows me to leash her where she is\nnot interested to exit kennel by remaining in position in bedding. Leash is easy to remove and she is given space.\nBehavior due to medical\nVet Exam Notes:\n06/15/2026\nPt on vet exam list for having an open wound on the left side of the torso, long nails, and lumps under the belly\nQAR, calm, small open wound on right thorax, soft palpable masses on ventral thorax, moderately overgrown claws, ambulatory\nwith some instability, moderate lens opacity OU, BCS 2/9, E/D well\nr/o Age-related changes, malnourishment, parasitism, DJD, OA, chronic injuries, cyst, neoplasia, other\nRequested wound clean & SSD and nail trim, monitor\n06/22/2026\nSpayed with tattoo", "age": "9y", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812653", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812653", "aboutMe": null, "psAge": null, "gender": null, "waiting": null, "psName": null, "story": null, "adoptStatus": "", "atRiskDate": null, "photos": [], "thumb": "https://24petconnect.com/image/A812653/SANT/2", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}, {"id": "A812741", "status": "ADOPTION HOLD", "statusKey": "hold", "euthDate": null, "due": "06/18/2026", "kennel": "S4406", "sex": "S", "ageRaw": "3 Years", "color": "BROWN / BLACK", "breed": "BLACK MOUTH CUR / BLEND", "weight": 49, "size": null, "days": 8, "riskSince": "2026-06-18", "heartworm": "NEG", "name": "EUROPA", "notes": "06/15/2026\nDog is fearful upon first approach with a trembling body, wide eyes, and tucked tail. She stays in place as I walk into her kennel\nand avoids eye contact. She takes treats gently from my hands and allows me to pet her head and behind her ears. As I pull my\nhand away, she comes over with a lowered head and rests her head in my lap seemingly for continued affection. She is easy to\nleash and carry outside. She is not interested in walking while outside and lays down with a trembling body and tucked tail. As\nhandlers call for her, she slowly approaches them with a lowered head and tucked wagging tail to rest her head in their lap. She\nis easy to carry back to her kennel.\n06/16/2026\nPlay Group\nDog displayed sociability with handler with a tense body, tucked tail, and tucked ears and was slowly walked into the play yard.\nShe was carried in the building and slowly walked the rest of the way with verbal encouragement.\nDog displayed sociability co-existing with male and female dogs that respected her space as she was nervous during greetings\nand communicated appropriately by flinching away with wide eyes to dogs that did not respect her space. She was interested to\nwalk and sit by herself in the yard and stood in the pool. Near the end of the play group, she slowly came over to handlers for\naffection. She was able to be returned to kennel.\n**Animals in kennels labeled \"Office\" refer to those animals that have been released to humane euthanasia due to capacity limitations but are\ntemporarily being housed in staff offices and are being cared for by ACS staff. These animals continue to be in urgent need of placement\noptions. **", "age": "3y", "petSearchUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812741", "listUrl": "https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf", "sourceUrl": "https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id=A812741", "aboutMe": "I'm a med brown and black dog.", "psAge": "3 YEARS", "gender": "Female", "waiting": "8 Day(s)", "psName": null, "story": "Adoption In Progress - Woohoo! Contact acsadoptions@sanantonio.gov to ask about backup interest. Shy at first, but opens up with warmth and patience. Can’t resist leaning in for pets or nuzzles. Always ready for a yummy motivation moment.", "adoptStatus": "Adoption In Progress", "atRiskDate": null, "photos": ["https://24petconnect.com/image/A812741/SANT/2"], "thumb": "https://24petconnect.com/image/A812741/SANT/2", "adoptEmail": "acsadoptions@sanantonio.gov", "fosterUrl": "https://saacs.info/foster", "fosterPhone": "(210) 207-6669"}]}</script>
+<script>
+  const DATA = JSON.parse(document.getElementById('acsdata').textContent);
+  const DOGS = DATA.dogs || [];
+  const STATUS_META = {
+    unknown:   {label:'❔ Unknown', color:'#8A8272', group:'❔ Unknown — status not yet confirmed'},
+    euthanasia:{label:'⚫ Euthanasia in progress — act immediately', color:'#3F0D0D', group:'⚫ Euthanasia in progress — act immediately'},
+    office_crit:{label:'🚨 Critical · Office', color:'#991B1B', group:'🚨 Critical · Office — just out of the euthanasia room, save now'},
+    outside_crit:{label:'🚨 Critical (OUTSIDE3)', color:'#C8362B', group:'🚨 Critical (OUTSIDE3) — outdoor kennel, marked for euthanasia'},
+    office:    {label:'🏢 Office · at risk', color:'#D2913C', group:'🏢 Office · at risk — housed in an office, on the list but not marked critical'},
+    b6spt:     {label:'🚨 Immediate risk · save now', color:'#7F1D1D', group:'🚨 Immediate risk · save now — being staged/prepped for euthanasia (B6-SPT · SPT)'},
+    immediate: {label:'🚨 Critical · save today', color:'#C8362B', group:'🚨 Critical · save today — flagged for euthanasia today'},
+    scheduled: {label:'📅 Euthanasia date set · high risk', color:'#F97316', group:'📅 Euthanasia date set · high risk — a firm euthanasia date is set'},
+    highrisk:  {label:'🔶 Euthanasia date set · high risk', color:'#E8590C', group:'🔶 Euthanasia date set · high risk — capacity euthanasia date has passed · eligible now'},
+    atrisk:    {label:'At risk',                  color:'#D2913C', group:'🟠 At risk — on the list, placement window open'},
+    adoption:  {label:'ACS Rescue Hold',          color:'#0EA5E9', group:'💛 ACS Rescue Hold — a rescue partner has a hold to pull'},
+    adopthold: {label:'ACS Adoption Hold',        color:'#DB2777', group:'💗 ACS Adoption Hold — someone is adopting'},
+    foster:    {label:'ACS Foster Hold',          color:'#10B981', group:'🏠 ACS Foster Hold'},
+    watch:     {label:'Foster Pending',           color:'#3B82F6', group:'👀 Foster Pending — family coming'},
+    secured:   {label:'Secured',                  color:'#22C55E', group:'✅ Secured'},
+    euthtoday: {label:'⚫ Euthanized today · capacity', color:'#4B5563', group:'⚫ Euthanized today — lost to capacity. We remember them.'},
+    euthanized:{label:'In Memoriam',              color:'#6B7280', group:'🕊️ In Memoriam'}
+  };
+  const ORDER = ['euthanasia','b6spt','office_crit','outside_crit','immediate','scheduled','highrisk','atrisk','office','adoption','adopthold','foster','watch','secured','euthanized','unknown'];
+  // Compute display status key from dog data — overrides statusKey for grouping/filtering
+  // Compare dates in San Antonio (Central) time, not the viewer's timezone.
+  function _centralDateStr(d){
+    try { return new Intl.DateTimeFormat('en-CA', {timeZone:'America/Chicago', year:'numeric', month:'2-digit', day:'2-digit'}).format(d); }
+    catch(e){ return d.toDateString(); }
+  }
+  function _isToday(v){
+    if(!v) return false;
+    var dt = new Date(v); if(isNaN(dt)) return false;
+    return _centralDateStr(dt) === _centralDateStr(new Date());
+  }
+  // "On the list" = dogs actually facing euthanasia. Rescue Hold, ACS Foster Hold,
+  // Secured, and In Memoriam are shown in their own pills but NOT counted here.
+  const ONLIST_KEYS = {euthanasia:1, b6spt:1, office_crit:1, outside_crit:1, office:1, immediate:1, scheduled:1, highrisk:1, atrisk:1, watch:1};
+  function onListCount(){
+    return DOGS.filter(function(d){ return ONLIST_KEYS[effectiveStatusKey(d)]; }).length;
+  }
+  function effectiveStatusKey(d){
+    // Trust the database status_key — the scraper is the single source of truth
+    // (kennel + notice + date already resolved there, same as the app). Unknown
+    // values fall back to 'atrisk'; 'left' rows are filtered out on load.
+    var sk = (d.statusKey||'').toLowerCase();
+    // Office-kennel dogs (no euthanasia date) are shown under At risk.
+    if(sk==='office') return 'atrisk';
+    // Trust the scraper's status_key verbatim (office_crit vs office already resolved there).
+    var key = STATUS_META[sk] ? sk : 'atrisk';
+    // ACS distinguishes an "Adoption Hold" (someone is adopting) from a "Rescue Hold"
+    // (a rescue partner pulled). The pull can bucket both under 'adoption', so split
+    // them back apart using the raw ACS status text.
+    if(key==='adoption') return /adopt/i.test(d.status||'') ? 'adopthold' : 'adoption';
+    // Classification comes ONLY from the ACS euthanasia notice (the scraper's
+    // status_key) — a future "Due Out" date is NOT an euthanasia date. So
+    // "euthanized after {date}" dogs stay At risk (card shows "Euth after {date}").
+    return key;
+  }
+
+  // "Jul 9" from an ISO (YYYY-MM-DD) or US (M/D/YYYY) date
+  function _fmtMonD(v){
+    if(!v) return '';
+    var s=String(v), p;
+    if(s.indexOf('-')>-1){ p=s.split('-'); if(p.length!==3) return ''; return _MON[(+p[1])-1]+' '+(+p[2]); }
+    if(s.indexOf('/')>-1){ p=s.split('/'); if(p.length!==3) return ''; return _MON[(+p[0])-1]+' '+(+p[1]); }
+    return '';
+  }
+  var _MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  // Badge text: DB public_status, plus the euthanasia date for the today-critical
+  // tiers (b6spt/immediate) so every urgent card carries a date, like "On the clock · Jul 10".
+  // Has today's euthanasia window opened yet? (5 PM Mon–Fri / 12:30 PM Sat, Sun closed)
+  function euthWindowStarted(){
+    var now = centralNow(), day = now.getDay();
+    if(day === 0) return false;               // Sunday — ACS closed
+    return now >= setDeadlineForDay(centralNow());
+  }
+  // B6-SPT wording is time-aware: "may begin" before the window, "has started" after.
+  function prettyKennel(kennel){
+    var raw = (kennel && String(kennel).trim()) ? String(kennel).trim() : '';
+    return raw.toUpperCase()==='OFFICE' ? 'Office' : raw;
+  }
+  // office = just out of the euthanasia room (Critical); b6spt = moved to a
+  // euthanasia-prep kennel, the most imminent short of the room (Immediate risk · save now).
+  function critText(sk, kennel){
+    var k = prettyKennel(kennel);
+    if(sk==='office_crit'||sk==='outside_crit') return '🚨 Critical · ' + (k || 'Office');
+    return '🚨 Immediate risk · being staged for euthanasia · save now' + (k ? (' · ' + k) : '');
+  }
+
+  function badgeText(d){
+    var sk = effectiveStatusKey(d);
+    if(sk==='euthanasia') return '⚫ Euthanasia in progress — act immediately';
+    // Euthanized stays in In Memoriam; today's are marked (until midnight Central).
+    if(sk==='euthanized') return _isToday(d.leftAt) ? '⚫ Euthanized today · due to capacity' : '🕊️ In Memoriam';
+    // Office (just out of the room) = Critical · Office; B6-SPT/SPT (moved to prep) = Immediate risk · save now.
+    if(sk==='office_crit' || sk==='outside_crit' || sk==='b6spt') return critText(sk, d.kennel);
+    // OUTSIDE3 / "will be euthanized today" — flagged for today, still in a general kennel.
+    if(sk==='immediate'){
+      var kk = (d.kennel||'').toUpperCase();
+      var tag = kk.indexOf('OUTSIDE')===0 ? (d.kennel + ' · ') : '';
+      return '🚨 ' + tag + 'Critical · save today';
+    }
+    // On the clock — always carry the scheduled euthanasia date on the pill.
+    if(sk==='scheduled'){
+      var dt = _fmtMonD(d.euthDate || d.listDate);
+      return dt ? ('📅 Euthanasia date set · ' + dt) : (d.publicStatus || 'Euthanasia date set');
+    }
+    if(sk==='atrisk') return '🟠 At risk';
+    return d.publicStatus || ((STATUS_META[sk]||{}).label) || '';
+  }
+
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
+
+  function sexDecode(s){return {'S':'Spayed F','N':'Neutered M','M':'Intact M','F':'Intact F'}[s] || (s||'—');}
+
+  function buildPhotoUrl(d){
+    if(d.photos && d.photos.length) return d.photos[0];
+    if(d.thumb) return d.thumb;
+    return null;
+  }
+
+  function renderCard(d){
+    var _sk = effectiveStatusKey(d);
+    var photoUrl = buildPhotoUrl(d);
+    var photoHtml = photoUrl
+      ? '<img src="'+esc(photoUrl)+'" alt="'+esc(d.name||'Dog')+'" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';"/><div class="photo-fallback" style="display:none;">\U0001F415</div>'
+      : '<div class="photo-fallback" style="display:flex;">\U0001F415</div>';
+    function fmtD(x){ if(!x) return ''; var mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; var mm,dd; if(/^\d{4}-\d{2}-\d{2}$/.test(x)){var p=x.split('-');mm=+p[1];dd=+p[2];} else if(/^\d{2}\/\d{2}\/\d{4}$/.test(x)){var q=x.split('/');mm=+q[0];dd=+q[1];} else return x; return mo[mm-1]+' '+dd; }
+    var chip='display:inline-block;background:#FBEFD8;color:#7A4F0A;border:1px solid #EBD9AE;border-radius:999px;padding:3px 9px;font-size:11.5px;font-weight:700;margin:4px 4px 0 0';
+    var chips='';
+    if(d.kennel) chips+='<span style="'+chip+'">Kennel '+esc(d.kennel)+'</span>';
+    if(d.due) chips+='<span style="'+chip+'">Due out '+esc(fmtD(d.due))+'</span>';
+    if(d.riskSince) chips+='<span style="'+chip+'">At risk since '+esc(fmtD(d.riskSince))+'</span>';
+    if(d.euthDate && d.euthDate!=='today') chips+='<span style="'+chip+'">Euth '+(effectiveStatusKey(d)==='atrisk'?'after ':'date ')+esc(fmtD(d.euthDate))+'</span>';
+    var cd = (_sk==='b6spt'||_sk==='office_crit'||_sk==='outside_crit'||_sk==='immediate'||_sk==='scheduled')
+      ? '<div class="bigcd-inline" style="margin-top:8px;font-weight:800;font-size:12.5px;color:#C0431C"><span class="countdown '+_sk+'" data-cd="'+(_sk==='scheduled'?(d.euthDate||''):'today')+'">⏳ —</span> · by 5:30 PM CT</div>'
+      : '';
+    var banner = (_sk==='euthanasia') ? '<div class="euth-banner now">⚫ Euthanasia in progress — act immediately</div>'
+               : ((_sk==='b6spt'||_sk==='office_crit'||_sk==='outside_crit') ? '<div class="euth-banner">'+critText(_sk,d.kennel)+'</div>' : '');
+    var daysBadge = (d.days!=null) ? '<span class="badge days">'+d.days+' days at shelter</span>' : '';
+    return '<article class="card '+_sk+'" data-status="'+_sk+'" onclick="openDetail(\''+esc(d.id)+'\')" style="cursor:pointer">'+
+      banner+
+      '<div class="photo">'+photoHtml+daysBadge+'<span class="badge status '+_sk+'" data-kennel="'+esc(d.kennel||'')+'">'+badgeText(d)+'</span></div>'+
+      '<div class="body">'+
+        '<div class="name">'+esc(d.name||'Unnamed')+' <span style="font-weight:600;color:#6B7280;font-size:13px">· Kennel '+esc(d.kennel||'—')+'</span></div>'+
+        '<div class="meta-line">'+esc(d.breed||'Mixed breed')+' · '+esc(d.age||d.ageRaw||'')+'</div>'+
+        cd+
+        '<div style="margin-top:6px">'+chips+'</div>'+
+        '<div class="tile-see" style="margin-top:12px;color:#C9871A;font-weight:800;font-size:14px">See details →</div>'+
+      '</div>'+
+    '</article>';
+  }
+
+  function renderGroups(filterKey){
+    const groups = {};
+    DOGS.forEach(d => {
+      const sk = effectiveStatusKey(d);
+      // In Memoriam is a daily memorial — only animals confirmed euthanized TODAY
+      // appear. Older ones stay saved in the database but are not shown on the page.
+      if(sk==='euthanized' && !_isToday(d.leftAt)) return;
+      if(filterKey && filterKey!=='all' && sk!==filterKey) return;
+      (groups[sk] = groups[sk] || []).push(d);
+    });
+    let html = '';
+    const showMemorial = (!filterKey || filterKey==='all' || filterKey==='euthanized');
+    ORDER.forEach(k => {
+      const has = groups[k] && groups[k].length;
+      // In Memoriam always shows (unless a different filter is active), so outcomes
+      // are visible in real time — we always know what happened to them.
+      if(!has && !(k==='euthanized' && showMemorial)) return;
+      const m = STATUS_META[k];
+      const body = has
+        ? groups[k].map(renderCard).join('')
+        : `<p class="memorial-empty" style="grid-column:1/-1;color:var(--muted);text-align:center;padding:18px 12px;line-height:1.5;">🕊️ No confirmed euthanasias today. This space updates the moment ACS confirms one — so we always know what happened to them.</p>`;
+      html += `
+        <div class="group">
+          <div class="group-head">
+            <span class="dot" style="background:${m.color}"></span>
+            ${m.group}
+            <span class="gcount" style="background:${m.color}">${has ? groups[k].length : 0}</span>
+          </div>
+        </div>
+        <div class="grid">${body}</div>
+      `;
+    });
+    document.getElementById('groups').innerHTML = html || '<div class="group"><p style="color:var(--muted);">No animals match this filter.</p></div>';
+  }
+
+  // ===== Live ticking timer =====
+  // "Now" as San Antonio (Central) wall-clock, so the countdown is identical for
+  // every viewer regardless of their own timezone (handles CST/CDT automatically).
+  function centralNow(){ return new Date(new Date().toLocaleString('en-US',{timeZone:'America/Chicago'})); }
+
+  // ACS capacity deadline: Mon-Fri 5:30 PM · Sat 12:30 PM · Sun closed
+  function setDeadlineForDay(t){
+    var day = t.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    if (day === 6) { t.setHours(12,30,0,0); }     // Saturday 12:30 PM
+    else { t.setHours(17,30,0,0); }                // Mon-Fri (+ Sun fallback) 5:30 PM
+    return t;
+  }
+  function nextCapacityFor(euth){
+    var t = centralNow();
+    if (!euth || euth === 'today') {
+      setDeadlineForDay(t);
+      // If today's deadline already passed, roll to next valid day
+      while (t <= centralNow()) {
+        t.setDate(t.getDate()+1);
+        setDeadlineForDay(t);
+        // Skip Sundays (no ACS capacity ops) — roll to Monday
+        if (t.getDay() === 0) { t.setDate(t.getDate()+1); setDeadlineForDay(t); }
+      }
+    } else if (euth.indexOf('-') > -1) {
+      // ISO YYYY-MM-DD (from the database euth_date)
+      var iso = euth.split('-');
+      if (iso.length === 3) {
+        t = new Date(+iso[0], +iso[1]-1, +iso[2], 0, 0, 0);
+        setDeadlineForDay(t);
+      }
+    } else {
+      var p = euth.split('/');
+      if (p.length === 3) {
+        t = new Date(+p[2], +p[0]-1, +p[1], 0, 0, 0);
+        setDeadlineForDay(t);
+      }
+    }
+    return t;
+  }
+  function fmtCD(ms){
+    if (ms <= 0) return 'passed';
+    var s = Math.floor(ms/1000), h = Math.floor(s/3600), m = Math.floor(s%3600/60), ss = s%60;
+    if (h >= 24) {
+      var d = Math.floor(h/24); h = h%24;
+      return d+'d '+(h<10?'0':'')+h+':'+(m<10?'0':'')+m+':'+(ss<10?'0':'')+ss;
+    }
+    return (h<10?'0':'')+h+':'+(m<10?'0':'')+m+':'+(ss<10?'0':'')+ss;
+  }
+  setInterval(function(){
+    var now = centralNow();
+    document.querySelectorAll('.countdown[data-cd]').forEach(function(el){
+      var euth = el.getAttribute('data-cd');
+      if (euth === 'today') {
+        // Today's window: count down to today's deadline, then say it's open —
+        // don't roll over to a misleading 23-hour clock for tomorrow.
+        var dlToday = setDeadlineForDay(centralNow());
+        var leftToday = dlToday - now;
+        if (euthWindowStarted() || leftToday <= 0) {
+          el.textContent = '⏰ window open — act now';
+          el.classList.add('passed');
+        } else {
+          el.textContent = '⏳ ' + fmtCD(leftToday);
+          el.classList.remove('passed');
+        }
+        return;
+      }
+      var target = nextCapacityFor(euth);
+      var left = target - now;
+      if (left > 0) {
+        el.textContent = '⏳ ' + fmtCD(left);
+        el.classList.remove('passed');
+      } else {
+        el.textContent = '⏰ deadline passed';
+        el.classList.add('passed');
+      }
+    });
+    var _started = euthWindowStarted();
+    // Once the window has passed and they're still on the list, ACS hasn't confirmed
+    // euthanasia — so there may still be a chance. Say so, don't go silent.
+    document.querySelectorAll('.euth-latenote').forEach(function(el){
+      if(_started){
+        el.style.display = '';
+        el.textContent = '⏳ Past today\'s deadline, but still on ACS\'s list — that means euthanasia is NOT yet confirmed. ACS may be running behind, so there may still be time. Call/email ACS now: ACSRESCUE@sanantonio.gov · ACSFOSTER@sanantonio.gov';
+      } else {
+        el.style.display = 'none';
+      }
+    });
+  }, 1000);
+
+  // Collapsible detail sections — tap a pill to open/close (all content kept, just tucked away)
+  document.addEventListener('click', function(e){
+    var t = e.target.closest && e.target.closest('.ph-tab');
+    if(!t) return;
+    e.stopPropagation();
+    var b = t.nextElementSibling;
+    if(b && b.classList.contains('ph-block')){ b.classList.toggle('open'); t.classList.toggle('open'); }
+  });
+
+  // ===== Two-card Detail Modal =====
+  function sexDecode(s){return {'S':'Spayed Female','N':'Neutered Male','M':'Intact Male','F':'Intact Female'}[s] || (s||'—');}
+  function spayStatus(s){
+    if (s==='S' || s==='N') return ['Altered ✓','ok'];
+    if (s==='M' || s==='F') return ['Intact','warn'];
+    return ['Not listed','dim'];
+  }
+  function hwDisplay(hw){
+    if (!hw) return ['Not listed','dim'];
+    var u = hw.toUpperCase();
+    if (u.startsWith('NEG')) return ['Negative ✓','ok'];
+    if (u.startsWith('POS')) return ['POSITIVE — needs treatment','warn'];
+    return [hw,''];
+  }
+
+  window.openDetail = function(animalId){
+    var d = DOGS.find(function(x){return x.id === animalId;});
+    if (!d) return;
+    var _sk = effectiveStatusKey(d);
+    var m = STATUS_META[_sk] || STATUS_META.listed;
+    var photoUrl = buildPhotoUrl(d);
+    var spay = spayStatus(d.sex);
+    var hw = hwDisplay(d.heartworm);
+
+    // Build top hero with photo + status ribbon + euth flag
+    var euLine = '';
+    if (_sk === 'immediate') {
+      euLine = '⏳ <b>Immediate risk:</b> ACS lists this dog to be euthanized <b>today at 5:30 PM</b> unless placement is confirmed.';
+    } else if (_sk === 'atrisk') {
+      euLine = '⚠️ <b>At risk:</b> Could be euthanized <b>after ' + esc(d.euthDate||'') + '</b> if shelter reaches capacity.';
+    } else if (_sk === 'adoption') {
+      euLine = '💛 <b>ACS Rescue Hold.</b> A rescue partner has placed a hold to pull this dog. Confirm status with ACS before acting.';
+    } else if (_sk === 'adopthold') {
+      euLine = '💗 <b>ACS Adoption Hold.</b> Someone is adopting this dog. Confirm status with ACS before acting.';
+    } else if (_sk === 'foster') {
+      euLine = '💜 <b>Foster hold.</b> ' + esc(d.name||'This dog') + ' is in a foster home. Confirm status with ACS.';
+    } else if (_sk === 'hold') {
+      euLine = '🟢 <b>Rescue hold.</b> A rescue is working on this dog. Confirm with ACS.';
+    } else if (_sk === 'secured') {
+      euLine = '✅ <b>Placement secured.</b> Shown for completeness.';
+    }
+
+    var heroHtml = '<div class="detail-hero">' +
+      (photoUrl ? '<img src="' + esc(photoUrl) + '" alt="' + esc(d.name||'Dog') + '">' : '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:64px;color:rgba(11,11,12,.2);">🐕</div>') +
+      '<span class="rb" style="background:' + m.color + '">' + badgeText(d) + '</span>' +
+      ((d.days!=null && d.days!=='') ? '<span class="eu" style="background:rgba(0,0,0,.55);">🗓️ ' + esc(d.days) + ' days at shelter</span>' : '') +
+      '</div>';
+
+    // Big countdown banner (only for immediate/atrisk)
+    var cdBanner = '';
+    if (_sk === 'b6spt' || _sk === 'office_crit' || _sk === 'outside_crit' || _sk === 'immediate' || _sk === 'scheduled') {
+      var lbl = _sk === 'scheduled' ? 'Time until euthanasia date (' + esc(d.euthDate||'') + ')' : "Time left before today's euthanasia window";
+      cdBanner = '<div class="bigcd-banner ' + (_sk==='scheduled' ? 'atrisk' : '') + '">' +
+        '<div class="lbl">' + lbl + '</div>' +
+        '<div class="num ' + (_sk==='scheduled' ? 'atrisk' : '') + '"><span class="countdown ' + _sk + '" data-cd="' + (_sk==='scheduled' ? (d.euthDate||'') : 'today') + '">—</span></div>' +
+        '<div class="sub">ACS capacity deadline · 5:30 PM Mon–Fri / 12:30 PM Sat · Confirm with ACS.</div>' +
+        '</div>';
+    }
+
+    // Story card (only if story field exists)
+    var storyHtml = '';
+    if ((d.story||'').trim()) {
+      storyHtml = '<span class="detail-tab story">💛 Their story — from ACS / shelter volunteers</span>' +
+        '<div class="detail-block story">' +
+        '<div class="detail-story-text">' + esc(d.story) + '</div>' +
+        ((d.aboutMe||'').trim() ? '<div style="font-size:12px;color:var(--muted);margin-top:10px;font-style:normal;">' + esc(d.aboutMe) + '</div>' : '') +
+        '</div>';
+    }
+
+    // Notes (ACS evaluation)
+    var notesHtml = '';
+    if ((d.notes||'').trim()) {
+      notesHtml = '<div class="detail-proc" style="background:#fff;border-style:dashed;"><b style="color:var(--ink);">📋 ACS evaluation notes:</b><br>' + esc(d.notes).replace(/\n/g,'<br>') + '</div>';
+    }
+
+    // RESCUE CARD
+    var rescueCard = '<span class="detail-tab rescue">🚨 Rescue Card — for rescues, fosters, adopters</span>' +
+      '<div class="detail-block rescue">' +
+      '<h3>Placement info</h3>' +
+      '<div class="detail-grid">' +
+        '<div class="detail-row"><span class="lbl">Animal ID</span><span class="val">' + esc(d.id) + '</span></div>' +
+        '<div class="detail-row"><span class="lbl">Kennel</span><span class="val">' + esc(d.kennel||'—') + '</span></div>' +
+        '<div class="detail-row"><span class="lbl">Breed</span><span class="val">' + esc(d.breed||'—') + '</span></div>' +
+        '<div class="detail-row"><span class="lbl">Color</span><span class="val">' + esc(d.color||'—') + '</span></div>' +
+        '<div class="detail-row"><span class="lbl">Age</span><span class="val">' + esc(d.age||d.ageRaw||'—') + '</span></div>' +
+        '<div class="detail-row"><span class="lbl">Sex</span><span class="val">' + esc(sexDecode(d.sex)) + '</span></div>' +
+        '<div class="detail-row"><span class="lbl">Days at shelter</span><span class="val">' + (d.days||'—') + ' days</span></div>' +
+        '<div class="detail-row"><span class="lbl">At risk since</span><span class="val">' + esc(d.riskSince||'—') + '</span></div>' +
+        '<div class="detail-row"><span class="lbl">Due out date</span><span class="val">' + esc(d.due||'—') + '</span></div>' +
+        '<div class="detail-row"><span class="lbl">Weight / size</span><span class="val dim">' + (d.weight ? d.weight + ' lb' : (d.size||'Not weighed')) + '</span></div>' +
+      '</div>' +
+      '<div class="detail-warn ' + ((_sk==='hold' || _sk==='secured' || _sk==='adoption' || _sk==='adopthold' || _sk==='foster') ? 'ok' : '') + '">' + euLine + '</div>' +
+      '<div class="detail-proc">⏰ <b>ACS placement:</b> placement-intention email must reach <b>ACSRESCUE@sanantonio.gov</b> or <b>ACSFOSTER@sanantonio.gov</b> before the daily 5:30 PM deadline (Mon–Fri).</div>' +
+      notesHtml +
+      '</div>';
+
+    // VET CARD
+    var vetCard = '<span class="detail-tab vet">🩺 Health / Vet Card — for partner vets &amp; rescues</span>' +
+      '<div class="detail-block vet">' +
+      '<h3>Medical (what ACS publishes)</h3>' +
+      '<div class="detail-grid">' +
+        '<div class="detail-row"><span class="lbl">Spay / neuter</span><span class="val ' + spay[1] + '">' + spay[0] + '</span></div>' +
+        '<div class="detail-row"><span class="lbl">Weight / size</span><span class="val dim">' + (d.weight ? d.weight + ' lb' : (d.size||'Not weighed')) + '</span></div>' +
+        '<div class="detail-row"><span class="lbl">Heartworm</span><span class="val ' + hw[1] + '">' + hw[0] + '</span></div>' +
+        '<div class="detail-row"><span class="lbl">Microchip</span><span class="val dim">Not in capacity list — confirm with ACS</span></div>' +
+        '<div class="detail-row"><span class="lbl">Vaccines (DAPP / Rabies)</span><span class="val dim">Not in capacity list</span></div>' +
+        '<div class="detail-row"><span class="lbl">FeLV / FIV</span><span class="val dim">N/A (canine)</span></div>' +
+      '</div>' +
+      '<div class="detail-proc" style="background:#E7F0F4;border-color:rgba(58,90,134,.25);color:#2C6E8A;">ℹ️ ACS publishes spay status, weight, and heartworm. Microchip and vaccines aren\'t on the capacity list — confirm with ACS before vetting.</div>' +
+      '</div>';
+
+    document.getElementById('detailOut').innerHTML =
+      heroHtml +
+      cdBanner +
+      '<div class="detail-body">' +
+        '<div class="detail-name">' + esc(d.name||'Unnamed') + '</div>' +
+        '<div class="detail-sub">' + esc(d.breed||'') + ' · ' + esc(d.age||d.ageRaw||'') + ' · ' + sexDecode(d.sex) + ' · ' + esc(d.color||'') + ' · ID ' + esc(d.id) + '</div>' +
+        storyHtml +
+        '<div class="detail-pair">' + rescueCard + vetCard + '</div>' +
+      '</div>';
+
+    document.getElementById('detailModal').classList.add('show');
+    // Force initial countdown update
+    setTimeout(function(){
+      document.querySelectorAll('.detail-modal .countdown[data-cd]').forEach(function(el){
+        var euth = el.getAttribute('data-cd');
+        var target = nextCapacityFor(euth);
+        var left = target - new Date();
+        el.textContent = left > 0 ? '⏳ ' + fmtCD(left) : '⏰ deadline passed';
+      });
+    }, 50);
+  };
+
+  function renderFilters(){
+    const counts = {all: onListCount()};
+    DOGS.forEach(d => {
+      const sk = effectiveStatusKey(d);
+      if(sk==='euthanized' && !_isToday(d.leftAt)) return;
+      counts[sk] = (counts[sk]||0)+1;
+    });
+    const sos = [
+      {key:'euthanasia',   label:'⚫ Euthanasia in progress'},
+      {key:'b6spt',        label:'🚨 SOS · save now (B6-SPT)'},
+      {key:'office_crit',  label:'🚨 Critical · Office'},
+      {key:'outside_crit', label:'🚨 Critical (OUTSIDE3)'},
+      {key:'immediate',    label:'🚨 Critical · save today'}
+    ];
+    const urgent = [
+      {key:'scheduled',  label:'📅 Euthanasia date set · high risk'},
+      {key:'atrisk',     label:'🟠 At risk'}
+    ];
+    const rest = [
+      {key:'adoption',   label:'💛 ACS Rescue Hold'},
+      {key:'adopthold',  label:'💗 ACS Adoption Hold'},
+      {key:'foster',     label:'🏠 ACS Foster Hold'},
+      {key:'watch',      label:'👀 Foster Pending'},
+      {key:'secured',    label:'✅ Secured'},
+      {key:'euthanized', label:'🕊️ In Memoriam'},
+      {key:'unknown',    label:'❔ Unknown'}
+    ];
+    const chip = (b,pulse) => `<button class="chip${b.key==='all'?' active':''}" data-key="${b.key}">${pulse?'<span class="sos-dot"></span>':''}${b.label}<span class="c">${counts[b.key]||0}</span></button>`;
+    const fil = document.getElementById('filters');
+    fil.innerHTML =
+      '<style>#filters{display:block}#filters .filt-lbl{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8A8272;margin:16px 0 7px}#filters .filt-row{display:flex;flex-wrap:wrap;gap:8px}#filters .filt-legend{font-size:12px;color:#8A8272;margin:11px 0 2px;line-height:1.5}#filters .sos-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#E5484D;margin-right:6px;vertical-align:middle;animation:sospulse 1.4s ease-in-out infinite}@keyframes sospulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(1.4)}}</style>'+
+      `<div class="filt-row" style="margin-bottom:6px">${chip({key:'all',label:'All on list'},false)}</div>`+
+      `<div class="filt-lbl">🆘 SOS — act now</div>`+
+      `<div class="filt-row">${sos.map(b=>chip(b,true)).join('')}</div>`+
+      `<div class="filt-row" style="margin-top:8px">${urgent.map(b=>chip(b,false)).join('')}</div>`+
+      `<div class="filt-legend"><b>B6-SPT</b> = euthanasia-prep kennel · <b>OUTSIDE3</b> = outdoor kennel, marked for euthanasia</div>`+
+      `<div class="filt-lbl">Status</div>`+
+      `<div class="filt-row">${rest.map(b=>chip(b,false)).join('')}</div>`;
+    fil.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+      fil.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+      c.classList.add('active');
+      renderGroups(c.dataset.key);
+    }));
+  }
+
+  function actEmail(id, name){
+    const subj = encodeURIComponent(`Urgent Placement - ${id} (${name})`);
+    const body = encodeURIComponent(`Hello ACS,\n\nI'm reaching out about ${name} (ID ${id}) on today's capacity list. I am interested in:\n\n[ ] Pulling as a rescue partner\n[ ] Fostering\n[ ] Adopting\n\nPlease confirm the next steps.\n\nThank you,\n`);
+    window.open(`mailto:ACSRESCUE@sanantonio.gov?cc=ACSFOSTER@sanantonio.gov&subject=${subj}&body=${body}`, '_blank');
+  }
+  function actFoster(){ window.open('https://saacs.info/foster', '_blank'); }
+  function shareDog(id, name, url, breed, age, kennel, statusKey, days){
+    openShareMenu(id, name, url, breed, age, kennel, statusKey, days);
+  }
+  function openShareMenu(id, name, url, breed, age, kennel, statusKey, days){
+    // PawBoost-style rich share message — full animal story + ACS contacts + hashtags
+    const statusLabel = statusKey === 'euthanasia'
+      ? '⚫ EUTHANASIA IN PROGRESS — act immediately, this dog is being euthanized'
+      : statusKey === 'euthtoday'
+      ? '⚫ EUTHANIZED TODAY — lost to capacity. We remember them.'
+      : statusKey === 'euthanized'
+      ? '🕊️ In Memoriam — lost to euthanasia. We remember them.'
+      : statusKey === 'b6spt'
+      ? ((kennel||'').toUpperCase()==='OFFICE'
+          ? '🚨 CRITICAL · Office — just out of the euthanasia room, save now'
+          : '🚨 IMMEDIATE RISK · save now — ' + (kennel || 'euthanasia-prep kennel') + ', moved toward euthanasia')
+      : statusKey === 'immediate'
+      ? '🚨 HIGH RISK · save today — will be euthanized today without confirmed placement'
+      : statusKey === 'scheduled'
+      ? '📅 EUTHANASIA DATE SET — scheduled for a coming day'
+      : statusKey === 'office_crit'
+      ? '🚨 CRITICAL · Office — just out of the euthanasia room, save now'
+      : statusKey === 'outside_crit'
+      ? '🚨 CRITICAL (OUTSIDE3) — outdoor kennel, marked for euthanasia'
+      : statusKey === 'office'
+      ? '🏢 OFFICE · at risk — housed in an office, not marked critical'
+      : statusKey === 'atrisk'
+        ? '🟠 AT RISK — on ACS\'s list, placement window is open'
+        : statusKey === 'adoption'
+          ? '💛 ACS Rescue Hold — a rescue partner has a hold to pull'
+          : statusKey === 'adopthold'
+          ? '💗 ACS Adoption Hold — someone is adopting'
+          : statusKey === 'foster'
+            ? '🏠 ACS Foster Hold'
+            : statusKey === 'watch'
+              ? '👀 Foster Pending — a family is coming'
+              : statusKey === 'secured'
+                ? '✅ Secured'
+                : 'On today\'s ACS list';
+    const breedAge = [breed, age].filter(Boolean).join(', ');
+    const daysLine = days ? `${days} days at shelter` : '';
+    const kennelLine = kennel ? `Kennel ${kennel}` : '';
+    const longText =
+`🚨 Please share to help save ${name} at San Antonio ACS!
+
+${name} (ID ${id})${breedAge ? ' — ' + breedAge : ''}${daysLine ? ' · ' + daysLine : ''}.
+
+${statusLabel}
+
+📍 San Antonio Animal Care Services${kennelLine ? ' · ' + kennelLine : ''}
+📋 Real ACS listing: ${url}
+
+📧 To rescue, foster, or adopt — email ACS:
+   ACSRESCUE@sanantonio.gov
+   ACSFOSTER@sanantonio.gov
+   (placement requests must reach ACS at least 30 minutes before the daily 5:30 PM capacity deadline)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🐾 SHARED VIA VOYCE FOR PAWS
+You see an animal in need. Voyce answers.
+
+Join the pack — pick how you can help:
+🚐 Rescuer  ❤️ Foster  🩺 Vet
+💛 Adopter  📢 Share  🤝 Pledger
+
+👉 Join the pack: voyceforpaws.org/#join-pack
+
+Every share grows the pack. Voyce instantly alerts the people nearby who can help — so someone always answers.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+#SaveACS #VoyceForPaws #SanAntonioRescue`;
+    const shortText = `🚨 Help save ${name} (ID ${id}) at San Antonio ACS — ${statusKey === 'immediate' ? 'immediate risk TODAY' : 'needs rescue/foster'}. ${url} #SaveACS #VoyceForPaws`;
+    const titleText = `Help save ${name} (ID ${id}) at San Antonio ACS — ${statusKey === 'immediate' ? 'immediate risk today' : 'needs rescue/foster'}`;
+    const u = encodeURIComponent(url);
+    const t = encodeURIComponent(longText);
+    const st = encodeURIComponent(shortText);
+    // Brand SVG icons
+    const SVG = {
+      nextdoor: '<svg viewBox="0 0 24 24" fill="#8ED500"><path d="M21.184 11.281c-.169-.633-.557-2.21-2.013-3.292-1.142-.85-2.298-.916-2.94-.916-.512 0-1.022.062-1.515.193V4.49l-1.965 1.193v9.122c0 1.085-.882 1.965-1.967 1.965-1.085 0-1.965-.88-1.965-1.965v-3.516c0-1.085.88-1.965 1.965-1.965.366 0 .713.103 1.012.294l1.054-1.665a3.86 3.86 0 0 0-2.066-.594c-2.165 0-3.93 1.766-3.93 3.93v3.516c0 2.165 1.765 3.93 3.93 3.93s3.932-1.765 3.932-3.93V9.34c.487-.21 1.013-.32 1.515-.32.512 0 1.282.075 2.002.61.787.585 1.082 1.426 1.236 2.04.078.31.119.713.119 1.139v6.4h1.965v-6.4c0-.51-.05-1.027-.183-1.528z"/></svg>',
+      facebook: '<svg viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073c0 6.019 4.388 11.01 10.125 11.927v-8.437H7.078v-3.49h3.047V9.413c0-3.034 1.792-4.71 4.533-4.71 1.313 0 2.686.235 2.686.235v2.97h-1.514c-1.49 0-1.956.93-1.956 1.886v2.265h3.328l-.532 3.49h-2.796V24C19.612 23.083 24 18.092 24 12.073z"/></svg>',
+      whatsapp: '<svg viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>',
+      twitter: '<svg viewBox="0 0 24 24" fill="#000"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
+      instagram: '<svg viewBox="0 0 24 24"><defs><linearGradient id="igGrad" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#FED576"/><stop offset="26%" stop-color="#F47133"/><stop offset="61%" stop-color="#BC3081"/><stop offset="100%" stop-color="#4C63D2"/></linearGradient></defs><path fill="url(#igGrad)" d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>',
+      gmail: '<svg viewBox="0 0 24 24"><path fill="#EA4335" d="M5.457 22h-3.91A1.547 1.547 0 010 20.453V7.91l7 5.25V22z"/><path fill="#FBBC04" d="M22.453 22h-3.91v-8.84L24 7.91v12.543c0 .854-.693 1.547-1.547 1.547z"/><path fill="#34A853" d="M18.543 22v-8.84L24 7.91l-.001-3.91L18.543 8v14z"/><path fill="#C5221F" d="M0 7.91L5.457 4l7 5.25 6.086-4.56L24 4v3.91l-5.457 4.09L12.457 7.91 5.457 13 0 7.91z"/><path fill="#188038" d="M0 4v3.91L5.457 12V4L0 4z"/></svg>',
+      sms: '<svg viewBox="0 0 24 24" fill="#5F8A68"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM7 9h10v2H7V9zm6 5H7v-2h6v2zm4-6H7V6h10v2z"/></svg>',
+      linkedin: '<svg viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.063 2.063 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>',
+      copy: '<svg viewBox="0 0 24 24" fill="#C9871A"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>',
+      snapchat: '<svg viewBox="0 0 24 24" fill="#FFFC00"><path d="M12.166 0.085c.293-.001.587 0 .881.026 1.49.13 2.857.752 3.949 1.793 1.234 1.176 1.92 2.756 1.937 4.46.005.547-.034 1.094-.115 1.633-.069.46-.165.913-.281 1.361.094.062.193.116.296.16.323.139.654.288.985.418.207.082.408.18.6.293.215.127.408.292.567.488.16.196.281.422.355.665.075.243.103.5.083.755-.025.314-.124.617-.29.886-.165.27-.392.495-.66.658a4.04 4.04 0 01-.929.388c-.358.105-.722.187-1.09.244-.213.034-.402.156-.523.336-.108.157-.18.337-.215.526-.05.298-.27.539-.563.616-.293.078-.602-.011-.81-.232-.144-.158-.314-.288-.503-.382-.244-.116-.51-.176-.778-.176-.347-.001-.69.075-1.005.223-.43.197-.842.43-1.234.7-.535.359-1.142.609-1.78.732-.434.085-.876.122-1.318.111-.442.011-.884-.026-1.318-.111-.638-.123-1.245-.373-1.78-.732-.392-.27-.804-.503-1.234-.7-.315-.148-.658-.224-1.005-.223-.268 0-.534.06-.778.176-.189.094-.359.224-.503.382-.208.221-.517.31-.81.232-.293-.077-.514-.318-.563-.616-.034-.189-.107-.369-.215-.526-.121-.18-.31-.302-.523-.336-.368-.057-.732-.139-1.09-.244a4.04 4.04 0 01-.929-.388c-.268-.163-.495-.388-.66-.658-.166-.269-.265-.572-.29-.886-.02-.255.008-.512.083-.755.074-.243.195-.469.355-.665.159-.196.352-.361.567-.488.192-.113.393-.211.6-.293.331-.13.662-.279.985-.418.103-.044.202-.098.296-.16-.116-.448-.212-.901-.281-1.361-.081-.539-.12-1.086-.115-1.633.017-1.704.703-3.284 1.937-4.46C8.32.863 9.687.241 11.177.111c.328-.026.658-.027.989-.026z"/></svg>',
+      telegram: '<svg viewBox="0 0 24 24" fill="#229ED9"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>',
+      reddit: '<svg viewBox="0 0 24 24" fill="#FF4500"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg>',
+      messenger: '<svg viewBox="0 0 24 24" fill="#0084FF"><path d="M.001 11.639C.001 4.949 5.241 0 12.001 0S24 4.95 24 11.639c0 6.689-5.24 11.638-12 11.638-1.21 0-2.38-.16-3.47-.46a.96.96 0 00-.64.05l-2.39 1.05a.96.96 0 01-1.35-.85l-.07-2.14a.97.97 0 00-.32-.68A11.39 11.389 0 010 11.639zm8.32-2.19l-3.52 5.6c-.35.53.32 1.14.82.77l3.79-2.87a.73.73 0 01.87 0l2.8 2.1c.84.63 2.04.41 2.6-.48l3.52-5.6c.35-.53-.32-1.14-.82-.77l-3.79 2.87a.73.73 0 01-.87 0l-2.8-2.1a1.83 1.83 0 00-2.6.48z"/></svg>',
+      pinterest: '<svg viewBox="0 0 24 24" fill="#E60023"><path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.402.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.357-.629-2.756-1.378l-.749 2.848c-.269 1.045-1.004 2.352-1.498 3.146 1.123.345 2.306.535 3.55.535 6.607 0 11.985-5.365 11.985-11.987C24.007 5.367 18.641.001 12.017.001z"/></svg>'
+    };
+    document.getElementById('shareTitle').textContent = `Share ${name} (ID ${id})`;
+    document.getElementById('shareLinks').innerHTML = `
+      <a class="share-btn nextdoor" target="_blank" rel="noopener" href="https://nextdoor.com/sharekit/?source=BUTTON&body=${t}">
+        ${SVG.nextdoor}<span class="lbl">Nextdoor</span><span class="hint">Best for local rescues</span>
+      </a>
+      <a class="share-btn facebook" target="_blank" rel="noopener" href="https://www.facebook.com/sharer/sharer.php?u=${u}&quote=${t}">
+        ${SVG.facebook}<span class="lbl">Facebook</span><span class="hint">Post to feed or groups</span>
+      </a>
+      <a class="share-btn whatsapp" target="_blank" rel="noopener" href="https://wa.me/?text=${t}">
+        ${SVG.whatsapp}<span class="lbl">WhatsApp</span><span class="hint">DM or rescue groups</span>
+      </a>
+      <a class="share-btn twitter" target="_blank" rel="noopener" href="https://twitter.com/intent/tweet?text=${st}&url=${u}">
+        ${SVG.twitter}<span class="lbl">X / Twitter</span><span class="hint">Tag rescues &amp; shelters</span>
+      </a>
+      <button class="share-btn instagram" onclick="shareInstagram('${id}','${name}','${url}')">
+        ${SVG.instagram}<span class="lbl">Instagram</span><span class="hint">Copy + paste to story/post</span>
+      </button>
+      <a class="share-btn email" href="mailto:?subject=${encodeURIComponent('Help save '+name+' at San Antonio ACS')}&body=${t}">
+        ${SVG.gmail}<span class="lbl">Email</span><span class="hint">Forward to a rescuer</span>
+      </a>
+      <a class="share-btn sms" href="sms:?body=${t}">
+        ${SVG.sms}<span class="lbl">SMS</span><span class="hint">Text to the pack</span>
+      </a>
+      <a class="share-btn linkedin" target="_blank" rel="noopener" href="https://www.linkedin.com/sharing/share-offsite/?url=${u}">
+        ${SVG.linkedin}<span class="lbl">LinkedIn</span><span class="hint">Reach professionals</span>
+      </a>
+      <a class="share-btn snapchat" target="_blank" rel="noopener" href="https://www.snapchat.com/scan?attachmentUrl=${u}">
+        ${SVG.snapchat}<span class="lbl">Snapchat</span><span class="hint">Post to your story</span>
+      </a>
+      <a class="share-btn telegram" target="_blank" rel="noopener" href="https://t.me/share/url?url=${u}&text=${t}">
+        ${SVG.telegram}<span class="lbl">Telegram</span><span class="hint">Channels &amp; groups</span>
+      </a>
+      <a class="share-btn reddit" target="_blank" rel="noopener" href="https://www.reddit.com/submit?url=${u}&title=${encodeURIComponent(titleText)}">
+        ${SVG.reddit}<span class="lbl">Reddit</span><span class="hint">r/Adopt · r/SanAntonio</span>
+      </a>
+      <button class="share-btn messenger" onclick="shareMessenger('${id}','${name}','${url}')">
+        ${SVG.messenger}<span class="lbl">Messenger</span><span class="hint">Copy + DM friends</span>
+      </button>
+      <a class="share-btn pinterest" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/button/?url=${u}&media=${encodeURIComponent('https://24petconnect.com/image/'+id+'/SANT/2')}&description=${t}">
+        ${SVG.pinterest}<span class="lbl">Pinterest</span><span class="hint">Pin to a rescue board</span>
+      </a>
+      <button class="share-btn copy" onclick="copyShareText(decodeURIComponent('${encodeURIComponent(shortText + ' ' + url)}'))">
+        ${SVG.copy}<span class="lbl">Copy link</span><span class="hint">Paste anywhere</span>
+      </button>
+    `;
+    document.getElementById('shareModal').classList.add('show');
+  }
+  function shareInstagram(id, name, url){
+    const text = `Help save ${name} (ID ${id}) at San Antonio ACS today. They're at risk of euthanasia. Real listing: ${url}`;
+    navigator.clipboard.writeText(text).then(()=>{
+      toast('Caption copied — paste into Instagram story or post');
+    });
+    setTimeout(()=>{ window.open('https://www.instagram.com/', '_blank'); }, 400);
+  }
+  function shareMessenger(id, name, url){
+    const text = `Help save ${name} (ID ${id}) at San Antonio ACS today. They're at risk of euthanasia. Real listing: ${url}`;
+    navigator.clipboard.writeText(text).then(()=>{
+      toast('Caption copied — paste into Messenger DM');
+    });
+    // On mobile, try the Messenger deep link first
+    if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      window.location.href = 'fb-messenger://share?link='+encodeURIComponent(url);
+      setTimeout(()=>{ window.open('https://www.messenger.com/', '_blank'); }, 800);
+    } else {
+      setTimeout(()=>{ window.open('https://www.messenger.com/', '_blank'); }, 400);
+    }
+  }
+  function copyShareText(text){
+    navigator.clipboard.writeText(text).then(()=>toast('Link copied — share anywhere'));
+  }
+  function toast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(window._tt);
+    window._tt = setTimeout(()=>t.classList.remove('show'), 2400);
+  }
+
+  document.getElementById('topListDate').textContent = DATA.listDate || '—';
+  document.getElementById('topCount').textContent = onListCount();
+  document.getElementById('listDate').textContent = DATA.listDate || '—';
+  document.getElementById('totalCount').textContent = onListCount();
+  document.getElementById('immCount').textContent = DOGS.filter(d=>d.statusKey==='immediate').length;
+  var lu = document.getElementById('lastUpdated'); if (lu) lu.textContent = DATA.listDate || '—';
+  var sc = document.getElementById('syncCount'); if (sc) sc.textContent = DOGS.length;
+
+  renderFilters();
+  renderGroups('all');
+
+  // ===== Live auto-fetch (15 min) =====
+  // Tries to pull the freshest acs_enriched.json from the ACS-tracking folder.
+  // Works on http(s); on file:// many browsers block fetch — embedded data is the fallback.
+  var BUILD = '2026-07-10 19:24 ET';
+  function setSyncStatus(text, isLive){
+    var el = document.querySelector('.last-updated > span:last-child');
+    if (el) el.innerHTML = text + ' <span class="meta" style="opacity:.55">· build ' + BUILD + '</span>';
+    var pulse = document.querySelector('.last-updated .pulse');
+    if (pulse) pulse.style.background = isLive ? 'var(--green)' : '#D2913C';
+  }
+  // Supabase config (same project as community_sources / signup tables)
+  var SUPA_URL = 'https://okmukfrhvqkxphzueqww.supabase.co';
+  var SUPA_KEY = 'sb_publishable_e_OWsyXVeFqgV6EVGAKKTw_sgEV2cTN';
+
+  // Convert YYYY-MM-DD -> M/D/YYYY (matches old listDate format the UI expects)
+  function _toUSDate(s){
+    if (!s) return null;
+    var p = String(s).split('-');
+    if (p.length !== 3) return s;
+    return parseInt(p[1],10) + '/' + parseInt(p[2],10) + '/' + p[0];
+  }
+
+  // Map a Supabase row (snake_case) back to the camelCase the UI was built around
+  function _rowToDog(r){
+    return {
+      id:           r.id,
+      status:       r.status,
+      statusKey:    r.status_key,
+      publicStatus: r.public_status,
+      listDate:     r.list_date,
+      leftAt:       r.left_at,
+      euthDate:     r.euth_date || ((r.due_out && String(r.due_out) > _centralDateStr(new Date())) ? _toUSDate(r.due_out) : null),
+      due:          _toUSDate(r.due_out),
+      kennel:       r.kennel,
+      sex:          r.sex,
+      ageRaw:       r.age_raw,
+      color:        r.color,
+      breed:        r.breed,
+      weight:       r.weight,
+      days:         r.days,
+      riskSince:    r.risk_since,
+      heartworm:    r.heartworm,
+      name:         r.name,
+      notes:        r.notes,
+      age:          r.age,
+      petSearchUrl: r.pet_search_url,
+      listUrl:      r.list_url,
+      aboutMe:      r.about_me,
+      story:        r.story,
+      photos:       r.photos,
+      thumb:        r.thumb,
+      adoptEmail:   r.adopt_email,
+      fosterUrl:    r.foster_url,
+      fosterPhone:  r.foster_phone
+    };
+  }
+
+  // Staleness guard — a bright banner if the list on screen isn't today's, so
+  // old data can never quietly masquerade as current.
+  function _setStaleBanner(isToday, listDate){
+    var id = 'voyce-stale-banner';
+    var el = document.getElementById(id);
+    if (isToday) { if (el) el.remove(); return; }
+    if (!el) {
+      el = document.createElement('div');
+      el.id = id;
+      el.style.cssText = 'position:sticky;top:0;z-index:60;background:#C8362B;color:#fff;text-align:center;font-weight:700;font-size:13px;padding:9px 14px;font-family:inherit;line-height:1.4';
+      document.body.insertBefore(el, document.body.firstChild);
+    }
+    el.innerHTML = '⚠ Showing the list dated <b>' + (listDate||'—') + '</b> — today\'s list hasn\'t synced yet. ' +
+      'Always confirm on the <a href="https://www.sanantonio.gov/acs/ACS_website_euth_capacity.pdf" target="_blank" rel="noopener" style="color:#fff;text-decoration:underline">official ACS PDF</a> before acting.';
+  }
+
+  // Re-render UI with fresh data (used by both Supabase + local-file fetches)
+  function _hotSwap(data, sourceLabel){
+    if (!data || !data.dogs) return;
+    var prevCount = DOGS.length;
+    Object.keys(DATA).forEach(function(k){ delete DATA[k]; });
+    Object.assign(DATA, data);
+    DOGS.length = 0;
+    data.dogs.forEach(function(d){ DOGS.push(d); });
+    renderFilters();
+    var activeChip = document.querySelector('.chip.active');
+    var key = activeChip ? activeChip.dataset.key : 'all';
+    renderGroups(key);
+    var tld = document.getElementById('topListDate'); if (tld) tld.textContent = data.listDate || '—';
+    var tc  = document.getElementById('topCount');    if (tc)  tc.textContent  = onListCount();
+    var ld  = document.getElementById('listDate');    if (ld)  ld.textContent  = data.listDate || '—';
+    var tot = document.getElementById('totalCount');  if (tot) tot.textContent = onListCount();
+    var imm = document.getElementById('immCount');    if (imm) imm.textContent = data.dogs.filter(function(d){return d.statusKey==='immediate';}).length;
+    var lu  = document.getElementById('lastUpdated'); if (lu)  lu.textContent  = data.listDate || '—';
+    var sc  = document.getElementById('syncCount');   if (sc)  sc.textContent  = onListCount();
+    var now = new Date();
+    var _h = now.getHours(), _m = now.getMinutes(), _ap = _h < 12 ? 'AM' : 'PM';
+    var _h12 = _h % 12; if (_h12 === 0) _h12 = 12;
+    var hhmm = _h12 + ':' + (_m < 10 ? '0' : '') + _m + ' ' + _ap;
+    // Staleness guard. ACS posts each day's list before ~5 PM, so overnight and
+    // early morning it's NORMAL to still be on yesterday's — that's the freshest
+    // that exists, not an error. Only raise the red alarm when 2+ days behind.
+    var todayMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var _p = (data.listDate || '').split('/');   // M/D/YYYY
+    var listMid = _p.length === 3 ? new Date(+_p[2], +_p[0]-1, +_p[1]) : null;
+    var daysBehind = listMid ? Math.round((todayMid - listMid) / 86400000) : 999;
+    var freshTag;
+    if (daysBehind <= 0) {
+      freshTag = ' <span class="meta">· <b style="color:#2e8b57">✓ today\'s list</b></span>';
+    } else if (daysBehind === 1) {
+      freshTag = ' <span class="meta">· <b style="color:#C9871A">awaiting today\'s ACS update</b></span>';
+    } else {
+      freshTag = ' <span class="meta">· <b style="color:#ffd7d0">⚠ ' + daysBehind + ' days behind</b></span>';
+    }
+    setSyncStatus('Live · ' + sourceLabel + ' · synced at <b>' + hhmm + '</b> <span class="meta">· list <b>' + (data.listDate||'—') + '</b> · <b>' + data.dogs.length + '</b> animals</span>' + freshTag, daysBehind <= 1);
+    // Only the bright red banner when genuinely stuck (2+ days behind).
+    _setStaleBanner(daysBehind <= 1, data.listDate);
+    if (prevCount > 0 && prevCount !== data.dogs.length) {
+      toast('List updated: ' + data.dogs.length + ' animals (was ' + prevCount + ')');
+    }
+  }
+
+  function liveFetch(){
+    // 1) Try Supabase first — works from file://, http(s)://, anywhere
+    var url = SUPA_URL + '/rest/v1/acs_animals?select=*&status_key=neq.left&order=list_date.desc,status_key.asc';
+    fetch(url, { headers: { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY } })
+      .then(function(r){ if (!r.ok) throw new Error('Supabase HTTP '+r.status); return r.json(); })
+      .then(function(rows){
+        if (!rows || !rows.length) throw new Error('Supabase returned 0 rows');
+        // Supabase keeps EVERY animal ever pushed (rows accumulate day over day),
+        // so we must show only the newest list. Rows come ordered list_date desc,
+        // so rows[0].list_date is the latest — keep only that day's animals.
+        var newest = rows[0] && rows[0].list_date;
+        var todayRows = newest ? rows.filter(function(r){ return r.list_date === newest; }) : rows;
+        // Keep ALL euthanized (In Memoriam) regardless of list date — a permanent
+        // memorial. Older ones are flagged (_hist) so they only appear under the
+        // In Memoriam toggle and never clutter the active list.
+        var memorials = rows.filter(function(r){ return r.status_key === 'euthanized' && r.list_date !== newest; });
+        var dogs = todayRows.concat(memorials).map(_rowToDog);
+        dogs.forEach(function(d){ if(d.statusKey==='euthanized' && d.listDate !== newest) d._hist = true; });
+        var data = {
+          listDate: newest ? _toUSDate(newest) : null,
+          dogs: dogs
+        };
+        _hotSwap(data, 'cloud');
+      })
+      .catch(function(e){
+        console.warn('Supabase fetch failed:', e.message, '— trying local file');
+        // 2) Fall back to local file (only works if served from http(s)://)
+        fetch('../ACS-tracking/acs_enriched.json?t=' + Date.now())
+          .then(function(r){ if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+          .then(function(data){
+            if (!data.dogs) throw new Error('no dogs array');
+            _hotSwap(data, 'local file');
+          })
+          .catch(function(e2){
+            console.warn('All live fetches failed (using embedded):', e2.message);
+            setSyncStatus('Embedded snapshot <span class="meta">· list <b>' + (DATA.listDate||'—') + '</b> · <b>' + DOGS.length + '</b> animals · cloud unreachable</span>', false);
+            _setStaleBanner(false, DATA.listDate);
+          });
+      });
+  }
+  // Run immediately, then auto-refresh every 3 minutes AND whenever the tab
+  // regains focus — so the board stays live without anyone reloading.
+  liveFetch();
+  setInterval(liveFetch, 3 * 60 * 1000);
+  document.addEventListener('visibilitychange', function(){
+    if (document.visibilityState === 'visible') liveFetch();
+  });
+  window.addEventListener('focus', function(){ liveFetch(); });
+
+  // ===== Add a video / photo / post — modal + Supabase wiring =====
+  var addvPending = {};
+  function platformOf(url){
+    url = (url||'').toLowerCase();
+    if(url.includes('facebook.com')||url.includes('fb.watch')||url.includes('fb.com')) return '📘 Facebook';
+    if(url.includes('youtu')) return '▶️ YouTube';
+    if(url.includes('instagram')) return '📷 Instagram';
+    if(url.includes('tiktok')) return '🎵 TikTok';
+    if(url.includes('twitter')||url.includes('x.com')) return '𝕏 Twitter/X';
+    if(url.includes('reddit')) return '🟠 Reddit';
+    return '🔗 Link';
+  }
+  window.openAddVideo = function(animalId, animalName){
+    addvPending = { animal_id: animalId, animal_name: animalName };
+    document.getElementById('addvTitle').textContent = 'Help save ' + (animalName||'this dog');
+    document.getElementById('addvUrl').value = '';
+    document.getElementById('addvCredit').value = '';
+    document.getElementById('addvConsent').checked = false;
+    document.getElementById('addvBtnSave').disabled = true;
+    document.getElementById('addvBtnSave').textContent = 'Save';
+    document.getElementById('addvForm').style.display = 'block';
+    document.getElementById('addvSuccess').style.display = 'none';
+    document.getElementById('addvModal').classList.add('show');
+  };
+
+  function refreshAddedFor(animalId){
+    var el = document.getElementById('addedVideos-' + animalId);
+    if (!el || !sb) return;
+    sb.from('community_sources').select('url, credit, platform, created_at').eq('animal_id', animalId).order('created_at', { ascending: false }).then(function(res){
+      if (res.error || !res.data || !res.data.length) { el.innerHTML = ''; return; }
+      el.innerHTML = res.data.map(function(r){
+        var p = r.platform || platformOf(r.url);
+        var c = r.credit ? 'Posted by ' + r.credit : 'Community-added';
+        return '<div class="ph-added-row"><div class="info"><div class="platform">' + p + '</div><div class="credit">' + c + '</div></div><a href="' + r.url + '" target="_blank" rel="noopener">▶ View</a></div>';
+      }).join('');
+    }).catch(function(){});
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    // After cards render, fetch community sources per animal
+    setTimeout(function(){
+      DOGS.forEach(function(d){ refreshAddedFor(d.id); });
+    }, 200);
+
+    var urlIn = document.getElementById('addvUrl');
+    var consentIn = document.getElementById('addvConsent');
+    var btnSave = document.getElementById('addvBtnSave');
+    function updateBtn(){ btnSave.disabled = !(urlIn.value && consentIn.checked); }
+    urlIn.addEventListener('input', updateBtn);
+    consentIn.addEventListener('change', updateBtn);
+
+    document.getElementById('addvBtnClose').addEventListener('click', function(){
+      document.getElementById('addvModal').classList.remove('show');
+    });
+    document.getElementById('addvModal').addEventListener('click', function(e){
+      if (e.target.id === 'addvModal') this.classList.remove('show');
+    });
+
+    btnSave.addEventListener('click', function(){
+      var url = (urlIn.value||'').trim();
+      var credit = (document.getElementById('addvCredit').value||'').trim();
+      if (!url || !/^https?:\/\//.test(url)) { toast('Please paste a valid http(s) link'); return; }
+      var record = {
+        animal_id: addvPending.animal_id,
+        animal_name: addvPending.animal_name,
+        url: url,
+        credit: credit || null,
+        platform: platformOf(url),
+        consent: true
+      };
+      if (!sb) {
+        var subj = encodeURIComponent('Voyce — community video for ' + record.animal_name + ' (' + record.animal_id + ')');
+        var body = encodeURIComponent('URL: ' + url + '\nCredit: ' + (credit||'(not provided)') + '\nAnimal: ' + record.animal_name + ' (' + record.animal_id + ')');
+        window.location.href = 'mailto:bethevoyce1@gmail.com?subject=' + subj + '&body=' + body;
+        return;
+      }
+      btnSave.disabled = true; btnSave.textContent = 'Saving…';
+      sb.from('community_sources').insert(record).then(function(res){
+        if (res.error) {
+          console.error('community_sources insert failed', res.error);
+          toast('Could not save. Opening email instead…');
+          var subj = encodeURIComponent('Voyce — community video for ' + record.animal_name + ' (' + record.animal_id + ')');
+          var body = encodeURIComponent('URL: ' + url + '\nCredit: ' + (credit||'(not provided)') + '\nAnimal: ' + record.animal_name + ' (' + record.animal_id + ')\n\n(Supabase error: ' + res.error.message + ')');
+          setTimeout(function(){ window.location.href = 'mailto:bethevoyce1@gmail.com?subject=' + subj + '&body=' + body; }, 800);
+        } else {
+          document.getElementById('addvForm').style.display = 'none';
+          document.getElementById('addvSuccess').style.display = 'block';
+          refreshAddedFor(record.animal_id);
+        }
+      }).catch(function(err){
+        console.error(err);
+        toast('Save failed. Opening email…');
+        var subj = encodeURIComponent('Voyce — community video for ' + record.animal_name + ' (' + record.animal_id + ')');
+        var body = encodeURIComponent('URL: ' + url + '\nCredit: ' + (credit||'(not provided)') + '\nAnimal: ' + record.animal_name + ' (' + record.animal_id + ')');
+        setTimeout(function(){ window.location.href = 'mailto:bethevoyce1@gmail.com?subject=' + subj + '&body=' + body; }, 800);
+      });
+    });
+  });
+
+  // Pre-launch banner dismiss persistence
+  try {
+    if (localStorage.getItem('vplBanner') === '1') {
+      var pb = document.getElementById('prelaunchBanner');
+      if (pb) pb.classList.add('hidden');
+    }
+  } catch(e) {}
+
+  // Email-capture modal + Supabase wiring
+  var SB_URL = 'https://okmukfrhvqkxphzueqww.supabase.co';
+  var SB_KEY = 'sb_publishable_e_OWsyXVeFqgV6EVGAKKTw_sgEV2cTN';
+  var sb = null;
+  if (typeof supabase !== 'undefined') {
+    try { sb = supabase.createClient(SB_URL, SB_KEY); } catch(e) { console.warn('Supabase init failed:', e); }
+  }
+  var ecPending = {};
+
+  window.openInApp = function(animalId, animalName){
+    ecPending = { source:'app-launch-acs', animal_id:animalId, animal_name:animalName, shelter:'ACS San Antonio' };
+    document.getElementById('ecEyebrow').textContent = '🎯 The Voyce app · Pre-launch';
+    document.getElementById('ecTitle').textContent = 'Be there for ' + (animalName||'this dog') + ' the moment we launch.';
+    document.getElementById('ecSub').textContent = 'The Voyce app is in pre-launch build. Drop your email and we\'ll let you know the moment you can act on '+(animalName||'this dog')+'\'s case (and others like it).';
+    document.getElementById('ecBtnPrimary').textContent = 'Notify me when Voyce launches';
+    document.getElementById('ecConsent').checked = false;
+    document.getElementById('ecEmail').value = '';
+    document.getElementById('ecBtnPrimary').disabled = true;
+    document.getElementById('ecModal').classList.add('show');
+    document.getElementById('ecForm').style.display = 'block';
+    document.getElementById('ecSuccess').style.display = 'none';
+  };
+
+  function ecFallback(record){
+    var subj = encodeURIComponent('Voyce signup — '+(record.source||''));
+    var body = encodeURIComponent('Email: '+record.email+'\nAnimal: '+(record.animal_name||'')+' ('+(record.animal_id||'')+')\nSource: '+(record.source||'')+'\n');
+    window.location.href = 'mailto:bethevoyce1@gmail.com?subject='+subj+'&body='+body;
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    var c = document.getElementById('ecConsent');
+    if (c) c.addEventListener('change', function(){
+      document.getElementById('ecBtnPrimary').disabled = !this.checked;
+    });
+    var cb = document.getElementById('ecBtnClose');
+    if (cb) cb.addEventListener('click', function(){
+      document.getElementById('ecModal').classList.remove('show');
+    });
+    var m = document.getElementById('ecModal');
+    if (m) m.addEventListener('click', function(e){
+      if (e.target.id === 'ecModal') this.classList.remove('show');
+    });
+    var bp = document.getElementById('ecBtnPrimary');
+    if (bp) bp.addEventListener('click', function(){
+      var email = (document.getElementById('ecEmail').value||'').trim();
+      if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { toast('Please enter a valid email'); return; }
+      if (!document.getElementById('ecConsent').checked) { toast('Please agree to Privacy + Terms'); return; }
+      var record = Object.assign({ email: email, consent: true }, ecPending);
+      if (!sb) { ecFallback(record); return; }
+      this.disabled = true; this.textContent = 'Saving…';
+      sb.from('network_signups').insert(record).then(function(res){
+        if (res.error) { console.error(res.error); ecFallback(record); }
+        else {
+          document.getElementById('ecForm').style.display = 'none';
+          document.getElementById('ecSuccess').style.display = 'block';
+        }
+      }).catch(function(err){ console.error(err); ecFallback(record); });
+    });
+  });
+</script>
+
+<!-- Two-card Detail Modal -->
+<div class="detail-modal" id="detailModal">
+  <div class="detail-card">
+    <button class="detail-close" onclick="document.getElementById('detailModal').classList.remove('show');" aria-label="Close">&times;</button>
+    <div id="detailOut"></div>
+  </div>
+</div>
+<script>
+  (function(){
+    var dm = document.getElementById('detailModal');
+    if (dm) dm.addEventListener('click', function(e){
+      if (e.target.id === 'detailModal') this.classList.remove('show');
+    });
+  })();
+</script>
+
+<!-- Add a video / photo / post — modal -->
+<div class="ec-modal" id="addvModal">
+  <div class="ec-card">
+    <div id="addvForm">
+      <div class="ec-eyebrow" id="addvEyebrow">🎥 Add a community video or post</div>
+      <h3 id="addvTitle">Help save —</h3>
+      <p id="addvSub">Paste the link to a video, photo, or post (Facebook, YouTube, Instagram, TikTok, Twitter/X, web). We'll credit whoever posted it.</p>
+      <input class="ec-input" type="url" id="addvUrl" placeholder="https://www.facebook.com/..." />
+      <input class="ec-input" type="text" id="addvCredit" placeholder="Who shared it? (name, page, or @handle)" />
+      <label class="ec-consent">
+        <input type="checkbox" id="addvConsent" />
+        <span>I confirm this link is real, public, and the right animal. By submitting I agree to Voyce's <a href="voyce_privacy.html" target="_blank">Privacy</a> and <a href="voyce_terms.html" target="_blank">Terms</a>.</span>
+      </label>
+      <div class="ec-buttons">
+        <button class="ec-btn ghost" id="addvBtnClose">Cancel</button>
+        <button class="ec-btn primary" id="addvBtnSave" disabled>Save</button>
+      </div>
+    </div>
+    <div id="addvSuccess" class="ec-success" style="display:none;">
+      <div class="check">✓</div>
+      <h3 style="margin-bottom:6px;">Saved &mdash; thank you.</h3>
+      <p style="margin-bottom:18px;">Your link is now on this dog's card. Everyone who opens it will see it.</p>
+      <button class="ec-btn ghost" onclick="document.getElementById('addvModal').classList.remove('show');" style="max-width:200px;margin:0 auto;display:block;">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Share menu modal -->
+<div class="share-modal" id="shareModal">
+  <div class="share-card">
+    <div class="share-head">
+      <h3 id="shareTitle">Share</h3>
+      <button class="share-close" onclick="document.getElementById('shareModal').classList.remove('show');" aria-label="Close">&times;</button>
+    </div>
+    <div class="share-sub">Every share helps. <strong>Nextdoor</strong> is best for finding a local rescuer or foster fast &mdash; neighbors see neighborhood posts.</div>
+    <div class="share-grid" id="shareLinks"></div>
+    <div class="share-foot">Caption auto-fills with the animal's ID, name, and ACS listing link. <strong>Pre-launch</strong> &mdash; every share grows Voyce.</div>
+  </div>
+</div>
+
+<script>
+  (function(){
+    var sm = document.getElementById('shareModal');
+    if (sm) sm.addEventListener('click', function(e){
+      if (e.target.id === 'shareModal') this.classList.remove('show');
+    });
+  })();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</body>
+</html>
+ 
