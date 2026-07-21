@@ -8,6 +8,7 @@ self.addEventListener("push", function (event) {
     body: data.body || "",
     icon: "/apple-touch-icon.png",
     badge: "/apple-touch-icon.png",
+    requireInteraction: true,
     data: { url: data.url || "https://app.voyceforpaws.org" },
   };
   event.waitUntil(self.registration.showNotification(title, options));
