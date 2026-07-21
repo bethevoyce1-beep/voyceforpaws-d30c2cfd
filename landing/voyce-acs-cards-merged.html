@@ -122,6 +122,7 @@
   .badge.status.secured{background:#2E7D46;}
   .badge.status.euthanized{background:#6B7280;}
   .badge.status.unknown{background:#8A8F98;}
+  .badge.status.following_up{background:#6366F1;}
   .badge.status.listed{background:#463E34;}
   .badge.days{bottom:12px;left:12px;background:rgba(0,0,0,.62);color:#fde68a;}
 
@@ -579,6 +580,7 @@
   const DOGS = DATA.dogs || [];
   const STATUS_META = {
     unknown:   {label:'❔ Unknown', color:'#8A8272', group:'❔ Unknown — status not yet confirmed'},
+    following_up: {label:'🔎 Following up with ACS', color:'#6366F1', group:'🔎 Following up with ACS — dropped off ACS\'s list, we asked ACS what happened'},
     euthanasia:{label:'⚫ Euthanasia in progress — act immediately', color:'#3F0D0D', group:'⚫ Euthanasia in progress — act immediately'},
     office_crit:{label:'🚨 Critical · Office', color:'#991B1B', group:'🚨 Critical · Office — just out of the euthanasia room, save now'},
     outside_crit:{label:'🚨 Critical (OUTSIDE3)', color:'#C8362B', group:'🚨 Critical (OUTSIDE3) — outdoor kennel, marked for euthanasia'},
@@ -596,7 +598,7 @@
     euthtoday: {label:'⚫ Euthanized today · capacity', color:'#4B5563', group:'⚫ Euthanized today — lost to capacity. We remember them.'},
     euthanized:{label:'In Memoriam',              color:'#6B7280', group:'🕊️ In Memoriam'}
   };
-  const ORDER = ['euthanasia','b6spt','office_crit','outside_crit','immediate','scheduled','highrisk','atrisk','office','adoption','adopthold','foster','watch','secured','euthanized','unknown'];
+  const ORDER = ['euthanasia','b6spt','office_crit','outside_crit','immediate','scheduled','highrisk','atrisk','office','adoption','adopthold','foster','watch','secured','euthanized','following_up','unknown'];
   // Compute display status key from dog data — overrides statusKey for grouping/filtering
   // Compare dates in San Antonio (Central) time, not the viewer's timezone.
   function _centralDateStr(d){
@@ -723,6 +725,7 @@
         '<div class="meta-line">'+esc(d.breed||'Mixed breed')+' · '+esc(d.age||d.ageRaw||'')+'</div>'+
         cd+
         '<div style="margin-top:6px">'+chips+'</div>'+
+        '<button type="button" onclick="event.stopPropagation();voyceFollow(\''+esc(d.id)+'\')" style="margin-top:10px;display:inline-flex;align-items:center;gap:6px;border:1px solid #C9871A;background:#FFF7D6;color:#7A5A0A;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:800;cursor:pointer">🔔 Follow</button>'+
         '<div class="tile-see" style="margin-top:12px;color:#C9871A;font-weight:800;font-size:14px">See details →</div>'+
       '</div>'+
     '</article>';
@@ -1019,6 +1022,7 @@
       {key:'watch',      label:'👀 Foster Pending'},
       {key:'secured',    label:'✅ Secured'},
       {key:'euthanized', label:'🕊️ In Memoriam'},
+      {key:'following_up', label:'🔎 Following up with ACS'},
       {key:'unknown',    label:'❔ Unknown'}
     ];
     const chip = (b,pulse) => `<button class="chip${b.key==='all'?' active':''}" data-key="${b.key}">${pulse?'<span class="sos-dot"></span>':''}${b.label}<span class="c">${counts[b.key]||0}</span></button>`;
@@ -1037,6 +1041,47 @@
       c.classList.add('active');
       renderGroups(c.dataset.key);
     }));
+  }
+
+  // Follow one dog: capture email + cadence, POST to the follow_animal RPC.
+  function voyceFollow(id){
+    var dog=(DOGS||[]).find(function(d){return d.id===id;})||{};
+    var nm=dog.name||'this dog';
+    var ov=document.createElement('div');
+    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;font-family:inherit';
+    ov.innerHTML='<div id="vf-box" style="background:#fff;border-radius:18px;max-width:400px;width:100%;padding:20px">'
+      +'<div style="font-size:18px;font-weight:800;color:#1A1611">🔔 Follow '+nm+'</div>'
+      +'<div style="font-size:12.5px;color:#6b5832;margin-top:4px">Get an email whenever '+nm+'’s status changes — critical, on hold, adopted, or off the list.</div>'
+      +'<input id="vf-email" type="email" placeholder="you@email.com" style="margin-top:12px;width:100%;box-sizing:border-box;border:1px solid #D9D2C2;border-radius:10px;padding:9px 11px;font-size:14px">'
+      +'<input id="vf-name" placeholder="Your name (optional)" style="margin-top:8px;width:100%;box-sizing:border-box;border:1px solid #D9D2C2;border-radius:10px;padding:9px 11px;font-size:14px">'
+      +'<div style="display:flex;gap:8px;margin-top:10px">'
+        +'<label style="flex:1;border:1px solid #D9D2C2;border-radius:10px;padding:8px 10px;font-size:12.5px;font-weight:700;cursor:pointer"><input type="radio" name="vf-cad" value="instant" checked> As it happens</label>'
+        +'<label style="flex:1;border:1px solid #D9D2C2;border-radius:10px;padding:8px 10px;font-size:12.5px;font-weight:700;cursor:pointer"><input type="radio" name="vf-cad" value="daily"> Once a day</label>'
+      +'</div>'
+      +'<div id="vf-msg" style="font-size:12.5px;color:#B4610F;margin-top:8px"></div>'
+      +'<button id="vf-go" style="margin-top:12px;width:100%;background:#0B0B0C;color:#fff;border:none;border-radius:12px;padding:12px;font-size:13px;font-weight:800;cursor:pointer">🔔 Follow '+nm+'</button>'
+      +'<button id="vf-cancel" style="margin-top:8px;width:100%;background:transparent;border:none;color:#9a8f7a;font-size:12px;cursor:pointer">Cancel</button>'
+    +'</div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('click',function(e){ if(e.target===ov) document.body.removeChild(ov); });
+    ov.querySelector('#vf-cancel').onclick=function(){ document.body.removeChild(ov); };
+    ov.querySelector('#vf-go').onclick=function(){
+      var em=(ov.querySelector('#vf-email').value||'').trim();
+      var nmv=(ov.querySelector('#vf-name').value||'').trim();
+      var cad=ov.querySelector('input[name="vf-cad"]:checked').value;
+      var msg=ov.querySelector('#vf-msg'), btn=ov.querySelector('#vf-go');
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ msg.textContent='Please enter a valid email.'; return; }
+      btn.disabled=true; btn.textContent='Following…';
+      fetch(SUPA_URL+'/rest/v1/rpc/follow_animal',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},body:JSON.stringify({p_animal_id:id,p_email:em,p_name:nmv||null,p_cadence:cad})})
+      .then(function(r){ return r.json().then(function(j){ return {ok:r.ok,j:j}; }); })
+      .then(function(res){
+        if(res.ok && res.j && res.j.ok){
+          ov.querySelector('#vf-box').innerHTML='<div style="text-align:center;padding:10px"><div style="font-size:30px">🔔</div><div style="font-size:17px;font-weight:800;margin-top:6px">You’re following '+nm+'</div><div style="font-size:13px;color:#6b5832;margin-top:6px">We’ll email you '+(cad==='daily'?'once a day':'as soon as')+' '+nm+'’s status changes.</div><button id="vf-done" style="margin-top:14px;background:#FFDF3B;color:#3A2A07;border:none;border-radius:999px;padding:10px 22px;font-weight:800;cursor:pointer">Done</button></div>';
+          ov.querySelector('#vf-done').onclick=function(){ document.body.removeChild(ov); };
+        } else { msg.textContent=(res.j&&res.j.error)||'Couldn’t follow — please try again.'; btn.disabled=false; btn.textContent='🔔 Follow '+nm; }
+      })
+      .catch(function(){ msg.textContent='Network error — please try again.'; btn.disabled=false; btn.textContent='🔔 Follow '+nm; });
+    };
   }
 
   function actEmail(id, name){
