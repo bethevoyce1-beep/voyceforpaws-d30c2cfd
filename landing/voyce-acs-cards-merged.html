@@ -623,15 +623,9 @@
     // (a rescue partner pulled). The pull can bucket both under 'adoption', so split
     // them back apart using the raw ACS status text.
     if(key==='adoption') return /adopt/i.test(d.status||'') ? 'adopthold' : 'adoption';
-    // A "Due Out" date in the future is an ACS-set euthanasia date even when no
-    // separate euth date was parsed — surface those under "Euthanasia date set".
-    if(key==='atrisk' && d.due){
-      var _p = String(d.due).split('/');
-      if(_p.length===3){
-        var _iso = _p[2]+'-'+('0'+_p[0]).slice(-2)+'-'+('0'+_p[1]).slice(-2);
-        if(_iso > _centralDateStr(new Date())) return 'scheduled';
-      }
-    }
+    // Classification comes ONLY from the ACS euthanasia notice (the scraper's
+    // status_key) — a future "Due Out" date is NOT an euthanasia date. So
+    // "euthanized after {date}" dogs stay At risk (card shows "Euth after {date}").
     return key;
   }
 
