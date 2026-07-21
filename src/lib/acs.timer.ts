@@ -143,6 +143,12 @@ function euthDayAnchor(a: AcsAnimal, now: Date): Date | null {
 export function deadlineForAnimal(a: AcsAnimal, now = new Date()): Date | null {
   const key = normalizeStatusKey(a.status_key);
   if (key === "immediate" || key === "office_crit") return euthDeadlineFor(now);
+  if (key === "outside_crit") {
+    // OUTSIDE3 dogs are marked for euthanasia — count down to their euth date's
+    // Central start, or today's start if no date is posted.
+    const anchor = euthDayAnchor(a, now);
+    return anchor ? euthDeadlineFor(anchor) : euthDeadlineFor(now);
+  }
   if (key === "scheduled") {
     const anchor = euthDayAnchor(a, now);
     return anchor ? euthDeadlineFor(anchor) : null;
