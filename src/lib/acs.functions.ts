@@ -30,6 +30,7 @@ export type AcsStatusKey =
   | "watch"
   | "secured"
   | "euthanized"
+  | "following_up"
   | "unknown"
   | "left";
 
@@ -49,6 +50,7 @@ export type AcsSectionId =
   | "foster_pending"
   | "secured"
   | "in_memoriam"
+  | "following_up"
   | "unknown";
 
 export type AcsStatusMeta = {
@@ -187,6 +189,14 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
     action: "Share their story so it doesn't happen again.",
     rank: 12,
   },
+  following_up: {
+    key: "following_up",
+    section: "following_up",
+    label: "Following up with ACS",
+    meaning: "Dropped off ACS's list with no posted outcome — we've asked ACS what happened.",
+    action: "Awaiting ACS's reply.",
+    rank: 12.5,
+  },
   unknown: {
     key: "unknown",
     section: "unknown",
@@ -219,6 +229,7 @@ export function normalizeStatusKey(raw: string | null | undefined): AcsStatusKey
     k === "watch" ||
     k === "secured" ||
     k === "euthanized" ||
+    k === "following_up" ||
     k === "left"
   ) {
     return k;
