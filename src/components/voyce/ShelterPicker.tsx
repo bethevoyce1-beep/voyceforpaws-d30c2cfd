@@ -17,6 +17,7 @@ import {
   formatDeadlineClock,
 } from "@/lib/acs.timer";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
+import { FollowModal } from "@/components/voyce/FollowModal";
 
 const GOLD = "#FFDF3B";
 const GOLD_DEEP = "#C9871A";
@@ -408,7 +409,7 @@ function RowTimerBadge({ a }: { a: AcsAnimal }) {
   );
 }
 
-function AnimalRow({ a, onPick }: { a: AcsAnimal; onPick: (a: AcsAnimal) => void }) {
+function AnimalRow({ a, onPick, onFollow }: { a: AcsAnimal; onPick: (a: AcsAnimal) => void; onFollow: (a: AcsAnimal) => void }) {
   const [showNote, setShowNote] = useState(false);
   const meta = metaOf(a);
   const section = SECTION_BY_ID[meta.section];
@@ -509,6 +510,12 @@ function AnimalRow({ a, onPick }: { a: AcsAnimal; onPick: (a: AcsAnimal) => void
         >
           📤 Share
         </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onFollow(a); }}
+          className="rounded-full border border-[#D9D2C2] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#1A1611] transition active:scale-95"
+        >
+          🔔 Follow
+        </button>
         {hasContext && (
           <button
             onClick={() => setShowNote((v) => !v)}
@@ -544,6 +551,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
   const [chip, setChip] = useState<string>("all");
   const [refreshing, setRefreshing] = useState(false);
   const [query, setQuery] = useState("");
+  const [followTarget, setFollowTarget] = useState<AcsAnimal | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -890,7 +898,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
                   </div>
                   <div className="space-y-2">
                     {rows.map((a) => (
-                      <AnimalRow key={a.id} a={a} onPick={onPick} />
+                      <AnimalRow key={a.id} a={a} onPick={onPick} onFollow={setFollowTarget} />
                     ))}
                   </div>
                 </section>
@@ -932,6 +940,10 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
           </p>
         </div>
       </main>
+
+      {followTarget && (
+        <FollowModal animal={followTarget} onClose={() => setFollowTarget(null)} />
+      )}
     </div>
   );
 }
