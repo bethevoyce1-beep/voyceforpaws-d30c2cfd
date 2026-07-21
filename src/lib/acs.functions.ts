@@ -486,12 +486,13 @@ export const listAcsAnimals = createServerFn({ method: "GET" })
 // when this animal's status_key changes. cadence: "instant" | "daily".
 export const followAnimal = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => {
-    const o = (input ?? {}) as { animalId?: string; email?: string; name?: string; cadence?: string };
+    const o = (input ?? {}) as { animalId?: string; email?: string; name?: string; cadence?: string; channels?: string[] };
     return {
       animalId: String(o.animalId ?? "").trim(),
       email: String(o.email ?? "").trim(),
       name: o.name ? String(o.name).trim() : null,
       cadence: o.cadence === "daily" ? "daily" : "instant",
+      channels: Array.isArray(o.channels) ? o.channels.map(String) : null,
     };
   })
   .handler(async ({ data }): Promise<{ ok: boolean; error?: string; cadence?: string }> => {
@@ -502,7 +503,31 @@ export const followAnimal = createServerFn({ method: "POST" })
       p_email: data.email,
       p_name: data.name,
       p_cadence: data.cadence,
+      p_channels: data.channels,
     });
     if (error) return { ok: false, error: error.message };
     return (res ?? { ok: true }) as { ok: boolean; error?: string; cadence?: string };
+  });
+
+// Store a browser push subscription for an email (called after the user grants
+// notification permission in the Follow popup). Routes through save_push_subscription.
+export const savePushSubscription = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => {
+    const o = (input ?? {}) as { email?: string; endpoint?: string; p256dh?: string; auth?: string; ua?: string };
+    return {
+      email: String(o.email ?? "").trim(),
+      endpoint: String(o.endpoint ?? ""),
+      p256dh: String(o.p256dh ?? ""),
+      auth: String(o.auth ?? ""),
+      ua: o.ua ? String(o.ua) : null,
+    };
+  })
+  .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {
+    if (!data.email || !data.endpoint) return { ok: false, error: "Missing subscription." };
+    const sb = serverClient();
+    const { data: res, error } = await sb.rpc("save_push_subscription", {
+      p_email: data.email, p_endpoint: data.endpoint, p_p256dh: data.p256dh, p_auth: data.auth, p_ua: data.ua,
+    });
+    if (error) return { ok: false, error: error.message };
+    return (res ?? { ok: true }) as { ok: boolean; error?: string };
   });
