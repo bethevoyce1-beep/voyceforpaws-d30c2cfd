@@ -461,7 +461,7 @@ function AnimalRow({ a, onPick, onFollow }: { a: AcsAnimal; onPick: (a: AcsAnima
             </div>
           )}
           <div className="mt-1 text-[10.5px] font-semibold" style={{ color: GOLD_DEEP }}>
-            Tap for full details ›
+            See details →
           </div>
         </div>
       </button>
