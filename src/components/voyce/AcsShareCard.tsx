@@ -89,6 +89,8 @@ function statusColor(key: AcsStatusKey): string {
     case "b6spt":
     case "office_crit":
       return "#B91C1C";
+    case "outside_crit":
+      return "#8F2525";
     case "immediate":
       return "#DC2626";
     case "scheduled":
