@@ -234,7 +234,7 @@ function sectionOf(a: AcsAnimal): AcsSectionId {
   // Office-kennel dogs (Critical·Office and plain Office) show under At risk —
   // their euth date is often already past but they're still listed and at risk.
   if (key === "office_crit") return "urgent";
-  if (key === "outside_crit" || key === "immediate" || key === "scheduled") {
+  if (key === "immediate" || key === "scheduled") {
     const target = deadlineForAnimal(a);
     if (target && target.getTime() <= Date.now()) {
       // Deadline passed but still listed -> At risk (no active date).
