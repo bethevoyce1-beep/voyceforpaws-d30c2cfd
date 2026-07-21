@@ -7,6 +7,7 @@ import {
   normalizeStatusKey,
   statusLabel,
   followAnimal,
+  savePushSubscription,
   type AcsAnimal,
   type AcsStatusKey,
 } from "@/lib/acs.functions";
@@ -18,6 +19,35 @@ import {
   formatDeadlineClock,
 } from "@/lib/acs.timer";
 import type { NetworkRole } from "@/lib/signups.functions";
+
+// Browser push helpers. Public VAPID key is safe to ship in the client.
+const VAPID_PUBLIC_KEY =
+  "BLQua0ySPPoxNk5FBNN6MagJ8b81agSTC87Z5UjupkemPVbx-fOn4rFZR9_cft4otV-5K_A56IxuRa9sJN6Ma-w";
+function urlB64ToUint8Array(b64: string): Uint8Array {
+  const pad = "=".repeat((4 - (b64.length % 4)) % 4);
+  const base64 = (b64 + pad).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+async function enableDevicePush(email: string): Promise<void> {
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+    throw new Error("This browser/device doesn't support notifications. Try Chrome, or on iPhone add Voyce to your Home Screen first.");
+  }
+  const perm = await Notification.requestPermission();
+  if (perm !== "granted") throw new Error("Notifications weren't allowed for this site.");
+  const reg = await navigator.serviceWorker.register("/sw.js");
+  await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlB64ToUint8Array(VAPID_PUBLIC_KEY),
+  });
+  const j = sub.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } };
+  await savePushSubscription({
+    data: { email, endpoint: j.endpoint ?? "", p256dh: j.keys?.p256dh ?? "", auth: j.keys?.auth ?? "", ua: navigator.userAgent },
+  });
+}
 
 // ============================================================
 // SAN ANTONIO ACS — hardcoded partner contact info
@@ -958,6 +988,7 @@ function FollowModal({ animal, onClose }: { animal: AcsAnimal; onClose: () => vo
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [cadence, setCadence] = useState<"instant" | "daily">("instant");
+  const [pushOn, setPushOn] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -970,8 +1001,13 @@ function FollowModal({ animal, onClose }: { animal: AcsAnimal; onClose: () => vo
     }
     setBusy(true);
     try {
+      const channels = ["email"];
+      if (pushOn) {
+        try { await enableDevicePush(email.trim()); channels.push("push"); }
+        catch (pe) { setErr(pe instanceof Error ? pe.message : "Couldn't turn on device notifications; following by email."); }
+      }
       const r = await followAnimal({
-        data: { animalId: animal.id, email: email.trim(), name: name.trim() || undefined, cadence },
+        data: { animalId: animal.id, email: email.trim(), name: name.trim() || undefined, cadence, channels },
       });
       if (!r.ok) { setErr(r.error || "Couldn't follow — please try again."); return; }
       setDone(true);
@@ -1052,6 +1088,12 @@ function FollowModal({ animal, onClose }: { animal: AcsAnimal; onClose: () => vo
                 ))}
               </div>
             </div>
+            <label className="mt-3 flex items-start gap-2 rounded-xl border border-[#D9D2C2] bg-white px-3 py-2.5 cursor-pointer">
+              <input type="checkbox" checked={pushOn} onChange={(e) => setPushOn(e.target.checked)} className="mt-0.5" />
+              <span className="text-[12.5px] leading-snug text-[#1A1611]">
+                <b>Also notify me on this device</b> (browser push) — a pop-up even when the app is closed.
+              </span>
+            </label>
             {err && (
               <div className="mt-3 rounded-xl bg-[#FCE4E4] px-3 py-2 text-[12.5px] font-medium text-[#7E1F1F]">{err}</div>
             )}
