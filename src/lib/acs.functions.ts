@@ -480,3 +480,29 @@ export const listAcsAnimals = createServerFn({ method: "GET" })
       last_checked_at,
     };
   });
+
+// Follow a single animal — records the follower (email + cadence) via the
+// follow_animal RPC (granted to anon). The notify-follows worker emails them
+// when this animal's status_key changes. cadence: "instant" | "daily".
+export const followAnimal = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => {
+    const o = (input ?? {}) as { animalId?: string; email?: string; name?: string; cadence?: string };
+    return {
+      animalId: String(o.animalId ?? "").trim(),
+      email: String(o.email ?? "").trim(),
+      name: o.name ? String(o.name).trim() : null,
+      cadence: o.cadence === "daily" ? "daily" : "instant",
+    };
+  })
+  .handler(async ({ data }): Promise<{ ok: boolean; error?: string; cadence?: string }> => {
+    if (!data.animalId || !data.email) return { ok: false, error: "Missing animal or email." };
+    const sb = serverClient();
+    const { data: res, error } = await sb.rpc("follow_animal", {
+      p_animal_id: data.animalId,
+      p_email: data.email,
+      p_name: data.name,
+      p_cadence: data.cadence,
+    });
+    if (error) return { ok: false, error: error.message };
+    return (res ?? { ok: true }) as { ok: boolean; error?: string; cadence?: string };
+  });
