@@ -267,6 +267,22 @@ function specLine(a: AcsAnimal): string {
   return [a.breed, a.age, a.sex, a.color].filter(Boolean).join(" · ");
 }
 
+// Share a single dog from a board row — uses the device's native share sheet
+// (all their apps), with a clipboard fallback on desktop browsers without it.
+function shareAnimal(a: AcsAnimal) {
+  const label = statusLabel(a);
+  const url = a.pet_search_url || "https://app.voyceforpaws.org";
+  const text = `\u{1F6A8} ${label} — ${a.name} needs a rescue, foster, or adopter at San Antonio ACS. ${url}`;
+  const nav = typeof navigator !== "undefined" ? (navigator as unknown as { share?: (d: unknown) => Promise<void>; clipboard?: { writeText: (t: string) => Promise<void> } }) : undefined;
+  if (nav?.share) {
+    nav.share({ title: `${a.name} needs help`, text, url }).catch(() => {});
+  } else if (nav?.clipboard) {
+    nav.clipboard.writeText(text).then(() => {
+      if (typeof window !== "undefined") window.alert("Share text copied — paste it anywhere to share.");
+    }).catch(() => {});
+  }
+}
+
 function fmtDateTime(iso: string | null): string {
   if (!iso) return "—";
   try {
@@ -487,6 +503,12 @@ function AnimalRow({ a, onPick }: { a: AcsAnimal; onPick: (a: AcsAnimal) => void
             🔗 View on ACS
           </a>
         )}
+        <button
+          onClick={(e) => { e.stopPropagation(); shareAnimal(a); }}
+          className="rounded-full border border-[#D9D2C2] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#1A1611] transition active:scale-95"
+        >
+          📤 Share
+        </button>
         {hasContext && (
           <button
             onClick={() => setShowNote((v) => !v)}
