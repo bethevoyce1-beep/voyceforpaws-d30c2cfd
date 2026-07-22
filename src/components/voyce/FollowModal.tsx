@@ -60,6 +60,8 @@ export function FollowModal({ animal, onClose }: { animal: AcsAnimal; onClose: (
         data: { animalId: animal.id, email: email.trim(), name: name.trim() || undefined, cadence, channels },
       });
       if (!r.ok) { setErr(r.error || "Couldn't follow — please try again."); return; }
+      // Remember who this device follows as, so the header bell can show their alerts.
+      try { if (typeof window !== "undefined") window.localStorage.setItem("voyce_email", email.trim()); } catch { /* ignore */ }
       setDone(true);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Couldn't follow — please try again.");
