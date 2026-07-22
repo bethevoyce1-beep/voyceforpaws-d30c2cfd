@@ -6850,6 +6850,7 @@ function playWalkthrough(){
       '<form onsubmit="vsmSubmit(event,\'network\')">'+
         '<div class="vsm-field"><label class="vsm-label">Email</label><input class="vsm-input" name="email" type="email" required placeholder="you@email.com"></div>'+
         '<div class="vsm-field"><label class="vsm-label">Your role <span class="vsm-opt">(optional &middot; pick one)</span></label><div class="vsm-role-pills">'+pillsHtml()+'</div><input type="hidden" name="role" id="vsmRoleVal" value="'+(preRole||'')+'"></div>'+
+        '<div id="vsmShelterCta" style="display:none;margin:2px 0 14px"><a href="register-shelter.html" target="_blank" rel="noopener" class="vsm-submit" style="display:block;text-align:center;text-decoration:none;background:linear-gradient(135deg,#FFD24A,#F0A516);color:#2a1c05">&#127963;&#65039; Register your shelter &rarr;</a><div class="vsm-opt" style="text-align:center;margin-top:5px">Shelters get a full setup form so Voyce can watch your at-risk list.</div></div>'+
         '<div class="vsm-field"><label class="vsm-label">ZIP code</label><input class="vsm-input" name="zip" required placeholder="e.g. 78201"></div>'+
         '<div class="vsm-field"><label class="vsm-label">Phone <span class="vsm-opt">(optional &middot; for text alerts)</span></label><input class="vsm-input" name="phone" type="tel" placeholder="(210) 555-0134"></div>'+
         '<div class="vsm-field"><label class="vsm-label">Get alerts <span class="vsm-opt">(optional)</span></label><select class="vsm-input" name="alert_urgency"><option value="last_chance">Last Chance only (euthanasia now/today)</option><option value="critical" selected>All critical</option><option value="atrisk">Everything at risk</option></select></div>'+
@@ -6860,10 +6861,12 @@ function playWalkthrough(){
             '<button type="button" class="vsm-role-pill on" data-mode="mine" onclick="vsmStateMode(this,\'mine\')">My state</button>'+
             '<button type="button" class="vsm-role-pill" data-mode="custom" onclick="vsmStateMode(this,\'custom\')">Pick states</button>'+
             '<button type="button" class="vsm-role-pill" data-mode="nationwide" onclick="vsmStateMode(this,\'nationwide\')">Anywhere</button>'+
+            '<button type="button" class="vsm-role-pill" data-mode="shelter" onclick="vsmStateMode(this,\'shelter\')">Shelter</button>'+
           '</div>'+
           '<div id="vsmStateMine" style="margin-top:8px"><select class="vsm-input" id="vsmMyState" onchange="vsmSyncStates()">'+stateOptsHtml()+'</select></div>'+
           '<div id="vsmStateCustom" class="vsm-state-grid" style="display:none">'+stateChipsHtml()+'</div>'+
           '<div id="vsmStateAll" class="vsm-state-note" style="display:none">Alerts for every state, as more cities come online.</div>'+
+          '<div id="vsmStateShelter" style="display:none;margin-top:8px"><select class="vsm-input" id="vsmShelterSel" onchange="vsmShelterPick()"><option value="san_antonio_acs">San Antonio ACS &mdash; San Antonio, TX</option><option value="__request">Request another shelter&hellip;</option></select><input class="vsm-input" id="vsmShelterReq" style="display:none;margin-top:8px" placeholder="Which shelter? (name, city, state)"><div class="vsm-state-note" style="margin-top:6px">Get alerts whenever anything changes at this shelter &mdash; new at-risk animals, holds, adoptions. Choose scope &amp; frequency above.</div></div>'+
           '<input type="hidden" name="alert_states" id="vsmStatesVal" value="TX">'+
         '</div>'+
         '<div class="vsm-consent vsm-consent-clean"><input type="checkbox" id="vsmAlertInApp" name="alert_in_app" checked><div class="vsm-consent-text">&#128276; Alert me in the app</div></div>'+
@@ -6881,15 +6884,18 @@ function playWalkthrough(){
     btn.classList.add('on');
     var hidden = document.getElementById('vsmRoleVal');
     if(hidden) hidden.value = role;
+    var cta = document.getElementById('vsmShelterCta');
+    if(cta) cta.style.display = (role && role.toLowerCase() === 'shelter') ? '' : 'none';
   };
   window.vsmStateMode = function(btn, mode){
     var sib = btn.parentNode.querySelectorAll('.vsm-role-pill');
     for(var i=0;i<sib.length;i++) sib[i].classList.remove('on');
     btn.classList.add('on');
-    var mine=document.getElementById('vsmStateMine'), custom=document.getElementById('vsmStateCustom'), all=document.getElementById('vsmStateAll');
+    var mine=document.getElementById('vsmStateMine'), custom=document.getElementById('vsmStateCustom'), all=document.getElementById('vsmStateAll'), shelter=document.getElementById('vsmStateShelter');
     if(mine) mine.style.display = (mode==='mine')?'':'none';
     if(custom) custom.style.display = (mode==='custom')?'flex':'none';
     if(all) all.style.display = (mode==='nationwide')?'':'none';
+    if(shelter) shelter.style.display = (mode==='shelter')?'':'none';
     var h=document.getElementById('vsmStatesVal'); if(h) h.setAttribute('data-mode', mode);
     vsmSyncStates();
   };
@@ -6905,8 +6911,12 @@ function playWalkthrough(){
       var on=document.querySelectorAll('#vsmStateCustom .vsm-state-pill.on'), arr=[];
       for(var i=0;i<on.length;i++) arr.push(on[i].getAttribute('data-st'));
       val=arr.join(',');
-    } else { val=''; } // nationwide
+    } else { val=''; } // nationwide / shelter
     h.value=val;
+  };
+  window.vsmShelterPick = function(){
+    var sel=document.getElementById('vsmShelterSel'), req=document.getElementById('vsmShelterReq');
+    if(sel && req) req.style.display = (sel.value==='__request')?'':'none';
   };
   function chooserForm(){
     return '<div class="vsm-kicker">Add your organization</div>'+
@@ -7048,6 +7058,7 @@ function playWalkthrough(){
   };
 
   window.vsmOpen = function(type, prefRole){
+    if (type === 'shelter') { window.open('register-shelter.html', '_blank', 'noopener'); return; }
     if (!modal || !body) {
       modal = document.getElementById('vsmModal');
       body  = document.getElementById('vsmBody');
@@ -7181,6 +7192,25 @@ function playWalkthrough(){
       record.alert_states = alertStates;
       record.alert_per_day = parseInt((fd.get('alert_per_day')||'0').toString(), 10) || 0;
       record.sms_consent = smsConsent;
+      // If they chose to follow a whole shelter (4th "Where" pill), record a shelter_follow.
+      var hEl = document.getElementById('vsmStatesVal');
+      var whereMode = hEl ? (hEl.getAttribute('data-mode')||'mine') : 'mine';
+      if (whereMode === 'shelter') {
+        var shSel = document.getElementById('vsmShelterSel');
+        var shReqEl = document.getElementById('vsmShelterReq');
+        var shId = shSel ? shSel.value : 'san_antonio_acs';
+        var shReq = shReqEl ? (shReqEl.value||'').trim() : '';
+        record.__shelter_follow = {
+          p_email: email,
+          p_name: name || null,
+          p_shelter_id: (shId === '__request' ? 'requested' : shId),
+          p_shelter_label: (shId === '__request' ? (shReq || 'Requested shelter') : 'San Antonio ACS'),
+          p_scope: (record.alert_urgency === 'atrisk' ? 'all' : 'critical'),
+          p_cadence: (record.alert_per_day > 0 ? 'daily' : 'instant'),
+          p_channels: ['email'],
+          p_phone: phone || null
+        };
+      }
     }
     function showSuccess(){
       body.innerHTML = successView(type || 'network');
@@ -7195,6 +7225,10 @@ function playWalkthrough(){
       form.insertBefore(err, form.firstChild);
       setTimeout(function(){ if (err.parentNode) err.parentNode.removeChild(err); }, 8000);
     }
+    // Fire the whole-shelter follow (separate from the signup row), then strip the temp field.
+    var __sf = record.__shelter_follow;
+    if (record.__shelter_follow) delete record.__shelter_follow;
+    if (sb && __sf) { try { sb.rpc('create_shelter_follow', __sf); } catch (e) { console.warn('shelter follow rpc failed', e); } }
     if (!sb) {
       console.warn('Supabase not initialized; logging record:', record);
       showSuccess();
