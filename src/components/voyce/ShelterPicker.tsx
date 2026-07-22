@@ -18,6 +18,7 @@ import {
 } from "@/lib/acs.timer";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
 import { FollowModal } from "@/components/voyce/FollowModal";
+import { ShelterFollowModal } from "@/components/voyce/ShelterFollowModal";
 
 const GOLD = "#FFDF3B";
 const GOLD_DEEP = "#C9871A";
@@ -552,6 +553,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [query, setQuery] = useState("");
   const [followTarget, setFollowTarget] = useState<AcsAnimal | null>(null);
+  const [shelterFollowOpen, setShelterFollowOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -673,6 +675,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
           >
             📷 Take a Photo
           </button>
+          <button onClick={() => setShelterFollowOpen(true)} className="inline-flex items-center gap-1.5 rounded-full border border-[#C9871A] bg-[#FFF7D6] px-3 py-1 text-[12px] font-bold text-[#7A5A0A]">🔔 Follow this shelter</button>
         </div>
 
         <p className="mb-3 text-center text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
@@ -944,6 +947,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
       {followTarget && (
         <FollowModal animal={followTarget} onClose={() => setFollowTarget(null)} />
       )}
+      {shelterFollowOpen && <ShelterFollowModal shelterLabel="San Antonio ACS" onClose={() => setShelterFollowOpen(false)} />}
     </div>
   );
 }
