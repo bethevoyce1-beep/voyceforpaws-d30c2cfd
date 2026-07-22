@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Register your shelter · Voyce for Paws</title>
+<style>
+  :root{
+    --gold:#FFDF3B; --gold2:#C9871A; --ink:#0B0B0C; --cream:#FAF7F1;
+    --line:#E3DAC4; --muted:#6B5832; --body:#2A2119;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#141017;color:var(--body)}
+  .wrap{max-width:640px;margin:0 auto;padding:0 18px 60px}
+  /* hero */
+  .hero{background:linear-gradient(180deg,#171019,#0E0B10);color:#fff;padding:34px 18px 30px;text-align:center;border-bottom:1px solid rgba(255,223,59,.15)}
+  .mark{width:44px;height:44px;margin:0 auto 10px;color:var(--gold)}
+  .brand{font-size:15px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);font-weight:800}
+  h1{font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:1.15;margin:10px 0 8px;color:#fff}
+  h1 em{color:var(--gold);font-style:italic}
+  .hero p{max-width:460px;margin:0 auto;color:#CFC6B6;font-size:14px;line-height:1.6}
+  .free{display:inline-block;margin-top:12px;background:rgba(255,223,59,.12);border:1px solid rgba(255,223,59,.3);color:var(--gold);font-size:12px;font-weight:800;padding:5px 14px;border-radius:999px}
+  /* card */
+  .card{background:#fff;border-radius:18px;margin-top:-18px;padding:22px 20px;box-shadow:0 18px 40px rgba(0,0,0,.35)}
+  .sect{margin-top:22px}
+  .sect:first-child{margin-top:4px}
+  .sect-h{font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--gold2);margin-bottom:2px}
+  .sect-sub{font-size:12px;color:var(--muted);margin-bottom:12px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:520px){.grid{grid-template-columns:1fr}}
+  label.f{display:block;margin-bottom:12px}
+  .lab{font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--muted)}
+  .opt{font-weight:500;text-transform:none;letter-spacing:0;color:#B8AC92}
+  input.t,select.t,textarea.t{margin-top:5px;width:100%;border:1px solid var(--line);background:#fff;border-radius:11px;padding:11px 12px;font-size:14px;font-family:inherit;color:var(--ink);outline:none}
+  input.t:focus,select.t:focus,textarea.t:focus{border-color:var(--gold2)}
+  textarea.t{resize:vertical;min-height:70px}
+  .pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+  .pill{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;user-select:none}
+  .pill.on{background:#FFF7D6;border-color:var(--gold2);color:#7A5A0A}
+  .chk{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+  .chk .pill input{display:none}
+  .req{color:#C8362B}
+  .err{display:none;background:#FCE4E4;color:#7E1F1F;border-radius:11px;padding:10px 12px;font-size:13px;font-weight:600;margin-top:14px}
+  .submit{margin-top:22px;width:100%;background:var(--ink);color:#fff;border:2px solid var(--gold);border-radius:14px;padding:15px;font-size:14px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;transition:filter .15s}
+  .submit:hover{filter:brightness(1.12)} .submit:disabled{opacity:.65;cursor:default}
+  .fine{margin-top:12px;text-align:center;font-size:11px;color:#9A8F7A}
+  .af{background:#FFF7D6;border:1px solid #EBD9AE;border-radius:14px;padding:14px 16px;margin-bottom:6px}
+  .af-btn{flex:0 0 auto;background:var(--ink);color:var(--gold);border:none;border-radius:11px;padding:0 16px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap}
+  .af-btn:disabled{opacity:.6}
+  .cand{display:inline-block;background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;color:#7A5A0A;cursor:pointer;margin:4px 4px 0 0}
+  .terms{margin-top:16px;border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:12.5px;color:var(--body);background:#FCFAF4}
+  .terms summary{cursor:pointer;font-weight:800;color:var(--gold2);font-size:12px}
+  .terms ol{margin:10px 0 2px;padding-left:18px;line-height:1.55}
+  .terms li{margin-bottom:6px}
+  .sugg{display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-top:6px;cursor:pointer;font-size:13px;color:var(--ink)}
+  .sugg:hover{background:#FFF7D6;border-color:var(--gold2)}
+  .sugg .m{font-size:11px;color:var(--muted);margin-top:2px}
+  .sugg .src{float:right;font-size:10px;font-weight:700;color:#9A8F7A}
+  .consent{display:flex;gap:10px;align-items:flex-start;margin-top:18px;font-size:12.5px;color:var(--body);line-height:1.5}
+  .consent input{margin-top:2px;width:18px;height:18px;accent-color:var(--gold2)}
+  /* success */
+  .done{display:none;background:#fff;border-radius:18px;margin-top:-18px;padding:44px 24px;text-align:center;box-shadow:0 18px 40px rgba(0,0,0,.35)}
+  .done .em{font-size:44px}
+  .done h2{font-family:Georgia,serif;font-size:24px;color:var(--ink);margin:10px 0 6px}
+  .done p{color:var(--muted);font-size:14px;line-height:1.6;max-width:420px;margin:0 auto}
+</style>
+</head>
+<body>
+  <div class="hero">
+    <svg class="mark" viewBox="0 0 100 100" fill="currentColor" aria-hidden="true">
+      <path d="M50,91 C33,91 24,80 24,68 C24,56 33,49 50,49 C67,49 76,56 76,68 C76,80 67,91 50,91 Z"/>
+      <ellipse cx="21" cy="40" rx="9.5" ry="13"/><ellipse cx="39" cy="27" rx="9.5" ry="13"/>
+      <ellipse cx="57" cy="27" rx="9.5" ry="13"/><ellipse cx="73" cy="40" rx="9.5" ry="13"/>
+    </svg>
+    <div class="brand">Voyce for Paws</div>
+    <h1>Register your <em>shelter</em></h1>
+    <p>Once you're set up, Voyce watches your at-risk list and turns every animal into a shareable rescue alert &mdash; reaching fosters, rescuers, and adopters faster.</p>
+    <div class="free">For shelters &amp; rescues · nationwide</div>
+  </div>
+
+  <div class="wrap">
+    <form class="card" id="form">
+      <!-- Auto-fill -->
+      <div class="af">
+        <span class="lab">Find your shelter <span class="opt">type its name or paste your website — we'll fill in the rest</span></span>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <input class="t" id="af_q" placeholder="e.g. Austin Animal Center — or yourshelter.org">
+          <button type="button" class="af-btn" id="af_go">Auto-fill</button>
+        </div>
+        <div id="af_msg" style="font-size:12px;margin-top:8px;color:var(--muted)"></div>
+        <div id="af_cands"></div>
+      </div>
+      <!-- 1. Shelter -->
+      <div class="sect">
+        <div class="sect-h">Your shelter</div>
+        <div class="sect-sub">The basics so we know who you are.</div>
+        <label class="f"><span class="lab">Shelter name <span class="req">*</span></span>
+          <input class="t" id="shelter_name" placeholder="e.g. San Antonio Animal Care Services" required></label>
+        <label class="f"><span class="lab">Manager / Director name <span class="opt">(optional)</span></span>
+          <input class="t" id="director_name" placeholder="Full name"></label>
+        <div class="grid">
+          <label class="f"><span class="lab">Type</span>
+            <select class="t" id="shelter_type">
+              <option value="">Select…</option>
+              <option>Municipal / City</option><option>County</option>
+              <option>Private nonprofit</option><option>Humane Society / SPCA</option>
+              <option>Rescue-run</option><option>Other</option>
+            </select></label>
+          <label class="f"><span class="lab">Website</span>
+            <input class="t" id="website" placeholder="https://…"></label>
+        </div>
+        <div class="grid">
+          <label class="f"><span class="lab">Main phone</span><input class="t" id="main_phone" placeholder="(210) 555-0134"></label>
+          <label class="f"><span class="lab">Street address <span class="opt">(optional)</span></span><input class="t" id="address" placeholder="4710 State Hwy 151"></label>
+        </div>
+        <div class="grid">
+          <label class="f"><span class="lab">City <span class="req">*</span></span><input class="t" id="city" required></label>
+          <div class="grid" style="grid-template-columns:1fr 1fr">
+            <label class="f"><span class="lab">State <span class="req">*</span></span><input class="t" id="state" placeholder="TX" required></label>
+            <label class="f"><span class="lab">ZIP</span><input class="t" id="zip"></label>
+          </div>
+        </div>
+      </div>
+
+      <div id="verifyBox" style="display:none;background:#FFF7D6;border:1px solid #EBD9AE;border-radius:12px;padding:10px 12px;margin-bottom:6px">
+        <div style="font-size:12.5px;color:#4A3E2B">As a 501(c)(3) / humane society, we'll request your <b>IRS determination letter</b> during review to verify.</div>
+        <label style="display:flex;gap:8px;align-items:center;margin-top:8px;font-size:13px;color:var(--body);cursor:pointer"><input type="checkbox" id="can501" style="width:16px;height:16px;accent-color:var(--gold2)"> I can provide our IRS 501(c)(3) determination letter</label>
+      </div>
+      <div id="muniBox" style="display:none;font-size:12.5px;color:var(--muted);margin-bottom:6px">✓ Municipal / animal-control shelters: no paperwork needed.</div>
+
+      <!-- 2. Contact -->
+      <div class="sect">
+        <div class="sect-h">Adoption contacts</div>
+        <div class="sect-sub">Who Voyce should reach out to (add more if several people coordinate).</div>
+        <div class="grid">
+          <label class="f"><span class="lab">Contact name</span><input class="t" id="contact_name" placeholder="Your name"></label>
+          <label class="f"><span class="lab">Title / role</span><input class="t" id="contact_title" placeholder="e.g. Rescue Coordinator"></label>
+        </div>
+        <div class="grid">
+          <label class="f"><span class="lab">Contact email <span class="req">*</span></span><input class="t" id="contact_email" type="email" placeholder="you@shelter.org" required></label>
+          <label class="f"><span class="lab">Contact phone</span><input class="t" id="contact_phone"></label>
+        </div>
+        <div id="moreContacts"></div>
+        <button type="button" id="addContact" class="cand" style="cursor:pointer;border-style:dashed">+ Add another contact</button>
+        <label style="display:flex;gap:8px;align-items:flex-start;margin-top:14px;font-size:13px;color:var(--body);cursor:pointer"><input type="checkbox" id="is_private" style="margin-top:2px;width:16px;height:16px;accent-color:var(--gold2)"> Keep our shelter &amp; contact info private (not shown publicly)</label>
+      </div>
+
+      <!-- 2b. Placement action contacts (power the app's animal-card buttons) -->
+      <div class="sect">
+        <div class="sect-h">How rescuers &amp; adopters reach you</div>
+        <div class="sect-sub">These fill the action buttons on your animals' cards — the email, foster application, and deadline a rescuer sees.</div>
+        <div class="grid">
+          <label class="f"><span class="lab">Adoption email <span class="opt">(for the "Email adoptions" button)</span></span><input class="t" id="adoption_email" type="email" placeholder="adoptions@shelter.org"></label>
+          <label class="f"><span class="lab">Foster email <span class="opt">(if different)</span></span><input class="t" id="foster_email" type="email" placeholder="fosters@shelter.org"></label>
+        </div>
+        <label class="f"><span class="lab">Foster application link <span class="opt">(optional)</span></span><input class="t" id="foster_url" placeholder="https://…/foster-application"></label>
+        <label class="f"><span class="lab">Placement deadline <span class="opt">(optional — shown as a reminder)</span></span><input class="t" id="placement_deadline" placeholder="e.g. 5:30 PM Mon–Fri / 12:30 PM Sat"></label>
+      </div>
+
+      <!-- Mailing (private) -->
+      <div class="sect">
+        <div class="sect-h">Mailing address <span style="text-transform:none;letter-spacing:0;color:var(--muted);font-weight:600">· private</span></div>
+        <div class="sect-sub">Only if different from the physical location above. Never shown publicly.</div>
+        <label class="f"><span class="lab">Name on mail</span><input class="t" id="mail_name"></label>
+        <label class="f"><span class="lab">Mailing address</span><input class="t" id="mailing_address"></label>
+        <div class="grid">
+          <label class="f"><span class="lab">City</span><input class="t" id="mailing_city"></label>
+          <div class="grid" style="grid-template-columns:1fr 1fr">
+            <label class="f"><span class="lab">State</span><input class="t" id="mailing_state"></label>
+            <label class="f"><span class="lab">ZIP</span><input class="t" id="mailing_zip"></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. At-risk data -->
+      <div class="sect">
+        <div class="sect-h">Your at-risk animals</div>
+        <div class="sect-sub">This is what lets Voyce alert people in time.</div>
+        <span class="lab">Do you publish an at-risk / euthanasia / urgent list online?</span>
+        <div class="pills" id="pub_pills">
+          <div class="pill" data-v="yes">Yes</div>
+          <div class="pill" data-v="no">No / not yet</div>
+        </div>
+        <label class="f" id="listWrap" style="display:none;margin-top:12px"><span class="lab">Link(s) to that list <span class="opt">(one per line)</span></span>
+          <textarea class="t" id="list_urls" placeholder="https://www.sanantonio.gov/animal-care/…"></textarea></label>
+        <div style="margin-top:12px"><span class="lab">Where do you post urgent animals now? <span class="opt">(pick any)</span></span>
+          <div class="chk" id="channels">
+            <label class="pill"><input type="checkbox" value="Website">Website</label>
+            <label class="pill"><input type="checkbox" value="Facebook">Facebook</label>
+            <label class="pill"><input type="checkbox" value="Instagram">Instagram</label>
+            <label class="pill"><input type="checkbox" value="PetHarbor / 24PetConnect">PetHarbor</label>
+            <label class="pill"><input type="checkbox" value="Shelterluv">Shelterluv</label>
+            <label class="pill"><input type="checkbox" value="Email list">Email list</label>
+            <label class="pill"><input type="checkbox" value="Other">Other</label>
+          </div>
+        </div>
+        <div class="grid" style="margin-top:12px">
+          <label class="f"><span class="lab">How often is it updated?</span>
+            <select class="t" id="update_frequency"><option value="">Select…</option>
+              <option>Daily</option><option>Weekdays</option><option>A few times a week</option><option>Weekly</option><option>As needed</option></select></label>
+          <label class="f"><span class="lab">Animals at risk in a typical week</span>
+            <input class="t" id="animals_at_risk_weekly" placeholder="e.g. 20–30"></label>
+        </div>
+        <label class="f"><span class="lab">Total animals in your care <span class="opt">(rough)</span></span>
+          <input class="t" id="total_in_care" placeholder="e.g. 300"></label>
+      </div>
+
+      <!-- 4. Needs -->
+      <div class="sect">
+        <div class="sect-h">What you need most</div>
+        <div class="sect-sub">So we prioritize the right alerts for your animals.</div>
+        <div class="chk" id="needs">
+          <label class="pill"><input type="checkbox" value="Rescue pulls">Rescue pulls</label>
+          <label class="pill"><input type="checkbox" value="Fosters">Fosters</label>
+          <label class="pill"><input type="checkbox" value="Adopters">Adopters</label>
+          <label class="pill"><input type="checkbox" value="Transport">Transport</label>
+          <label class="pill"><input type="checkbox" value="Donations">Donations</label>
+          <label class="pill"><input type="checkbox" value="Sharing / awareness">Sharing</label>
+        </div>
+        <div class="grid" style="margin-top:14px">
+          <label class="f"><span class="lab">EIN <span class="opt">(if 501(c)(3))</span></span><input class="t" id="ein" placeholder="32-0760338"></label>
+          <div></div>
+        </div>
+        <label class="f"><span class="lab">Anything else we should know?</span>
+          <textarea class="t" id="notes" placeholder="How you currently share urgent animals, deadlines, kennel codes, who else to loop in…"></textarea></label>
+      </div>
+
+      <details class="terms"><summary>View Shelter Terms</summary>
+        <ol>
+          <li>You authorize <b>Voyce for Paws</b> (a project of Be the Voyce, Inc.) to display and share your publicly-listed at-risk animals and their photos to help place them.</li>
+          <li>You'll keep your listing and contact info reasonably current, and can update or remove your shelter at any time by contacting us.</li>
+          <li>Voyce is a coordination tool — it does not take custody of animals and is not responsible for adoption or rescue outcomes; AI descriptions are advisory, not a diagnosis.</li>
+          <li>Your data is handled per our Privacy Policy; your mailing address and anything marked private will not be shown publicly.</li>
+          <li>You confirm you are authorized to register this shelter.</li>
+        </ol>
+      </details>
+      <label class="consent"><input type="checkbox" id="consent">
+        <span>I agree to the <b>Shelter Terms</b> above and confirm I'm authorized to register this shelter.</span></label>
+
+      <div class="err" id="err"></div>
+      <button class="submit" id="btn" type="submit">Register my shelter →</button>
+      <div class="fine">We'll review your registration and reach out within a few days.</div>
+    </form>
+
+    <div class="done" id="done">
+      <div class="em">🎉</div>
+      <h2 id="doneName">You're on the list!</h2>
+      <p>Thank you for stepping up for your animals. We'll review your shelter and reach out within a few days to get Voyce watching your at-risk list. — The Voyce team</p>
+    </div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.js"></script>
+<script>
+  var SB_URL = "https://okmukfrhvqkxphzueqww.supabase.co";
+  var SB_KEY = "sb_publishable_e_OWsyXVeFqgV6EVGAKKTw_sgEV2cTN";
+  var sb = (window.supabase && window.supabase.createClient) ? window.supabase.createClient(SB_URL, SB_KEY) : null;
+
+  var publishes = "";
+  document.getElementById('pub_pills').addEventListener('click', function(e){
+    var p = e.target.closest('.pill'); if(!p) return;
+    this.querySelectorAll('.pill').forEach(function(x){x.classList.remove('on')});
+    p.classList.add('on'); publishes = p.getAttribute('data-v');
+    document.getElementById('listWrap').style.display = (publishes==='yes') ? '' : 'none';
+  });
+  // checkbox pills toggle 'on' style
+  document.querySelectorAll('.chk .pill input').forEach(function(cb){
+    cb.addEventListener('change', function(){ this.closest('.pill').classList.toggle('on', this.checked); });
+  });
+  // Verification tier by shelter type
+  var TYPE_NP = ['Private nonprofit','Humane Society / SPCA','Rescue-run'];
+  var TYPE_MUNI = ['Municipal / City','County'];
+  document.getElementById('shelter_type').addEventListener('change', function(){
+    var v=this.value;
+    document.getElementById('verifyBox').style.display = TYPE_NP.indexOf(v)>=0 ? '' : 'none';
+    document.getElementById('muniBox').style.display = TYPE_MUNI.indexOf(v)>=0 ? '' : 'none';
+  });
+  // Add another adoption contact
+  var contactN=1;
+  document.getElementById('addContact').addEventListener('click', function(){
+    contactN++;
+    var wrap=document.createElement('div'); wrap.setAttribute('data-contact','1'); wrap.style.marginTop='6px';
+    wrap.innerHTML='<div class="grid"><label class="f"><span class="lab">Contact '+contactN+' name</span><input class="t cN" placeholder="Name"></label>'+
+      '<div class="grid" style="grid-template-columns:1fr 1fr"><label class="f"><span class="lab">Email</span><input class="t cE" type="email"></label><label class="f"><span class="lab">Phone</span><input class="t cP"></label></div></div>';
+    document.getElementById('moreContacts').appendChild(wrap);
+  });
+  function gatherContacts(){
+    var arr=[]; var pn=val('contact_name'), pe=val('contact_email'), pp=val('contact_phone');
+    if(pn||pe||pp) arr.push({ name:pn, title:val('contact_title'), email:pe, phone:pp, primary:true });
+    document.querySelectorAll('#moreContacts [data-contact]').forEach(function(row){
+      var n=((row.querySelector('.cN')||{}).value||'').trim(), e=((row.querySelector('.cE')||{}).value||'').trim(), p=((row.querySelector('.cP')||{}).value||'').trim();
+      if(n||e||p) arr.push({ name:n, email:e, phone:p });
+    });
+    return arr;
+  }
+  function vals(id){ return Array.prototype.slice.call(document.querySelectorAll('#'+id+' input:checked')).map(function(c){return c.value}); }
+  function val(id){ return (document.getElementById(id).value||'').trim(); }
+
+  function setIf(id,v){ if(v){ var el=document.getElementById(id); if(el && !el.value) el.value=v; } }
+  function afLooksUrl(s){ return /^https?:\/\//i.test(s) || /\.[a-z]{2,}(\/|$)/i.test(s); }
+  function forceFill(f){
+    [['shelter_name',f.name||f.shelter_name],['website',f.website],['main_phone',f.main_phone],['contact_email',f.contact_email],['address',f.address],['city',f.city],['state',f.state],['zip',f.zip]]
+      .forEach(function(p){ var el=document.getElementById(p[0]); if(el && p[1]) el.value=p[1]; });
+  }
+  function renderSuggestions(s){
+    var cands=document.getElementById('af_cands'), msg=document.getElementById('af_msg'); cands.innerHTML='';
+    if(!s || !s.length){ msg.style.color='#B4610F'; msg.textContent="No matches — paste a website link, or just type your info in below."; return; }
+    msg.style.color='var(--muted)'; msg.textContent="Tap your shelter to fill the form:";
+    s.forEach(function(it){
+      var b=document.createElement('button'); b.type='button'; b.className='sugg';
+      var loc=[it.city,it.state].filter(Boolean).join(', ');
+      var web=it.website?(' · '+it.website.replace(/^https?:\/\//,'').replace(/\/$/,'')):'';
+      b.innerHTML='<span class="src">'+(it.source||'')+'</span><b>'+(it.name||'')+'</b><div class="m">'+(loc+web)+'</div>';
+      b.addEventListener('click', function(){ forceFill(it); cands.innerHTML=''; msg.style.color='#166534'; msg.textContent="✓ Filled from "+(it.source||'directory')+" — review & complete the rest."; });
+      cands.appendChild(b);
+    });
+  }
+  var afTimer;
+  document.getElementById('af_q').addEventListener('input', function(){
+    var q=this.value.trim(); clearTimeout(afTimer);
+    if(afLooksUrl(q) || q.length<3){ return; }
+    afTimer=setTimeout(function(){
+      var msg=document.getElementById('af_msg'); msg.style.color='var(--muted)'; msg.textContent="Searching shelters…";
+      fetch(SB_URL+'/functions/v1/shelter-lookup?q='+encodeURIComponent(q), { headers:{ apikey:SB_KEY, Authorization:'Bearer '+SB_KEY } })
+        .then(function(r){return r.json()}).then(function(d){ if(d && d.kind==='name') renderSuggestions(d.suggestions); })
+        .catch(function(){});
+    }, 450);
+  });
+  document.getElementById('af_go').addEventListener('click', function(){
+    var q=(document.getElementById('af_q').value||'').trim();
+    var msg=document.getElementById('af_msg'), cands=document.getElementById('af_cands');
+    cands.innerHTML=''; if(!q){ msg.style.color='#B4610F'; msg.textContent="Paste a link first."; return; }
+    var btn=this; btn.disabled=true; btn.textContent='…'; msg.style.color='var(--muted)'; msg.textContent="Looking it up…";
+    fetch(SB_URL+'/functions/v1/shelter-lookup?q='+encodeURIComponent(q), { headers:{ apikey:SB_KEY, Authorization:'Bearer '+SB_KEY } })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        btn.disabled=false; btn.textContent='Auto-fill';
+        if(!d || d.ok===false){ msg.style.color='#B4610F'; msg.textContent=(d&&d.error)||"Couldn't read that link — fill it in manually."; return; }
+        if(d.kind==='name'){ renderSuggestions(d.suggestions); return; }
+        var f=d.fields||{};
+        setIf('shelter_name',f.shelter_name); setIf('website',f.website); setIf('main_phone',f.main_phone);
+        setIf('contact_email',f.contact_email); setIf('address',f.address); setIf('city',f.city); setIf('state',f.state); setIf('zip',f.zip);
+        var got=0; ['shelter_name','main_phone','contact_email','city','state'].forEach(function(k){ if(f[k]) got++; });
+        if(got){ msg.style.color='#166534'; msg.textContent="✓ Filled in what we found — please review & complete the rest."; }
+        else { msg.style.color='#B4610F'; msg.textContent="Couldn't pull much — please fill it in manually."; }
+        var cs=d.list_candidates||[];
+        if(cs.length){
+          document.querySelectorAll('#pub_pills .pill').forEach(function(x){ x.classList.toggle('on', x.getAttribute('data-v')==='yes'); });
+          publishes='yes'; document.getElementById('listWrap').style.display='';
+          var lab=document.createElement('div'); lab.className='lab'; lab.style.marginTop='10px';
+          lab.textContent='Possible at-risk / adoptable lists — tap to use:'; cands.appendChild(lab);
+          cs.forEach(function(c){
+            var b=document.createElement('span'); b.className='cand'; b.textContent=(c.text||c.url).slice(0,44); b.title=c.url;
+            b.addEventListener('click', function(){ var ta=document.getElementById('list_urls'); ta.value=(ta.value?ta.value+'\n':'')+c.url; b.style.opacity='0.5'; });
+            cands.appendChild(b);
+          });
+        }
+      })
+      .catch(function(){ btn.disabled=false; btn.textContent='Auto-fill'; msg.style.color='#B4610F'; msg.textContent="Network error — fill it in manually."; });
+  });
+
+  document.getElementById('form').addEventListener('submit', function(ev){
+    ev.preventDefault();
+    var err = document.getElementById('err'); err.style.display='none';
+    function fail(m){ err.textContent=m; err.style.display='block'; err.scrollIntoView({behavior:'smooth',block:'center'}); }
+    if(!val('shelter_name')) return fail('Please enter your shelter name.');
+    if(!val('city') || !val('state')) return fail('Please enter your city and state.');
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(val('contact_email'))) return fail('Please enter a valid contact email.');
+    if(!document.getElementById('consent').checked) return fail('Please confirm you’re authorized and agree to be contacted.');
+
+    var payload = {
+      shelter_name: val('shelter_name'), shelter_type: val('shelter_type'), website: val('website'), main_phone: val('main_phone'),
+      address: val('address'), city: val('city'), state: val('state'), zip: val('zip'),
+      contact_name: val('contact_name'), contact_title: val('contact_title'), contact_email: val('contact_email'), contact_phone: val('contact_phone'),
+      adoption_email: val('adoption_email'), foster_email: val('foster_email'), foster_url: val('foster_url'), placement_deadline: val('placement_deadline'),
+      publishes_list: publishes, list_urls: val('list_urls'), post_channels: vals('channels'), update_frequency: val('update_frequency'),
+      animals_at_risk_weekly: val('animals_at_risk_weekly'), total_in_care: val('total_in_care'),
+      needs: vals('needs'), ein: val('ein'), notes: val('notes'),
+      director_name: val('director_name'),
+      mail_name: val('mail_name'), mailing_address: val('mailing_address'), mailing_city: val('mailing_city'), mailing_state: val('mailing_state'), mailing_zip: val('mailing_zip'),
+      contacts: gatherContacts(),
+      is_private: document.getElementById('is_private').checked ? 'true' : 'false',
+      can_provide_501c3: (document.getElementById('can501') && document.getElementById('can501').checked) ? 'true' : ''
+    };
+    var btn = document.getElementById('btn'); btn.disabled=true; btn.textContent='Registering…';
+    function success(){
+      document.getElementById('form').style.display='none';
+      document.getElementById('doneName').textContent = payload.shelter_name + ' is on the list!';
+      document.getElementById('done').style.display='block';
+      window.scrollTo({top:0,behavior:'smooth'});
+    }
+    if(!sb){ console.warn('Supabase not loaded; payload:', payload); success(); return; }
+    sb.rpc('register_shelter', { p: payload }).then(function(res){
+      if(res && res.error){ btn.disabled=false; btn.textContent='Try again'; fail(res.error.message||'Something went wrong.'); }
+      else if(res && res.data && res.data.ok===false){ btn.disabled=false; btn.textContent='Try again'; fail(res.data.error||'Something went wrong.'); }
+      else { success(); }
+    }).catch(function(e){ btn.disabled=false; btn.textContent='Try again'; fail('Network error — please try again or email bethevoyce1@gmail.com.'); });
+  });
+</script>
+</body>
+</html>
