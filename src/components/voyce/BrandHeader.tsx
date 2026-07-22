@@ -14,6 +14,7 @@
  */
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { listAcsAnimals, normalizeStatusKey, type AcsAnimal } from "@/lib/acs.functions";
+import { getNotifications, markNotificationsRead, type AcsNotification } from "@/lib/notifications.functions";
 
 export const BackNavContext = createContext<(() => void) | null>(null);
 export const DonateContext = createContext<(() => void) | null>(null);
@@ -22,39 +23,70 @@ export const DonateContext = createContext<(() => void) | null>(null);
 // board's CRITICAL stat: office dogs are folded into At risk, so not counted.
 const LAST_CHANCE_KEYS = ["euthanasia", "b6spt", "outside_crit", "immediate"];
 
+// Relative time for the alerts feed, e.g. "2h ago".
+function relTime(iso: string): string {
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "";
+  const mins = Math.max(0, Math.round((Date.now() - t) / 60000));
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.round(hrs / 24)}d ago`;
+}
+
 function NotifyBell() {
   const [animals, setAnimals] = useState<AcsAnimal[]>([]);
   const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState<string | null>(null);
+  const [notes, setNotes] = useState<AcsNotification[]>([]);
 
   useEffect(() => {
     let alive = true;
+    const readEmail = (): string | null => {
+      try { return typeof window !== "undefined" ? window.localStorage.getItem("voyce_email") : null; }
+      catch { return null; }
+    };
+    setEmail(readEmail());
     const load = () => {
       listAcsAnimals({ data: { shelterId: "san_antonio_acs" } })
-        .then((d) => {
-          if (alive) setAnimals(d.animals ?? []);
-        })
+        .then((d) => { if (alive) setAnimals(d.animals ?? []); })
         .catch(() => {});
+      const em = readEmail();
+      if (em) {
+        getNotifications({ data: { email: em } })
+          .then((rows) => { if (alive) setNotes(rows ?? []); })
+          .catch(() => {});
+      }
     };
     load();
     const id = window.setInterval(load, 120000);
-    return () => {
-      alive = false;
-      window.clearInterval(id);
-    };
+    return () => { alive = false; window.clearInterval(id); };
   }, []);
 
   const lastChance = useMemo(
     () => animals.filter((a) => LAST_CHANCE_KEYS.includes(normalizeStatusKey(a.status_key))),
     [animals],
   );
-  const count = lastChance.length;
+  const unread = useMemo(() => notes.filter((n) => !n.read_at).length, [notes]);
+  const badgeCount = email ? unread : lastChance.length;
+
+  const toggle = () => {
+    const next = !open;
+    setOpen(next);
+    if (next && email && unread > 0) {
+      markNotificationsRead({ data: { email } }).catch(() => {});
+      const now = new Date().toISOString();
+      setNotes((prev) => prev.map((n) => (n.read_at ? n : { ...n, read_at: now })));
+    }
+  };
 
   return (
     <div className="relative">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-label={`Last Chance dogs: ${count}`}
+        onClick={toggle}
+        aria-label={`Notifications: ${badgeCount}`}
         aria-expanded={open}
         className="relative flex h-9 w-9 items-center justify-center rounded-full text-[#0B0B0C] transition hover:bg-black/5 active:scale-95"
       >
@@ -62,13 +94,13 @@ function NotifyBell() {
           <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
-        {count > 0 && (
+        {badgeCount > 0 && (
           <span
             className="absolute -right-0.5 -top-0.5 grid min-w-[16px] place-content-center rounded-full px-1 text-[9.5px] font-bold leading-[16px] text-white motion-safe:animate-pulse"
             style={{ background: "#DC2626" }}
             aria-hidden
           >
-            {count}
+            {badgeCount}
           </span>
         )}
       </button>
@@ -76,18 +108,63 @@ function NotifyBell() {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden />
-          <div className="absolute right-0 top-11 z-50 max-h-[70vh] w-[280px] overflow-y-auto rounded-2xl border border-[#EAE6DE] bg-white p-2 shadow-2xl">
+          <div className="absolute right-0 top-11 z-50 max-h-[70vh] w-[300px] overflow-y-auto rounded-2xl border border-[#EAE6DE] bg-white p-2 shadow-2xl">
+            {email && (
+              <>
+                <div className="px-2 py-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-serif text-[14px] font-bold text-[#1A1611]">Your alerts</span>
+                    {unread > 0 && (
+                      <span className="ml-auto rounded-full px-1.5 text-[10px] font-bold leading-[16px] text-white" style={{ background: "#DC2626" }}>
+                        {unread} new
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+                    Updates on dogs you follow.
+                  </p>
+                </div>
+                {notes.length === 0 ? (
+                  <div className="px-2 py-3 text-center text-[12px] text-muted-foreground">
+                    No alerts yet — follow a dog to get notified. 🔔
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {notes.map((n) => (
+                      <a
+                        key={n.id}
+                        href={n.url ?? undefined}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block rounded-xl px-2 py-1.5 transition hover:bg-[#FAF8F5]"
+                      >
+                        <div className="flex items-baseline gap-1.5">
+                          {!n.read_at && (
+                            <span className="mt-1 inline-block h-1.5 w-1.5 flex-none rounded-full" style={{ background: "#DC2626" }} aria-hidden />
+                          )}
+                          <span className="font-serif text-[13px] font-semibold text-[#1A1611]">{n.title}</span>
+                          <span className="ml-auto flex-none text-[10px] text-muted-foreground">{relTime(n.created_at)}</span>
+                        </div>
+                        {n.body && <div className="truncate text-[11px] text-muted-foreground">{n.body}</div>}
+                      </a>
+                    ))}
+                  </div>
+                )}
+                <div className="my-1.5 border-t border-[#EEEAE1]" />
+              </>
+            )}
+
             <div className="px-2 py-1.5">
               <div className="flex items-center gap-1.5">
                 <span className="inline-block h-2 w-2 rounded-full motion-safe:animate-pulse" style={{ background: "#DC2626" }} aria-hidden />
                 <span className="font-serif text-[14px] font-bold text-[#7F1D1D]">Last Chance</span>
-                <span className="ml-auto text-[11px] font-semibold text-muted-foreground">{count}</span>
+                <span className="ml-auto text-[11px] font-semibold text-muted-foreground">{lastChance.length}</span>
               </div>
               <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
                 Being euthanized now or today — act immediately.
               </p>
             </div>
-            {count === 0 ? (
+            {lastChance.length === 0 ? (
               <div className="px-2 py-3 text-center text-[12px] text-muted-foreground">
                 No dogs in Last Chance right now. 💛
               </div>
