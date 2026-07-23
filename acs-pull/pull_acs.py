@@ -146,7 +146,7 @@ PUBLIC = {
 }
 
 # Keys that carry a euthanasia deadline for the live countdown.
-CRITICAL_KEYS = ("b6spt", "immediate", "scheduled", "office_crit", "outside_crit")
+CRITICAL_KEYS = ("b6spt", "immediate", "scheduled", "highrisk", "office_crit", "outside_crit")
 
 
 def log(*a):
@@ -371,9 +371,22 @@ def parse_rows(raw_text):
                 status_key = "scheduled"
                 public_status = "Euthanasia date set · high risk"
 
+        # A dog with ANY set euthanasia date reads "Euthanasia date set" — never
+        # plain "At risk" (an "euthanized after {date}" banner is still a set
+        # date). Future date -> scheduled; today or passed -> highrisk.
+        if status_key == "atrisk":
+            _ad = parse_date_iso(euth_after) if euth_after else None
+            _dd = euth_on_iso or _ad
+            if euth_today or _dd:
+                if euth_today or (_dd and _dd <= today_iso):
+                    status_key = "highrisk"
+                else:
+                    status_key = "scheduled"
+                public_status = "Euthanasia date set · high risk"
+
         # Critical/scheduled animals carry a deadline for the countdown.
-        euth_date = euth_on or (
-            today_mdy if (euth_today or status_key in CRITICAL_KEYS) else euth_after
+        euth_date = euth_on or euth_after or (
+            today_mdy if (euth_today or status_key in CRITICAL_KEYS) else None
         )
 
         out[aid] = {
