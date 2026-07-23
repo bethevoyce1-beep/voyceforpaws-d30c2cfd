@@ -31,16 +31,13 @@ FEED_URL = (
     "?species=Dog&sex=A&agegroup=All&onhold=A&orderby=ID&colnum=4&AuthKey=" + AUTHKEY
 )
 
-
-def _supabase_url():
-    u = os.environ["SUPABASE_URL"].strip().rstrip("/")
-    # The secret is sometimes stored without a scheme; requests needs https://.
-    if not u.startswith("http"):
-        u = "https://" + u
-    return u
-
-
-SUPABASE_URL = _supabase_url()
+# The SUPABASE_URL secret in this repo has a mangled scheme, so don't trust it
+# verbatim — pull the *.supabase.co host out of it and rebuild a clean https URL.
+# Falls back to the known (public, non-secret) project URL if the host isn't found.
+_DEFAULT_HOST = "okmukfrhvqkxphzueqww.supabase.co"
+_raw = os.environ.get("SUPABASE_URL", "")
+_m = re.search(r"([a-z0-9-]+\.supabase\.co)", _raw)
+SUPABASE_URL = "https://" + (_m.group(1) if _m else _DEFAULT_HOST)
 SERVICE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"].strip()
 
 
