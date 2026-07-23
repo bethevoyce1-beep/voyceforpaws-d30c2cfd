@@ -368,7 +368,7 @@ def parse_rows(raw_text):
         #   * "euthanized on {future date}"  -> scheduled (that date)
         #   * "euthanized today"             -> Critical while ACS is open; after
         #     the daily cutoff (5:30pm Mon-Fri / 12:30pm Sat / closed Sun, Central)
-        #     it rolls to the next operating day -> highrisk (date set).
+        #     it rolls to the next operating day -> scheduled (date set).
         # Softer/stale threats stay "At risk": "euthanized after {date}", an
         # "on {date}" that already passed, or no firm date (Due Out earlier/today).
         _rolled_mdy = None
@@ -387,7 +387,7 @@ def parse_rows(raw_text):
                     _cut = (12, 30) if _wd == 5 else (17, 30)
                     _past_cutoff = (now_ct.hour, now_ct.minute) >= _cut
                 if _past_cutoff:
-                    status_key = "highrisk"
+                    status_key = "scheduled"
                     public_status = "Euthanasia date set · high risk"
                     _nd = date.fromordinal(today.toordinal() + 1)
                     if _nd.weekday() == 6:
