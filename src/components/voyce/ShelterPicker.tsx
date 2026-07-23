@@ -192,6 +192,26 @@ const SECTION_BY_ID = SECTIONS.reduce<Record<AcsSectionId, SectionDef>>(
   {} as Record<AcsSectionId, SectionDef>,
 );
 
+// Statuses that mean an animal is STILL NEEDING HELP. The "All" total counts
+// only these — outcomes and limbo (secured, euthanized/In Memoriam,
+// following_up, unknown, left) are deliberately excluded so "All" reflects the
+// live at-risk workload, not the historical roster. `highrisk` is the legacy
+// alias of `scheduled` (both = "Euthanasia date set") and is kept here.
+const ACTIVE_STATUS_KEYS: ReadonlySet<string> = new Set([
+  "euthanasia",
+  "b6spt",
+  "office_crit",
+  "outside_crit",
+  "immediate",
+  "scheduled",
+  "highrisk",
+  "atrisk",
+  "adopthold",
+  "adoption",
+  "foster",
+  "watch",
+]);
+
 // Filter chips — the "other / outcome" statuses (holds, secured, memoriam,
 // unknown). The urgent statuses live in the SOS row above; `all` is its own
 // button above SOS.
@@ -235,6 +255,10 @@ function sectionOf(a: AcsAnimal): AcsSectionId {
   // Office-kennel dogs (Critical·Office and plain Office) show under At risk —
   // their euth date is often already past but they're still listed and at risk.
   if (key === "office_crit") return "urgent";
+  // `highrisk` is the legacy alias of `scheduled` ("Euthanasia date set"). Route
+  // it into the same on_the_clock section so it shares the "Euthanasia date set"
+  // pill/section and the DATE SET stat — the pill and stat then always agree.
+  if (key === "highrisk") return "on_the_clock";
   if (key === "immediate" || key === "scheduled") {
     const target = deadlineForAnimal(a);
     if (target && target.getTime() <= Date.now()) {
@@ -610,6 +634,16 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
     );
   }, [d, query]);
 
+  // "All" counts ONLY animals still needing help (active at-risk statuses).
+  // Outcomes / limbo (Secured, In Memoriam, Following up, Unknown, left) are
+  // excluded so the total reflects the live workload, not the whole roster.
+  const activeCount = useMemo(
+    () =>
+      matched.filter((a) => ACTIVE_STATUS_KEYS.has(normalizeStatusKey(a.status_key)))
+        .length,
+    [matched],
+  );
+
   // Group the (search-filtered) animals into sections.
   const grouped = useMemo(() => {
     const map = new Map<AcsSectionId, AcsAnimal[]>();
@@ -641,7 +675,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
 
   // Per-chip counts (reflect the current search). Every pill shows, even at 0.
   const chipCount = (c: ChipDef): number => {
-    if (c.sections === "all") return matched.length;
+    if (c.sections === "all") return activeCount;
     return c.sections.reduce((n, sid) => n + (grouped.get(sid)?.length ?? 0), 0);
   };
 
@@ -737,7 +771,10 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
                 (d?.counts.outside_crit ?? 0) +
                 (d?.counts.immediate ?? 0),
             },
-            { label: "DATE SET", value: d?.counts.scheduled ?? 0 },
+            {
+              label: "DATE SET",
+              value: (d?.counts.scheduled ?? 0) + (d?.counts.highrisk ?? 0),
+            },
             { label: "IN MEMORIAM", value: d?.counts.euthanized ?? 0 },
           ].map((s) => (
             <div key={s.label} className="rounded-xl px-2 py-3 text-center" style={{ background: "#1A1611" }}>
@@ -774,7 +811,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
                     : { background: "#F1EAD6", color: "#6B5832" }
                 }
               >
-                {matched.length}
+                {activeCount}
               </span>
             )}
           </button>
