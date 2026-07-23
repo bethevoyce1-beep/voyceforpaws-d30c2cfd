@@ -363,49 +363,38 @@ def parse_rows(raw_text):
         if _et:
             status_text = (norm(_et.group(0)) or "")[:300] or None
 
-        # Split "immediate" into today vs a set future date ("Euthanasia date set").
-        if status_key == "immediate":
-            if euth_today or not euth_on_iso or euth_on_iso <= today_iso:
-                public_status = "Critical · save today"
-            else:
-                status_key = "scheduled"
-                public_status = "Euthanasia date set · high risk"
-
-        # A dog with ANY set euthanasia date reads "Euthanasia date set" — never
-        # plain "At risk" (an "euthanized after {date}" banner is still a set
-        # date). Future date -> scheduled; today or passed -> highrisk.
-        if status_key == "atrisk":
-            _ad = parse_date_iso(euth_after) if euth_after else None
-            _dd = euth_on_iso or _ad
-            if euth_today or _dd:
-                if euth_today or (_dd and _dd <= today_iso):
-                    status_key = "highrisk"
-                else:
-                    status_key = "scheduled"
-                public_status = "Euthanasia date set · high risk"
-
-        # "Euthanized today" is Critical only while ACS is open (deadline
-        # 5:30 PM Mon-Fri, 12:30 PM Sat, closed Sun -- Central time). Once that
-        # cutoff passes the today-window has closed, so the dog rolls to
-        # "Euthanasia date set" (still high risk) until the next list refresh.
+        # ---- Euthanasia-date status (per Rachna's rule) ----
+        # Only a FIRM UPCOMING euthanasia reads "Euthanasia date set":
+        #   * "euthanized on {future date}"  -> scheduled (that date)
+        #   * "euthanized today"             -> Critical while ACS is open; after
+        #     the daily cutoff (5:30pm Mon-Fri / 12:30pm Sat / closed Sun, Central)
+        #     it rolls to the next operating day -> highrisk (date set).
+        # Softer/stale threats stay "At risk": "euthanized after {date}", an
+        # "on {date}" that already passed, or no firm date (Due Out earlier/today).
         _rolled_mdy = None
         if status_key == "immediate":
-            _wd = now_ct.weekday()  # Mon=0 .. Sun=6
-            if _wd == 6:
-                _past_cutoff = True
-            else:
-                _cut = (12, 30) if _wd == 5 else (17, 30)
-                _past_cutoff = (now_ct.hour, now_ct.minute) >= _cut
-            if _past_cutoff:
-                status_key = "highrisk"
+            if not euth_today and euth_on_iso and euth_on_iso > today_iso:
+                status_key = "scheduled"
                 public_status = "Euthanasia date set · high risk"
-                # Today's round is over and the shelter is closed, so a surviving
-                # "today" dog now faces the NEXT operating day (skip Sunday). This
-                # roll repeats every day until ACS refreshes the list.
-                _nd = date.fromordinal(today.toordinal() + 1)
-                if _nd.weekday() == 6:
-                    _nd = date.fromordinal(_nd.toordinal() + 1)
-                _rolled_mdy = _nd.strftime("%m/%d/%Y")
+            elif not euth_today and euth_on_iso and euth_on_iso < today_iso:
+                status_key = "atrisk"
+                public_status = "At risk"
+            else:
+                _wd = now_ct.weekday()  # Mon=0 .. Sun=6
+                if _wd == 6:
+                    _past_cutoff = True
+                else:
+                    _cut = (12, 30) if _wd == 5 else (17, 30)
+                    _past_cutoff = (now_ct.hour, now_ct.minute) >= _cut
+                if _past_cutoff:
+                    status_key = "highrisk"
+                    public_status = "Euthanasia date set · high risk"
+                    _nd = date.fromordinal(today.toordinal() + 1)
+                    if _nd.weekday() == 6:
+                        _nd = date.fromordinal(_nd.toordinal() + 1)
+                    _rolled_mdy = _nd.strftime("%m/%d/%Y")
+                else:
+                    public_status = "Critical · save today"
 
         # Critical/scheduled animals carry a deadline for the countdown.
         # Effective euthanasia date for the countdown: the SOONEST firm upcoming
