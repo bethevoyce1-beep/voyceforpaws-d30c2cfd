@@ -19,6 +19,7 @@ import {
   formatDeadlineClock,
 } from "@/lib/acs.timer";
 import type { NetworkRole } from "@/lib/signups.functions";
+import { submitRescuePull } from "@/lib/rescue.functions";
 
 // Browser push helpers. Public VAPID key is safe to ship in the client.
 const VAPID_PUBLIC_KEY =
@@ -407,6 +408,187 @@ function FactGrid({
 // ============================================================
 // Component
 // ============================================================
+// ============================================================
+// RescuePullForm — a rescue/org that can pull this dog steps up;
+// Voyce coordinates the follow-up. Calls submit_rescue_pull RPC.
+// ============================================================
+function RescuePullForm({ animal }: { animal: AcsAnimal }) {
+  const [orgName, setOrgName] = useState("");
+  const [is501c3, setIs501c3] = useState<"yes" | "no">("yes");
+  const [website, setWebsite] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+
+  const submit = async () => {
+    setErr(null);
+    if (!orgName.trim()) {
+      setErr("Please enter your organization / rescue name.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const r = await submitRescuePull({
+        data: {
+          animal_id: animal.id,
+          animal_name: animal.name,
+          org_name: orgName.trim(),
+          is_501c3: is501c3,
+          website: website.trim() || undefined,
+          contact_name: contactName.trim() || undefined,
+          contact_email: contactEmail.trim() || undefined,
+          contact_phone: contactPhone.trim() || undefined,
+          note: note.trim() || undefined,
+        },
+      });
+      if (!r.ok) {
+        setErr(r.error || "Couldn't send — please try again.");
+        return;
+      }
+      setDone(true);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Couldn't send — please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const inputCls =
+    "mt-1 w-full rounded-xl border border-[#D9D2C2] bg-white px-3 py-2 text-[14px] outline-none focus:border-[#C9871A]";
+  const labelCls =
+    "text-[11px] font-semibold uppercase tracking-wider text-foreground/60";
+
+  return (
+    <>
+      <SectionLabel>Rescue pull</SectionLabel>
+      <div
+        className="mx-5 mb-5 rounded-xl px-4 py-4"
+        style={{ background: CREAM, border: `1px solid ${GOLD_DEEP}` }}
+      >
+        <h3 className="font-serif text-[16px] font-bold" style={{ color: INK }}>
+          🐾 Rescue pull — step up for {animal.name}
+        </h3>
+        <p className="mt-1 text-[12px] leading-[1.5]" style={{ color: "#6B5832" }}>
+          For a rescue/organization that can pull this dog — Voyce coordinates; we
+          never contact ACS for you automatically.
+        </p>
+
+        {done ? (
+          <div className="mt-3 rounded-xl bg-white px-4 py-6 text-center" style={{ border: `1px solid ${GOLD_DEEP}` }}>
+            <div className="text-2xl">✓</div>
+            <p className="mt-1 text-[13px] font-bold" style={{ color: INK }}>
+              Sent — Voyce will follow up.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-3 space-y-2">
+            <label className="block">
+              <span className={labelCls}>Organization / rescue name *</span>
+              <input
+                value={orgName}
+                onChange={(e) => setOrgName(e.target.value)}
+                placeholder="Rescue or organization name"
+                className={inputCls}
+              />
+            </label>
+
+            <div className="block">
+              <span className={labelCls}>501(c)(3)?</span>
+              <div className="mt-1 grid grid-cols-2 gap-2">
+                {(["yes", "no"] as const).map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setIs501c3(v)}
+                    className="rounded-xl px-3 py-2 text-center text-[12px] font-bold transition active:scale-95"
+                    style={
+                      is501c3 === v
+                        ? { background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_DEEP} 100%)`, color: GOLD_INK }
+                        : { background: "#fff", border: "1px solid #D9D2C2", color: INK }
+                    }
+                  >
+                    {v === "yes" ? "Yes" : "No"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <label className="block">
+              <span className={labelCls}>Website (optional)</span>
+              <input
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                type="url"
+                placeholder="https://"
+                className={inputCls}
+              />
+            </label>
+            <label className="block">
+              <span className={labelCls}>Your name</span>
+              <input
+                value={contactName}
+                onChange={(e) => setContactName(e.target.value)}
+                placeholder="First name"
+                className={inputCls}
+              />
+            </label>
+            <label className="block">
+              <span className={labelCls}>Your email</span>
+              <input
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
+                type="email"
+                placeholder="you@email.com"
+                className={inputCls}
+              />
+            </label>
+            <label className="block">
+              <span className={labelCls}>Your phone</span>
+              <input
+                value={contactPhone}
+                onChange={(e) => setContactPhone(e.target.value)}
+                type="tel"
+                placeholder="(555) 555-5555"
+                className={inputCls}
+              />
+            </label>
+            <label className="block">
+              <span className={labelCls}>Note</span>
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows={3}
+                placeholder="Anything ACS or Voyce should know…"
+                className={inputCls + " resize-none"}
+              />
+            </label>
+
+            {err && (
+              <p className="text-[12px] font-semibold" style={{ color: RED2 }}>
+                {err}
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={submit}
+              disabled={busy}
+              className="mt-1 w-full rounded-xl px-3 py-2.5 text-center text-[13px] font-bold shadow-sm transition active:scale-95 disabled:opacity-60"
+              style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_DEEP} 100%)`, color: GOLD_INK }}
+            >
+              {busy ? "Sending…" : "Submit rescue-pull request"}
+            </button>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
 export function AcsShareCard({
   animal,
   onContinue,
@@ -832,6 +1014,9 @@ export function AcsShareCard({
             <b>{ACS.adoptionsEmail}</b> or <b>{ACS.fosterEmail}</b> before the daily deadline —{" "}
             {DEADLINE_WORDS}.
           </div>
+
+          {/* ===== RESCUE PULL REQUEST ===== */}
+          <RescuePullForm animal={animal} />
         </article>
 
       </div>
