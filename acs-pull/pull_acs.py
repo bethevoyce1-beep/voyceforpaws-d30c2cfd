@@ -384,6 +384,21 @@ def parse_rows(raw_text):
                     status_key = "scheduled"
                 public_status = "Euthanasia date set · high risk"
 
+        # "Euthanized today" is Critical only while ACS is open (deadline
+        # 5:30 PM Mon-Fri, 12:30 PM Sat, closed Sun -- Central time). Once that
+        # cutoff passes the today-window has closed, so the dog rolls to
+        # "Euthanasia date set" (still high risk) until the next list refresh.
+        if status_key == "immediate":
+            _wd = now_ct.weekday()  # Mon=0 .. Sun=6
+            if _wd == 6:
+                _past_cutoff = True
+            else:
+                _cut = (12, 30) if _wd == 5 else (17, 30)
+                _past_cutoff = (now_ct.hour, now_ct.minute) >= _cut
+            if _past_cutoff:
+                status_key = "highrisk"
+                public_status = "Euthanasia date set · high risk"
+
         # Critical/scheduled animals carry a deadline for the countdown.
         euth_date = euth_on or euth_after or (
             today_mdy if (euth_today or status_key in CRITICAL_KEYS) else None
