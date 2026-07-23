@@ -7,6 +7,13 @@ on:
         description: "Table to write to (acs_animals_staging = safe, acs_animals = live)"
         required: false
         default: "acs_animals_staging"
+  schedule:
+    # ACS updates its capacity/euthanasia list roughly every 15 minutes during
+    # operating hours, so we poll every 15 min across the Central-time shelter
+    # window (times are UTC; CDT = UTC-5). Overnight the list is static, so we
+    # skip those hours to stay within GitHub's free Actions minutes.
+    - cron: "*/15 11-23 * * *"   # ~6:00 AM - 5:45 PM CT
+    - cron: "*/15 0-1 * * *"     # ~6:00 PM - 8:45 PM CT
 
 permissions:
   contents: read
@@ -23,6 +30,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: acs-pull/requirements.txt
       - name: Install deps
         run: pip install -r acs-pull/requirements.txt
       - name: Pull ACS at-risk animals
