@@ -80,3 +80,40 @@ export const createShelterFollow = createServerFn({ method: "POST" })
     if (error) return { ok: false, error: error.message };
     return (res ?? { ok: true }) as { ok: boolean; error?: string };
   });
+
+// Per-pill alert preferences for the header bell. Mirrors the landing signup's
+// SOS pill picker: the supporter (identified by email) chooses which board
+// statuses ping them. Saved onto their network_signups row so the alert engine
+// (acs_alert_candidates) matches them; a first-time app user gets a minimal
+// in-app subscription created for them.
+export type AlertPrefs = { alert_statuses: string[]; alert_enabled: boolean };
+
+export const getAlertPrefs = createServerFn({ method: "GET" })
+  .inputValidator((input: unknown) => {
+    const o = (input ?? {}) as { email?: string };
+    return { email: String(o.email ?? "").trim() };
+  })
+  .handler(async ({ data }): Promise<AlertPrefs> => {
+    if (!data.email) return { alert_statuses: [], alert_enabled: true };
+    const sb = serverClient();
+    const { data: rows, error } = await sb.rpc("get_alert_prefs", { p_email: data.email });
+    if (error || !rows || !rows[0]) return { alert_statuses: [], alert_enabled: true };
+    const r = rows[0] as { alert_statuses: string[] | null; alert_enabled: boolean | null };
+    return { alert_statuses: r.alert_statuses ?? [], alert_enabled: r.alert_enabled ?? true };
+  });
+
+export const setAlertPrefs = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => {
+    const o = (input ?? {}) as { email?: string; statuses?: string[] };
+    return {
+      email: String(o.email ?? "").trim(),
+      statuses: Array.isArray(o.statuses) ? o.statuses.map(String) : [],
+    };
+  })
+  .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {
+    if (!data.email) return { ok: false, error: "Missing email." };
+    const sb = serverClient();
+    const { data: res, error } = await sb.rpc("set_alert_prefs", { p_email: data.email, p_statuses: data.statuses });
+    if (error) return { ok: false, error: error.message };
+    return (res ?? { ok: true }) as { ok: boolean; error?: string };
+  });
