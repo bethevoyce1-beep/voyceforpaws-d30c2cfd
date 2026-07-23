@@ -396,6 +396,14 @@ def parse_rows(raw_text):
                 else:
                     public_status = "Critical · save today"
 
+        # A future ACS "Due Out" date is itself a firm upcoming euthanasia date,
+        # so an otherwise At-risk dog with a future Due Out reads "date set".
+        if status_key == "atrisk" and due_out:
+            _do = parse_date_iso(due_out)
+            if _do and _do > today_iso:
+                status_key = "scheduled"
+                public_status = "Euthanasia date set · high risk"
+
         # Critical/scheduled animals carry a deadline for the countdown.
         # Effective euthanasia date for the countdown: the SOONEST firm upcoming
         # operating day. A passed banner ("euthanized after 07/22") paired with an
