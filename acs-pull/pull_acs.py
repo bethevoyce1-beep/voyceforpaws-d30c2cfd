@@ -388,6 +388,7 @@ def parse_rows(raw_text):
         # 5:30 PM Mon-Fri, 12:30 PM Sat, closed Sun -- Central time). Once that
         # cutoff passes the today-window has closed, so the dog rolls to
         # "Euthanasia date set" (still high risk) until the next list refresh.
+        _rolled_mdy = None
         if status_key == "immediate":
             _wd = now_ct.weekday()  # Mon=0 .. Sun=6
             if _wd == 6:
@@ -398,11 +399,33 @@ def parse_rows(raw_text):
             if _past_cutoff:
                 status_key = "highrisk"
                 public_status = "Euthanasia date set · high risk"
+                # Today's round is over and the shelter is closed, so a surviving
+                # "today" dog now faces the NEXT operating day (skip Sunday). This
+                # roll repeats every day until ACS refreshes the list.
+                _nd = date.fromordinal(today.toordinal() + 1)
+                if _nd.weekday() == 6:
+                    _nd = date.fromordinal(_nd.toordinal() + 1)
+                _rolled_mdy = _nd.strftime("%m/%d/%Y")
 
         # Critical/scheduled animals carry a deadline for the countdown.
-        euth_date = euth_on or euth_after or (
-            today_mdy if (euth_today or status_key in CRITICAL_KEYS) else None
-        )
+        # Effective euthanasia date for the countdown: the SOONEST firm upcoming
+        # operating day. A passed banner ("euthanized after 07/22") paired with an
+        # ACS Due Out Date of 07/23 shows 07/23; a "today" past the cutoff shows
+        # the rolled next-operating-day. Falls back to the banner/today date.
+        _cands = []
+        for _dv in (euth_on, euth_after, due_out, _rolled_mdy):
+            _iso = parse_date_iso(_dv)
+            if _iso:
+                _cands.append((_iso, _dv))
+        _future = [c for c in _cands if c[0] >= today_iso]
+        if _future:
+            euth_date = min(_future, key=lambda c: c[0])[1]
+        elif euth_today or status_key in CRITICAL_KEYS:
+            euth_date = _rolled_mdy or today_mdy
+        elif _cands:
+            euth_date = max(_cands, key=lambda c: c[0])[1]
+        else:
+            euth_date = None
 
         out[aid] = {
             "id": aid,
