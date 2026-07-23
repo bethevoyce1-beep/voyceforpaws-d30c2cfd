@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   listAcsAnimals,
+  listShelters,
   ACS_STATUS_MODEL,
   normalizeStatusKey,
   statusLabel,
@@ -8,6 +9,7 @@ import {
   type AcsListResult,
   type AcsSectionId,
   type AcsStatusMeta,
+  type AcsShelter,
 } from "@/lib/acs.functions";
 import {
   deadlineForAnimal,
@@ -291,10 +293,10 @@ function specLine(a: AcsAnimal): string {
 
 // Share a single dog from a board row — uses the device's native share sheet
 // (all their apps), with a clipboard fallback on desktop browsers without it.
-function shareAnimal(a: AcsAnimal) {
+function shareAnimal(a: AcsAnimal, shelterName: string) {
   const label = statusLabel(a);
   const url = a.pet_search_url || "https://app.voyceforpaws.org";
-  const text = `\u{1F6A8} ${label} — ${a.name} needs a rescue, foster, or adopter at San Antonio ACS. ${url}`;
+  const text = `\u{1F6A8} ${label} — ${a.name} needs a rescue, foster, or adopter at ${shelterName}. ${url}`;
   const nav = typeof navigator !== "undefined" ? (navigator as unknown as { share?: (d: unknown) => Promise<void>; clipboard?: { writeText: (t: string) => Promise<void> } }) : undefined;
   if (nav?.share) {
     nav.share({ title: `${a.name} needs help`, text, url }).catch(() => {});
@@ -430,7 +432,7 @@ function RowTimerBadge({ a }: { a: AcsAnimal }) {
   );
 }
 
-function AnimalRow({ a, onPick, onFollow }: { a: AcsAnimal; onPick: (a: AcsAnimal) => void; onFollow: (a: AcsAnimal) => void }) {
+function AnimalRow({ a, onPick, onFollow, shelterName }: { a: AcsAnimal; onPick: (a: AcsAnimal) => void; onFollow: (a: AcsAnimal) => void; shelterName: string }) {
   const [showNote, setShowNote] = useState(false);
   const meta = metaOf(a);
   const section = SECTION_BY_ID[meta.section];
@@ -522,11 +524,11 @@ function AnimalRow({ a, onPick, onFollow }: { a: AcsAnimal; onPick: (a: AcsAnima
             onClick={(e) => e.stopPropagation()}
             className="rounded-full border border-[#D9D2C2] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#1A1611] transition active:scale-95"
           >
-            🔗 View on ACS
+            🔗 View listing
           </a>
         )}
         <button
-          onClick={(e) => { e.stopPropagation(); shareAnimal(a); }}
+          onClick={(e) => { e.stopPropagation(); shareAnimal(a, shelterName); }}
           className="rounded-full border border-[#D9D2C2] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#1A1611] transition active:scale-95"
         >
           📤 Share
@@ -543,7 +545,7 @@ function AnimalRow({ a, onPick, onFollow }: { a: AcsAnimal; onPick: (a: AcsAnima
             className="rounded-full border border-[#D9D2C2] bg-white px-2.5 py-1 text-[11px] font-semibold text-muted-foreground transition active:scale-95"
             aria-expanded={showNote}
           >
-            {showNote ? "Hide ACS note" : "See ACS's exact note"}
+            {showNote ? "Hide note" : "See exact note"}
           </button>
         )}
         <span className="ml-auto text-[10.5px] italic text-muted-foreground">
@@ -555,7 +557,7 @@ function AnimalRow({ a, onPick, onFollow }: { a: AcsAnimal; onPick: (a: AcsAnima
         <div className="mx-2.5 mb-2.5 rounded-lg bg-[#FFFBEB] px-3 py-2 text-[12px] leading-snug text-[#3A2A07] ring-1 ring-[#F3E5B6]">
           {euth && (
             <p className="font-semibold">
-              ACS euth date: <span className="font-normal">{euth}</span>
+              Euth date: <span className="font-normal">{euth}</span>
             </p>
           )}
           {note && <p className={euth ? "mt-1" : ""}>{note}</p>}
@@ -574,13 +576,25 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
   const [query, setQuery] = useState("");
   const [followTarget, setFollowTarget] = useState<AcsAnimal | null>(null);
   const [shelterFollowOpen, setShelterFollowOpen] = useState(false);
+  // Which shelter's list is showing, and the list of shelters to switch between.
+  const [shelterId, setShelterId] = useState<string>("acs_san_antonio");
+  const [shelters, setShelters] = useState<AcsShelter[]>([]);
+
+  // Load the shelters the board can switch between (once).
+  useEffect(() => {
+    let alive = true;
+    listShelters()
+      .then((s) => { if (alive) setShelters(s ?? []); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   useEffect(() => {
     let alive = true;
 
     const load = (background: boolean) => {
       if (background) setRefreshing(true);
-      listAcsAnimals({ data: { shelterId: "san_antonio_acs" } })
+      listAcsAnimals({ data: { shelterId } })
         .then((d) => {
           if (alive) setState({ loading: false, error: null, data: d });
         })
@@ -614,9 +628,19 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onVisible);
     };
-  }, []);
+  }, [shelterId]);
+
+  // Switch shelters — reset the view (loading, filter, search) for the new list.
+  const switchShelter = (id: string) => {
+    if (id === shelterId) return;
+    setChip("all");
+    setQuery("");
+    setState({ loading: true, error: null, data: null });
+    setShelterId(id);
+  };
 
   const d = state.data;
+  const shelterName = d?.shelter_name ?? "the shelter";
 
   // Search filter — name / animal id / breed / kennel.
   const matched = useMemo(() => {
@@ -708,6 +732,28 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
           <button onClick={() => setShelterFollowOpen(true)} className="inline-flex items-center gap-1.5 rounded-full border border-[#C9871A] bg-[#FFF7D6] px-3 py-1 text-[12px] font-bold text-[#7A5A0A]">🔔 Follow this shelter</button>
         </div>
 
+        {/* Shelter switcher — flip between partner shelters (only when >1). */}
+        {shelters.length > 1 && (
+          <div className="mb-3">
+            <label htmlFor="shelter-switch" className="mb-1 block text-[10px] font-bold tracking-[0.14em] text-muted-foreground">
+              SHELTER
+            </label>
+            <select
+              id="shelter-switch"
+              value={shelterId}
+              onChange={(e) => switchShelter(e.target.value)}
+              className="w-full rounded-xl border border-[#E3DAC4] bg-white px-3 py-2 text-[13px] font-semibold outline-none transition focus:border-[#C9871A]"
+              style={{ color: INK }}
+            >
+              {shelters.map((s) => (
+                <option key={s.shelter_id} value={s.shelter_id}>
+                  {(s.short_name || s.name)}{s.state ? ` (${s.state})` : ""}{s.status !== "live" ? " · preview" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <p className="mb-3 text-center text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
           AI is advisory — not a diagnosis
         </p>
@@ -739,7 +785,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
           </div>
           {d?.last_pulled_at && (
             <div className="mt-0.5 text-[11px]" style={{ color: "#8C8367" }}>
-              ACS last changed {fmtDateTime(d.last_pulled_at)}
+              Last changed {fmtDateTime(d.last_pulled_at)}
             </div>
           )}
         </div>
@@ -934,7 +980,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
                   </div>
                   <div className="space-y-2">
                     {rows.map((a) => (
-                      <AnimalRow key={a.id} a={a} onPick={onPick} onFollow={setFollowTarget} />
+                      <AnimalRow key={a.id} a={a} onPick={onPick} onFollow={setFollowTarget} shelterName={shelterName} />
                     ))}
                   </div>
                 </section>
@@ -980,7 +1026,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
       {followTarget && (
         <FollowModal animal={followTarget} onClose={() => setFollowTarget(null)} />
       )}
-      {shelterFollowOpen && <ShelterFollowModal shelterLabel="San Antonio ACS" onClose={() => setShelterFollowOpen(false)} />}
+      {shelterFollowOpen && <ShelterFollowModal shelterLabel={d?.shelter_name ?? "this shelter"} onClose={() => setShelterFollowOpen(false)} />}
     </div>
   );
 }
