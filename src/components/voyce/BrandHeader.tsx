@@ -40,6 +40,14 @@ function NotifyBell() {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [notes, setNotes] = useState<AcsNotification[]>([]);
+  const [emailInput, setEmailInput] = useState("");
+  const saveEmail = () => {
+    const em = emailInput.trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return;
+    try { window.localStorage.setItem("voyce_email", em); } catch { /* noop */ }
+    setEmail(em);
+    getNotifications({ data: { email: em } }).then((rows) => setNotes(rows ?? [])).catch(() => {});
+  };
 
   useEffect(() => {
     let alive = true;
@@ -109,6 +117,17 @@ function NotifyBell() {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden />
           <div className="absolute right-0 top-11 z-50 max-h-[70vh] w-[300px] overflow-y-auto rounded-2xl border border-[#EAE6DE] bg-white p-2 shadow-2xl">
+            {!email && (
+              <div className="px-2 py-2">
+                <div className="font-serif text-[14px] font-bold text-[#1A1611]">Your alerts</div>
+                <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">Enter your email to see alerts for the dogs &amp; shelters you follow.</p>
+                <div className="mt-1.5 flex gap-1.5">
+                  <input type="email" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") saveEmail(); }} placeholder="you@email.com" className="min-w-0 flex-1 rounded-lg border border-[#E2DED6] px-2 py-1 text-[12px] outline-none focus:border-[#C9871A]" />
+                  <button type="button" onClick={saveEmail} className="flex-none rounded-lg px-2.5 py-1 text-[12px] font-bold text-[#3A2A07]" style={{ background: "linear-gradient(135deg,#FFDF3B,#C9871A)" }}>See</button>
+                </div>
+                <div className="my-1.5 border-t border-[#EEEAE1]" />
+              </div>
+            )}
             {email && (
               <>
                 <div className="px-2 py-1.5">
