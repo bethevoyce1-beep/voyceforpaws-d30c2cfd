@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Add an urgent dog · Voyce for Paws</title>
+<style>
+  :root{--ink:#1A1611;--muted:#6b5832;--gold:#FFDF3B;--gold-deep:#C9871A;--line:#EAE6DE;--bg:#FBF8F2;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+  .wrap{max-width:560px;margin:0 auto;padding:20px 16px 60px}
+  .brand{font-size:20px;font-weight:800}.brand em{font-style:italic;color:var(--gold-deep)}
+  h1{font-size:22px;margin:14px 0 4px}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 18px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px}
+  label{display:block;font-size:12.5px;font-weight:700;margin:12px 0 4px}
+  .req{color:#C0431C}
+  input,select,textarea{width:100%;border:1px solid #E2DED6;border-radius:9px;padding:9px 10px;font-size:14px;font-family:inherit;background:#fff}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold-deep)}
+  textarea{min-height:64px;resize:vertical}
+  .row{display:flex;gap:10px}.row>div{flex:1}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:3px}
+  button{margin-top:18px;width:100%;border:0;border-radius:999px;padding:13px;font-size:15px;font-weight:800;color:#3A2A07;background:linear-gradient(135deg,var(--gold),var(--gold-deep));cursor:pointer}
+  button:disabled{opacity:.6;cursor:default}
+  .msg{margin-top:14px;padding:11px 13px;border-radius:10px;font-size:13.5px;display:none}
+  .ok{background:#DCFCE7;color:#166534;border:1px solid #86efac}
+  .err{background:#FDE2E2;color:#991B1B;border:1px solid #fca5a5}
+  .note{background:#FEF3C7;border:1px solid #F59E0B;color:#92400E;font-size:12px;border-radius:10px;padding:9px 11px;margin:0 0 16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">Voyce <em>for</em> Paws</div>
+  <h1>Add an urgent dog</h1>
+  <p class="sub">For shelters whose urgent list comes by email or Facebook (no public feed). Each dog you add becomes a full at-risk card with a euthanasia countdown, just like San Antonio.</p>
+  <div class="note">⚠️ Internal tool — pre-launch. Dogs you add appear on the board for that shelter.</div>
+  <div class="card">
+    <label>Shelter <span class="req">*</span></label>
+    <select id="shelter"></select>
+
+    <label>Dog's name <span class="req">*</span></label>
+    <input id="name" placeholder="e.g. Bandit">
+
+    <div class="row">
+      <div>
+        <label>Breed</label>
+        <input id="breed" placeholder="e.g. Lab mix">
+      </div>
+      <div>
+        <label>Age</label>
+        <input id="age" placeholder="e.g. 2y">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Sex</label>
+        <select id="sex"><option value="">—</option><option>Female</option><option>Male</option></select>
+      </div>
+      <div>
+        <label>Kennel / ID</label>
+        <input id="kennel" placeholder="optional">
+      </div>
+    </div>
+
+    <label>Euthanasia date</label>
+    <input id="euth" type="date">
+    <div class="hint">Future date → "Euthanasia date set." Today → "Critical · save today." Leave blank → "At risk."</div>
+
+    <label>Photo URL</label>
+    <input id="photo" placeholder="https://... (from the Facebook post)">
+    <div class="hint">Paste a link to the dog's photo. Optional but helps a lot.</div>
+
+    <label>Story / notes</label>
+    <textarea id="story" placeholder="Anything the shelter shared — temperament, why they're urgent, contact for pulls."></textarea>
+
+    <label>Link (Facebook post / listing)</label>
+    <input id="url" placeholder="https://facebook.com/...">
+
+    <button id="submit">Add dog to the board</button>
+    <div id="msg" class="msg"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+  var SB_URL = "https://okmukfrhvqkxphzueqww.supabase.co";
+  var SB_KEY = "sb_publishable_e_OWsyXVeFqgV6EVGAKKTw_sgEV2cTN";
+  var sb = supabase.createClient(SB_URL, SB_KEY);
+  var msg = document.getElementById("msg");
+  function show(kind, text){ msg.className = "msg " + kind; msg.textContent = text; msg.style.display = "block"; }
+
+  (async function loadShelters(){
+    var sel = document.getElementById("shelter");
+    try {
+      var res = await sb.from("shelters").select("shelter_id,name,short_name,state,status").neq("status","archived").order("name");
+      var rows = res.data || [];
+      rows.sort(function(a,b){ return (a.status==="live"?0:1)-(b.status==="live"?0:1); });
+      sel.innerHTML = rows.map(function(r){
+        var label = (r.short_name || r.name) + (r.state ? " ("+r.state+")" : "") + (r.status!=="live" ? " · preview" : "");
+        return '<option value="'+r.shelter_id+'">'+label+'</option>';
+      }).join("");
+    } catch(e){ sel.innerHTML = '<option value="scioto_dog_shelter_oh">Scioto County (OH)</option>'; }
+  })();
+
+  document.getElementById("submit").addEventListener("click", async function(){
+    var btn = this;
+    var name = document.getElementById("name").value.trim();
+    if(!name){ show("err","Please enter the dog's name."); return; }
+    var photo = document.getElementById("photo").value.trim();
+    var payload = {
+      shelter_id: document.getElementById("shelter").value,
+      name: name,
+      breed: document.getElementById("breed").value.trim(),
+      age: document.getElementById("age").value.trim(),
+      sex: document.getElementById("sex").value,
+      kennel: document.getElementById("kennel").value.trim(),
+      euth_date: document.getElementById("euth").value,
+      story: document.getElementById("story").value.trim(),
+      pet_search_url: document.getElementById("url").value.trim(),
+      photos: photo ? [photo] : []
+    };
+    btn.disabled = true; btn.textContent = "Adding…";
+    try {
+      var r = await sb.rpc("add_urgent_dog", { p: payload });
+      if(r.error || !r.data || !r.data.ok){ show("err", (r.error && r.error.message) || (r.data && r.data.error) || "Could not add the dog."); }
+      else {
+        show("ok", "✓ " + name + " added (" + r.data.status_key + "). They're now on the board for this shelter.");
+        ["name","breed","age","kennel","euth","photo","story","url"].forEach(function(id){ document.getElementById(id).value=""; });
+      }
+    } catch(e){ show("err", "Error: " + (e && e.message ? e.message : e)); }
+    btn.disabled = false; btn.textContent = "Add dog to the board";
+  });
+</script>
+</body>
+</html>
