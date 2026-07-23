@@ -206,10 +206,6 @@ const ACTIVE_STATUS_KEYS: ReadonlySet<string> = new Set([
   "scheduled",
   "highrisk",
   "atrisk",
-  "adopthold",
-  "adoption",
-  "foster",
-  "watch",
 ]);
 
 // Filter chips — the "other / outcome" statuses (holds, secured, memoriam,
