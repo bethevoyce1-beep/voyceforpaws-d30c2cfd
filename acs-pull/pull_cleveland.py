@@ -31,8 +31,17 @@ FEED_URL = (
     "?species=Dog&sex=A&agegroup=All&onhold=A&orderby=ID&colnum=4&AuthKey=" + AUTHKEY
 )
 
-SUPABASE_URL = os.environ["SUPABASE_URL"].rstrip("/")
-SERVICE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+
+def _supabase_url():
+    u = os.environ["SUPABASE_URL"].strip().rstrip("/")
+    # The secret is sometimes stored without a scheme; requests needs https://.
+    if not u.startswith("http"):
+        u = "https://" + u
+    return u
+
+
+SUPABASE_URL = _supabase_url()
+SERVICE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"].strip()
 
 
 def _txt(node):
@@ -51,8 +60,8 @@ def parse_feed(html_text):
             continue
         img = item.select_one("img.list-animal-photo")
         photo = img["src"].strip() if img and img.has_attr("src") else ""
-        link = item.select_one(".list-animal-photo-block a[href]")
-        url = link["href"].strip() if link and link.has_attr("href") else ""
+        # Store the clean public 24petconnect detail link (no AuthKey in it).
+        url = "https://24petconnect.com/pp4670/Details/PP4670/" + aid
         animals.append({
             "id": aid,
             "name": name,
