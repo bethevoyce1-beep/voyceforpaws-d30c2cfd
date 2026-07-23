@@ -584,6 +584,7 @@
     scheduled: {label:'📅 Euthanasia date set · high risk', color:'#F97316', group:'📅 Euthanasia date set · high risk — a firm euthanasia date is set'},
     highrisk:  {label:'🔶 Euthanasia date set · high risk', color:'#E8590C', group:'🔶 Euthanasia date set · high risk — capacity euthanasia date has passed · eligible now'},
     atrisk:    {label:'At risk',                  color:'#D2913C', group:'🟠 At risk — on the list, placement window open'},
+    following_up:{label:'📮 Following up with ACS', color:'#6366F1', group:'📮 Following up with ACS — no longer on ACS public list; we are confirming the outcome'},
     adoption:  {label:'ACS Rescue Hold',          color:'#0EA5E9', group:'💛 ACS Rescue Hold — a rescue partner has a hold to pull'},
     adopthold: {label:'ACS Adoption Hold',        color:'#DB2777', group:'💗 ACS Adoption Hold — someone is adopting'},
     foster:    {label:'ACS Foster Hold',          color:'#10B981', group:'🏠 ACS Foster Hold'},
@@ -606,7 +607,11 @@
   }
   // "On the list" = dogs actually facing euthanasia. Rescue Hold, ACS Foster Hold,
   // Secured, and In Memoriam are shown in their own pills but NOT counted here.
-  const ONLIST_KEYS = {euthanasia:1, b6spt:1, office_crit:1, outside_crit:1, office:1, immediate:1, scheduled:1, highrisk:1, atrisk:1, watch:1};
+  // Matches the app board's "active" set exactly. Rescue/Adoption/Foster Holds,
+  // Secured, In Memoriam, Foster Pending (watch), and "Following up with ACS"
+  // (dog no longer on ACS's public list) each get their own pill but are NOT
+  // counted in the "All" total.
+  const ONLIST_KEYS = {euthanasia:1, b6spt:1, office_crit:1, outside_crit:1, immediate:1, scheduled:1, highrisk:1, atrisk:1};
   function onListCount(){
     return DOGS.filter(function(d){ return ONLIST_KEYS[effectiveStatusKey(d)]; }).length;
   }
@@ -1064,6 +1069,7 @@
       {key:'adopthold',  label:'💗 ACS Adoption Hold'},
       {key:'foster',     label:'🏠 ACS Foster Hold'},
       {key:'watch',      label:'👀 Foster Pending'},
+      {key:'following_up', label:'📮 Following up with ACS'},
       {key:'secured',    label:'✅ Secured'},
       {key:'euthanized', label:'🕊️ In Memoriam'},
       {key:'unknown',    label:'❔ Unknown'}
