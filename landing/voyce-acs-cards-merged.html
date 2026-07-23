@@ -102,29 +102,24 @@
   .card:hover .photo img{transform:scale(1.04);}
   .photo-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:48px;color:rgba(11,11,12,.25);}
   .badge{position:absolute;padding:5px 11px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.06em;backdrop-filter:blur(8px);}
-  .badge.status{top:12px;right:12px;color:#fff;font-size:10px;padding:4px 9px;letter-spacing:.03em;font-weight:800;text-shadow:0 1px 3px rgba(0,0,0,.6);box-shadow:0 2px 10px rgba(0,0,0,.3);}
-  .badge.status.b6spt{background:#A11212;}
-  .badge.status.euthanasia{background:#0F0F0F;}
-  .badge.status.euthtoday{background:#4B5563;}
-  .badge.status.office{background:#D97A16;}
-  .badge.status.office_crit{background:#BE1B1B;}
-  .badge.status.outside_crit{background:#DC2626;}
-  .badge.status.highrisk{background:#EA580C;}
+  .badge.status{top:12px;right:12px;color:#fff;}
+  .badge.status.b6spt{background:rgba(127,29,29,.95);}
+  .badge.status.euthanasia{background:rgba(17,17,17,.96);}
+  .badge.status.euthtoday{background:rgba(75,85,99,.96);}
+  .badge.status.office{background:rgba(210,145,60,.92);}
+  .badge.status.office_crit{background:rgba(153,27,27,.95);}
+  .badge.status.outside_crit{background:rgba(200,54,43,.92);}
+  .badge.status.highrisk{background:rgba(232,89,12,.92);}
   .card.euthtoday{border-color:rgba(75,85,99,.5);}
-  .badge.status.immediate{background:#E11414;}
-  .badge.status.scheduled{background:#EA580C;}
-  .badge.status.atrisk{background:#E08910;}
-  .badge.status.hold{background:#5F8A68;}
-  .badge.status.adoption{background:#D97706;color:#fff;}
-  .badge.status.adopthold{background:#DB2777;color:#fff;}
-  .badge.status.foster{background:#9333EA;color:#fff;}
-  .badge.status.watch{background:#2563EB;}
-  .badge.status.secured{background:#2E7D46;}
-  .badge.status.euthanized{background:#6B7280;}
-  .badge.status.unknown{background:#8A8F98;}
-  .badge.status.following_up{background:#6366F1;}
-  .badge.status.listed{background:#463E34;}
-  .badge.days{bottom:12px;left:12px;background:rgba(0,0,0,.62);color:#fde68a;}
+  .badge.status.immediate{background:rgba(200,54,43,.92);}
+  .badge.status.atrisk{background:rgba(210,145,60,.92);}
+  .badge.status.hold{background:rgba(95,138,104,.92);}
+  .badge.status.adoption{background:rgba(217,119,6,.92);color:#fff;}
+  .badge.status.adopthold{background:rgba(219,39,119,.92);color:#fff;}
+  .badge.status.foster{background:rgba(147,51,234,.92);color:#fff;}
+  .badge.status.secured{background:rgba(58,90,134,.92);}
+  .badge.status.listed{background:rgba(70,62,52,.85);}
+  .badge.days{top:12px;left:12px;background:rgba(0,0,0,.62);color:#fde68a;}
 
   /* Body — phone-style padding */
   .body{padding:14px 16px 16px;flex:1;display:flex;flex-direction:column;}
@@ -580,13 +575,12 @@
   const DOGS = DATA.dogs || [];
   const STATUS_META = {
     unknown:   {label:'❔ Unknown', color:'#8A8272', group:'❔ Unknown — status not yet confirmed'},
-    following_up: {label:'🔎 Following up with ACS', color:'#6366F1', group:'🔎 Following up with ACS — dropped off ACS\'s list, we asked ACS what happened'},
     euthanasia:{label:'⚫ Euthanasia in progress — act immediately', color:'#3F0D0D', group:'⚫ Euthanasia in progress — act immediately'},
     office_crit:{label:'🚨 Critical · Office', color:'#991B1B', group:'🚨 Critical · Office — just out of the euthanasia room, save now'},
     outside_crit:{label:'🚨 Critical (OUTSIDE3)', color:'#C8362B', group:'🚨 Critical (OUTSIDE3) — outdoor kennel, marked for euthanasia'},
     office:    {label:'🏢 Office · at risk', color:'#D2913C', group:'🏢 Office · at risk — housed in an office, on the list but not marked critical'},
     b6spt:     {label:'🚨 Immediate risk · save now', color:'#7F1D1D', group:'🚨 Immediate risk · save now — being staged/prepped for euthanasia (B6-SPT · SPT)'},
-    immediate: {label:'🚨 Critical · save today', color:'#C8362B', group:'🚨 Critical · save today — flagged for euthanasia today'},
+    immediate: {label:'🚨 Critical · euthanasia date set · save today', color:'#C8362B', group:'🚨 Critical · euthanasia date set — flagged for euthanasia today · save today'},
     scheduled: {label:'📅 Euthanasia date set · high risk', color:'#F97316', group:'📅 Euthanasia date set · high risk — a firm euthanasia date is set'},
     highrisk:  {label:'🔶 Euthanasia date set · high risk', color:'#E8590C', group:'🔶 Euthanasia date set · high risk — capacity euthanasia date has passed · eligible now'},
     atrisk:    {label:'At risk',                  color:'#D2913C', group:'🟠 At risk — on the list, placement window open'},
@@ -598,7 +592,7 @@
     euthtoday: {label:'⚫ Euthanized today · capacity', color:'#4B5563', group:'⚫ Euthanized today — lost to capacity. We remember them.'},
     euthanized:{label:'In Memoriam',              color:'#6B7280', group:'🕊️ In Memoriam'}
   };
-  const ORDER = ['euthanasia','b6spt','office_crit','outside_crit','immediate','scheduled','highrisk','atrisk','office','adoption','adopthold','foster','watch','secured','euthanized','following_up','unknown'];
+  const ORDER = ['euthanasia','b6spt','office_crit','outside_crit','immediate','scheduled','highrisk','atrisk','office','adoption','adopthold','foster','watch','secured','euthanized','unknown'];
   // Compute display status key from dog data — overrides statusKey for grouping/filtering
   // Compare dates in San Antonio (Central) time, not the viewer's timezone.
   function _centralDateStr(d){
@@ -629,9 +623,15 @@
     // (a rescue partner pulled). The pull can bucket both under 'adoption', so split
     // them back apart using the raw ACS status text.
     if(key==='adoption') return /adopt/i.test(d.status||'') ? 'adopthold' : 'adoption';
-    // Classification comes ONLY from the ACS euthanasia notice (the scraper's
-    // status_key) — a future "Due Out" date is NOT an euthanasia date. So
-    // "euthanized after {date}" dogs stay At risk (card shows "Euth after {date}").
+    // A "Due Out" date in the future is an ACS-set euthanasia date even when no
+    // separate euth date was parsed — surface those under "Euthanasia date set".
+    if(key==='atrisk' && d.due){
+      var _p = String(d.due).split('/');
+      if(_p.length===3){
+        var _iso = _p[2]+'-'+('0'+_p[0]).slice(-2)+'-'+('0'+_p[1]).slice(-2);
+        if(_iso > _centralDateStr(new Date())) return 'scheduled';
+      }
+    }
     return key;
   }
 
@@ -677,7 +677,7 @@
     if(sk==='immediate'){
       var kk = (d.kennel||'').toUpperCase();
       var tag = kk.indexOf('OUTSIDE')===0 ? (d.kennel + ' · ') : '';
-      return '🚨 ' + tag + 'Critical · save today';
+      return '🚨 ' + tag + 'High risk · save today';
     }
     // On the clock — always carry the scheduled euthanasia date on the pill.
     if(sk==='scheduled'){
@@ -710,9 +710,9 @@
     if(d.kennel) chips+='<span style="'+chip+'">Kennel '+esc(d.kennel)+'</span>';
     if(d.due) chips+='<span style="'+chip+'">Due out '+esc(fmtD(d.due))+'</span>';
     if(d.riskSince) chips+='<span style="'+chip+'">At risk since '+esc(fmtD(d.riskSince))+'</span>';
-    if(d.euthDate && d.euthDate!=='today') chips+='<span style="'+chip+'">Euth '+(effectiveStatusKey(d)==='atrisk'?'after ':'date ')+esc(fmtD(d.euthDate))+'</span>';
+    if(d.euthDate && d.euthDate!=='today') chips+='<span style="'+chip+'">Euth date '+esc(fmtD(d.euthDate))+'</span>';
     var cd = (_sk==='b6spt'||_sk==='office_crit'||_sk==='outside_crit'||_sk==='immediate'||_sk==='scheduled')
-      ? '<div class="bigcd-inline" style="margin-top:8px;font-weight:800;font-size:12.5px;color:#C0431C"><span class="countdown '+_sk+'" data-cd="'+(_sk==='scheduled'?(d.euthDate||''):'today')+'">⏳ —</span> · by 5:30 PM CT</div>'
+      ? '<div style="margin-top:8px;font-weight:800;font-size:12.5px;color:#C0431C"><span class="countdown '+_sk+'" data-cd="'+(_sk==='scheduled'?(d.euthDate||''):'today')+'">⏳ —</span> · by 5:30 PM CT</div>'
       : '';
     var banner = (_sk==='euthanasia') ? '<div class="euth-banner now">⚫ Euthanasia in progress — act immediately</div>'
                : ((_sk==='b6spt'||_sk==='office_crit'||_sk==='outside_crit') ? '<div class="euth-banner">'+critText(_sk,d.kennel)+'</div>' : '');
@@ -725,7 +725,6 @@
         '<div class="meta-line">'+esc(d.breed||'Mixed breed')+' · '+esc(d.age||d.ageRaw||'')+'</div>'+
         cd+
         '<div style="margin-top:6px">'+chips+'</div>'+
-        '<button type="button" onclick="event.stopPropagation();voyceFollow(\''+esc(d.id)+'\')" style="margin-top:10px;display:inline-flex;align-items:center;gap:6px;border:1px solid #C9871A;background:#FFF7D6;color:#7A5A0A;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:800;cursor:pointer">🔔 Follow</button>'+
         '<div class="tile-see" style="margin-top:12px;color:#C9871A;font-weight:800;font-size:14px">See details →</div>'+
       '</div>'+
     '</article>';
@@ -975,6 +974,23 @@
       '<div class="detail-proc" style="background:#E7F0F4;border-color:rgba(58,90,134,.25);color:#2C6E8A;">ℹ️ ACS publishes spay status, weight, and heartworm. Microchip and vaccines aren\'t on the capacity list — confirm with ACS before vetting.</div>' +
       '</div>';
 
+    var rps = 'width:100%;box-sizing:border-box;margin-bottom:8px;padding:9px 11px;border-radius:9px;border:1px solid #333;background:#161616;color:#fff;font-size:13px';
+    var pullForm =
+      '<div class="detail-block" style="margin-top:14px;background:#0B0B0C;border-radius:16px;padding:16px">' +
+        '<div style="font-weight:800;font-size:15px;color:#fff;margin-bottom:2px">🐾 Rescue pull — step up for ' + esc(d.name||'this dog') + '</div>' +
+        '<div style="font-size:12.5px;color:#C9C4B8;margin-bottom:10px">For a rescue or organization that can pull this dog. Voyce sends this to our team to coordinate — we never contact ACS for you automatically.</div>' +
+        '<input id="rp_org" placeholder="Organization / rescue name *" style="' + rps + '" />' +
+        '<div style="display:flex;gap:12px;margin-bottom:8px;align-items:center;font-size:12.5px;color:#C9C4B8">501(c)(3)? ' +
+          '<label style="color:#fff;cursor:pointer"><input type="radio" name="rp501" value="yes"> Yes</label> ' +
+          '<label style="color:#fff;cursor:pointer"><input type="radio" name="rp501" value="no"> No</label></div>' +
+        '<input id="rp_web" placeholder="Website (optional)" style="' + rps + '" />' +
+        '<input id="rp_name" placeholder="Your name" style="' + rps + '" />' +
+        '<input id="rp_email" type="email" placeholder="Your email" style="' + rps + '" />' +
+        '<input id="rp_phone" placeholder="Your phone" style="' + rps + '" />' +
+        '<textarea id="rp_note" placeholder="Anything Voyce should know (foster ready, timing)…" style="' + rps + ';min-height:52px;resize:vertical"></textarea>' +
+        '<button id="rp_submit" data-id="' + esc(d.id) + '" data-name="' + esc(d.name||'') + '" onclick="submitRescuePull(this)" style="width:100%;margin-top:6px;padding:11px;border:none;border-radius:10px;background:linear-gradient(135deg,#FFD24F,#F0A516);color:#2a1c05;font-weight:800;font-size:14px;cursor:pointer">Submit rescue-pull request</button>' +
+        '<div id="rp_msg" style="font-size:12.5px;margin-top:8px"></div>' +
+      '</div>';
     document.getElementById('detailOut').innerHTML =
       heroHtml +
       cdBanner +
@@ -983,6 +999,7 @@
         '<div class="detail-sub">' + esc(d.breed||'') + ' · ' + esc(d.age||d.ageRaw||'') + ' · ' + sexDecode(d.sex) + ' · ' + esc(d.color||'') + ' · ID ' + esc(d.id) + '</div>' +
         storyHtml +
         '<div class="detail-pair">' + rescueCard + vetCard + '</div>' +
+        pullForm +
       '</div>';
 
     document.getElementById('detailModal').classList.add('show');
@@ -995,6 +1012,33 @@
         el.textContent = left > 0 ? '⏳ ' + fmtCD(left) : '⏰ deadline passed';
       });
     }, 50);
+  };
+
+  window.submitRescuePull = function(btn){
+    var msg = document.getElementById('rp_msg');
+    var org = (document.getElementById('rp_org').value||'').trim();
+    if(!org){ if(msg){ msg.style.color='#FCA5A5'; msg.textContent='Please enter your organization / rescue name.'; } return; }
+    var r501 = document.querySelector('input[name="rp501"]:checked');
+    var payload = {
+      animal_id: btn.getAttribute('data-id') || '',
+      animal_name: btn.getAttribute('data-name') || '',
+      org_name: org,
+      is_501c3: r501 ? r501.value : '',
+      website: (document.getElementById('rp_web').value||'').trim(),
+      contact_name: (document.getElementById('rp_name').value||'').trim(),
+      contact_email: (document.getElementById('rp_email').value||'').trim(),
+      contact_phone: (document.getElementById('rp_phone').value||'').trim(),
+      note: (document.getElementById('rp_note').value||'').trim(),
+      source: 'landing'
+    };
+    if(msg){ msg.style.color='#C9C4B8'; msg.textContent='Sending…'; }
+    btn.disabled = true;
+    if(!sb){ if(msg){ msg.style.color='#FCA5A5'; msg.textContent='Could not connect — please email rachna@bethevoyce.org.'; } btn.disabled=false; return; }
+    sb.rpc('submit_rescue_pull', { p: payload }).then(function(res){
+      if(res && res.error){ if(msg){ msg.style.color='#FCA5A5'; msg.textContent=res.error.message||'Something went wrong.'; } btn.disabled=false; }
+      else if(res && res.data && res.data.ok===false){ if(msg){ msg.style.color='#FCA5A5'; msg.textContent=res.data.error||'Something went wrong.'; } btn.disabled=false; }
+      else { if(msg){ msg.style.color='#86EFAC'; msg.textContent='✓ Sent — thank you. Voyce will coordinate and follow up with you.'; } btn.textContent='Request sent'; }
+    }).catch(function(){ if(msg){ msg.style.color='#FCA5A5'; msg.textContent='Network error — please try again.'; } btn.disabled=false; });
   };
 
   function renderFilters(){
@@ -1022,7 +1066,6 @@
       {key:'watch',      label:'👀 Foster Pending'},
       {key:'secured',    label:'✅ Secured'},
       {key:'euthanized', label:'🕊️ In Memoriam'},
-      {key:'following_up', label:'🔎 Following up with ACS'},
       {key:'unknown',    label:'❔ Unknown'}
     ];
     const chip = (b,pulse) => `<button class="chip${b.key==='all'?' active':''}" data-key="${b.key}">${pulse?'<span class="sos-dot"></span>':''}${b.label}<span class="c">${counts[b.key]||0}</span></button>`;
@@ -1041,47 +1084,6 @@
       c.classList.add('active');
       renderGroups(c.dataset.key);
     }));
-  }
-
-  // Follow one dog: capture email + cadence, POST to the follow_animal RPC.
-  function voyceFollow(id){
-    var dog=(DOGS||[]).find(function(d){return d.id===id;})||{};
-    var nm=dog.name||'this dog';
-    var ov=document.createElement('div');
-    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;font-family:inherit';
-    ov.innerHTML='<div id="vf-box" style="background:#fff;border-radius:18px;max-width:400px;width:100%;padding:20px">'
-      +'<div style="font-size:18px;font-weight:800;color:#1A1611">🔔 Follow '+nm+'</div>'
-      +'<div style="font-size:12.5px;color:#6b5832;margin-top:4px">Get an email whenever '+nm+'’s status changes — critical, on hold, adopted, or off the list.</div>'
-      +'<input id="vf-email" type="email" placeholder="you@email.com" style="margin-top:12px;width:100%;box-sizing:border-box;border:1px solid #D9D2C2;border-radius:10px;padding:9px 11px;font-size:14px">'
-      +'<input id="vf-name" placeholder="Your name (optional)" style="margin-top:8px;width:100%;box-sizing:border-box;border:1px solid #D9D2C2;border-radius:10px;padding:9px 11px;font-size:14px">'
-      +'<div style="display:flex;gap:8px;margin-top:10px">'
-        +'<label style="flex:1;border:1px solid #D9D2C2;border-radius:10px;padding:8px 10px;font-size:12.5px;font-weight:700;cursor:pointer"><input type="radio" name="vf-cad" value="instant" checked> As it happens</label>'
-        +'<label style="flex:1;border:1px solid #D9D2C2;border-radius:10px;padding:8px 10px;font-size:12.5px;font-weight:700;cursor:pointer"><input type="radio" name="vf-cad" value="daily"> Once a day</label>'
-      +'</div>'
-      +'<div id="vf-msg" style="font-size:12.5px;color:#B4610F;margin-top:8px"></div>'
-      +'<button id="vf-go" style="margin-top:12px;width:100%;background:#0B0B0C;color:#fff;border:none;border-radius:12px;padding:12px;font-size:13px;font-weight:800;cursor:pointer">🔔 Follow '+nm+'</button>'
-      +'<button id="vf-cancel" style="margin-top:8px;width:100%;background:transparent;border:none;color:#9a8f7a;font-size:12px;cursor:pointer">Cancel</button>'
-    +'</div>';
-    document.body.appendChild(ov);
-    ov.addEventListener('click',function(e){ if(e.target===ov) document.body.removeChild(ov); });
-    ov.querySelector('#vf-cancel').onclick=function(){ document.body.removeChild(ov); };
-    ov.querySelector('#vf-go').onclick=function(){
-      var em=(ov.querySelector('#vf-email').value||'').trim();
-      var nmv=(ov.querySelector('#vf-name').value||'').trim();
-      var cad=ov.querySelector('input[name="vf-cad"]:checked').value;
-      var msg=ov.querySelector('#vf-msg'), btn=ov.querySelector('#vf-go');
-      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ msg.textContent='Please enter a valid email.'; return; }
-      btn.disabled=true; btn.textContent='Following…';
-      fetch(SUPA_URL+'/rest/v1/rpc/follow_animal',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},body:JSON.stringify({p_animal_id:id,p_email:em,p_name:nmv||null,p_cadence:cad})})
-      .then(function(r){ return r.json().then(function(j){ return {ok:r.ok,j:j}; }); })
-      .then(function(res){
-        if(res.ok && res.j && res.j.ok){
-          ov.querySelector('#vf-box').innerHTML='<div style="text-align:center;padding:10px"><div style="font-size:30px">🔔</div><div style="font-size:17px;font-weight:800;margin-top:6px">You’re following '+nm+'</div><div style="font-size:13px;color:#6b5832;margin-top:6px">We’ll email you '+(cad==='daily'?'once a day':'as soon as')+' '+nm+'’s status changes.</div><button id="vf-done" style="margin-top:14px;background:#FFDF3B;color:#3A2A07;border:none;border-radius:999px;padding:10px 22px;font-weight:800;cursor:pointer">Done</button></div>';
-          ov.querySelector('#vf-done').onclick=function(){ document.body.removeChild(ov); };
-        } else { msg.textContent=(res.j&&res.j.error)||'Couldn’t follow — please try again.'; btn.disabled=false; btn.textContent='🔔 Follow '+nm; }
-      })
-      .catch(function(){ msg.textContent='Network error — please try again.'; btn.disabled=false; btn.textContent='🔔 Follow '+nm; });
-    };
   }
 
   function actEmail(id, name){
