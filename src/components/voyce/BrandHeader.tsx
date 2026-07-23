@@ -48,6 +48,14 @@ function relTime(iso: string): string {
   return `${Math.round(hrs / 24)}d ago`;
 }
 
+// Absolute date + time for the alerts feed, e.g. "Jul 22, 9:14 PM". Unlike the
+// fleeting phone banner, this stays in the bell so you can always tell the day.
+function fmtWhen(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
 function NotifyBell() {
   const [animals, setAnimals] = useState<AcsAnimal[]>([]);
   const [open, setOpen] = useState(false);
@@ -226,6 +234,7 @@ function NotifyBell() {
                           <span className="ml-auto flex-none text-[10px] text-muted-foreground">{relTime(n.created_at)}</span>
                         </div>
                         {n.body && <div className="truncate text-[11px] text-muted-foreground">{n.body}</div>}
+                        <div className="mt-0.5 text-[10px] font-medium text-[#9a8f7a]">{fmtWhen(n.created_at)}</div>
                       </a>
                     ))}
                   </div>
