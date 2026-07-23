@@ -14,7 +14,7 @@
  */
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { listAcsAnimals, normalizeStatusKey, type AcsAnimal } from "@/lib/acs.functions";
-import { getNotifications, markNotificationsRead, type AcsNotification } from "@/lib/notifications.functions";
+import { getNotifications, markNotificationsRead, getAlertPrefs, setAlertPrefs, type AcsNotification } from "@/lib/notifications.functions";
 
 export const BackNavContext = createContext<(() => void) | null>(null);
 export const DonateContext = createContext<(() => void) | null>(null);
@@ -22,6 +22,19 @@ export const DonateContext = createContext<(() => void) | null>(null);
 // "Last Chance" = being euthanized now or today (the act-now tiers). Matches the
 // board's CRITICAL stat: office dogs are folded into At risk, so not counted.
 const LAST_CHANCE_KEYS = ["euthanasia", "b6spt", "outside_crit", "immediate"];
+
+// Per-pill alert options — same board statuses as the landing signup's SOS
+// picker. Short labels so the pills fit the bell popover.
+const ALERT_OPTIONS: { k: string; label: string }[] = [
+  { k: "euthanasia", label: "⚫ In progress" },
+  { k: "b6spt", label: "🚨 Immediate" },
+  { k: "office_crit", label: "🚨 Office" },
+  { k: "outside_crit", label: "🚨 Outside" },
+  { k: "immediate", label: "🚨 Today" },
+  { k: "scheduled", label: "📅 Date set" },
+  { k: "atrisk", label: "🟠 At risk" },
+];
+const DEFAULT_ALERT_STATUSES = ["euthanasia", "b6spt", "office_crit", "outside_crit", "immediate", "scheduled"];
 
 // Relative time for the alerts feed, e.g. "2h ago".
 function relTime(iso: string): string {
@@ -41,6 +54,7 @@ function NotifyBell() {
   const [email, setEmail] = useState<string | null>(null);
   const [notes, setNotes] = useState<AcsNotification[]>([]);
   const [emailInput, setEmailInput] = useState("");
+  const [prefs, setPrefs] = useState<string[] | null>(null);
   const saveEmail = () => {
     const em = emailInput.trim().toLowerCase();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return;
@@ -71,6 +85,27 @@ function NotifyBell() {
     const id = window.setInterval(load, 120000);
     return () => { alive = false; window.clearInterval(id); };
   }, []);
+
+  // Load the supporter's saved alert pills once we know their email. Falls back
+  // to the default critical set when they have no saved preference yet.
+  useEffect(() => {
+    let alive = true;
+    if (!email) { setPrefs(null); return; }
+    getAlertPrefs({ data: { email } })
+      .then((p) => { if (alive) setPrefs(p.alert_statuses.length ? p.alert_statuses : DEFAULT_ALERT_STATUSES); })
+      .catch(() => { if (alive) setPrefs(DEFAULT_ALERT_STATUSES); });
+    return () => { alive = false; };
+  }, [email]);
+
+  const togglePref = (k: string) => {
+    if (!email) return;
+    setPrefs((prev) => {
+      const cur = prev ?? DEFAULT_ALERT_STATUSES;
+      const next = cur.includes(k) ? cur.filter((x) => x !== k) : [...cur, k];
+      setAlertPrefs({ data: { email, statuses: next } }).catch(() => {});
+      return next;
+    });
+  };
 
   const lastChance = useMemo(
     () => animals.filter((a) => LAST_CHANCE_KEYS.includes(normalizeStatusKey(a.status_key))),
@@ -143,6 +178,32 @@ function NotifyBell() {
                     Updates on dogs you follow.
                   </p>
                 </div>
+
+                {prefs && (
+                  <div className="px-2 pb-1.5">
+                    <div className="text-[11px] font-bold text-[#1A1611]">🚨 Which alerts ping you?</div>
+                    <p className="mb-1 mt-0.5 text-[10.5px] leading-snug text-muted-foreground">Tap to turn each board status on or off.</p>
+                    <div className="flex flex-wrap gap-1">
+                      {ALERT_OPTIONS.map((o) => {
+                        const on = prefs.includes(o.k);
+                        return (
+                          <button
+                            key={o.k}
+                            type="button"
+                            onClick={() => togglePref(o.k)}
+                            aria-pressed={on}
+                            className={`rounded-full border px-2 py-0.5 text-[10.5px] font-semibold transition ${on ? "border-transparent text-white" : "border-[#E2DED6] text-[#6B6455] hover:border-[#C9871A]"}`}
+                            style={on ? { background: "#B4610F" } : undefined}
+                          >
+                            {o.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                <div className="my-1.5 border-t border-[#EEEAE1]" />
+
                 {notes.length === 0 ? (
                   <div className="px-2 py-3 text-center text-[12px] text-muted-foreground">
                     No alerts yet — follow a dog to get notified. 🔔
