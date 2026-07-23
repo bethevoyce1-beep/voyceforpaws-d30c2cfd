@@ -294,6 +294,16 @@ export type AcsListResult = {
   last_checked_at: string | null;
 };
 
+// A shelter the board can switch between.
+export type AcsShelter = {
+  shelter_id: string;
+  name: string;
+  short_name: string | null;
+  city: string | null;
+  state: string | null;
+  status: string | null;
+};
+
 const SELECT_COLUMNS = [
   "id",
   "name",
@@ -342,6 +352,14 @@ function serverClient() {
   });
 }
 
+// The app historically passed "san_antonio_acs"; the shelters table slug is
+// "acs_san_antonio". Accept either and normalize to the real slug.
+function resolveShelterSlug(shelterId: string | undefined): string {
+  const s = (shelterId ?? "").trim();
+  if (!s || s === "san_antonio_acs" || s === "acs_san_antonio") return "acs_san_antonio";
+  return s;
+}
+
 // `photos` is a jsonb column — normalize whatever shape comes back into a
 // clean string[] so the UI never has to guess.
 function normalizePhotos(raw: unknown): string[] {
@@ -354,24 +372,66 @@ function normalizePhotos(raw: unknown): string[] {
   return [];
 }
 
+// Shelters the board can switch between (live + preview). Powers the switcher.
+export const listShelters = createServerFn({ method: "GET" })
+  .handler(async (): Promise<AcsShelter[]> => {
+    const sb = serverClient();
+    const { data, error } = await sb
+      .from("shelters")
+      .select("shelter_id, name, short_name, city, state, status")
+      .neq("status", "archived")
+      .order("status", { ascending: true })
+      .order("name", { ascending: true });
+    if (error) return [];
+    return (data ?? []).map((r) => {
+      const row = r as Record<string, unknown>;
+      return {
+        shelter_id: String(row.shelter_id),
+        name: String(row.name),
+        short_name: (row.short_name as string | null) ?? null,
+        city: (row.city as string | null) ?? null,
+        state: (row.state as string | null) ?? null,
+        status: (row.status as string | null) ?? null,
+      };
+    });
+  });
+
 export const listAcsAnimals = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => {
-    // `shelterId` is kept for call-site compatibility but no longer filters —
-    // the acs_animals table is single-shelter (San Antonio ACS) today.
+    // `shelterId` selects which shelter's at-risk list to load. Defaults to
+    // San Antonio for backward compatibility with existing call sites.
     const o = (input ?? {}) as { shelterId?: string; limit?: number };
     return {
-      shelterId: o.shelterId || "san_antonio_acs",
+      shelterId: o.shelterId || "acs_san_antonio",
       limit: typeof o.limit === "number" ? o.limit : undefined,
     };
   })
   .handler(async ({ data }): Promise<AcsListResult> => {
     const sb = serverClient();
+    const slug = resolveShelterSlug(data.shelterId);
 
     const { data: rows, error } = await sb
       .from("acs_animals")
-      .select(SELECT_COLUMNS);
+      .select(SELECT_COLUMNS)
+      .eq("shelter_id", slug);
 
     if (error) throw new Error(error.message);
+
+    // Shelter display name from the shelters table (falls back gracefully).
+    let shelter_name = "San Antonio ACS";
+    try {
+      const { data: sh } = await sb
+        .from("shelters")
+        .select("name, short_name")
+        .eq("shelter_id", slug)
+        .limit(1);
+      if (Array.isArray(sh) && sh[0]) {
+        const s = sh[0] as { name?: string; short_name?: string | null };
+        shelter_name = (s.short_name && s.short_name.trim()) || s.name || shelter_name;
+      }
+    } catch {
+      // Name is best-effort.
+    }
 
     // The most recent scraper run stamps acs_pull_debug every run (even when
     // nothing changed), so it is the honest "last checked" heartbeat — distinct
@@ -475,7 +535,7 @@ export const listAcsAnimals = createServerFn({ method: "GET" })
       animals,
       total: visible.length,
       counts,
-      shelter_name: "San Antonio ACS",
+      shelter_name,
       last_pulled_at: last,
       last_checked_at,
     };
