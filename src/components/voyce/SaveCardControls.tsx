@@ -97,8 +97,9 @@ function FlyerBody({
         {/* Footer */}
         <div style={{ marginTop: "14px", borderTop: "1px solid #F0EBDD", paddingTop: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ fontSize: "10.5px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#9CA3AF" }}>AI is advisory, not a diagnosis</div>
-          <div style={{ fontSize: "10.5px", fontWeight: 700, color: "#C9871A" }}>🐾 Voyce for Paws</div>
+          <div style={{ fontSize: "10.5px", fontWeight: 700, color: "#C9871A" }}>🐾 Voyce for Paws&trade;</div>
         </div>
+        <div style={{ marginTop: "6px", fontSize: "9.5px", color: "#B8B0A0" }}>&copy; 2026 Be the Voyce, Inc. &middot; Voyce for Paws&trade; is a trademark of Be the Voyce, Inc.</div>
       </div>
     </>
   );
@@ -122,7 +123,7 @@ export function SaveCardControls({ image, data, name, city, v }: Props) {
     const where = city ? ` in ${city}` : "";
     const factLine = facts ? `\n${facts}` : "";
     const tags = "#AdoptDontShop #FosterSaves #Rescue #Voyce";
-    return `${v.badgeIcon} ${v.badgeText.toUpperCase()}: ${name} needs help${where}.${factLine}\n\n${story}\n\n💛 Foster · Adopt · Rescue · or share this post. Every share widens the circle.\nvoyceforpaws.org\n${tags}`;
+    return `${v.badgeIcon} ${v.badgeText.toUpperCase()}: ${name} needs help${where}.${factLine}\n\n${story}\n\n💛 Foster · Adopt · Rescue · or share this post. Every share widens the circle.\nVoyce for Paws™ · voyceforpaws.org\n© 2026 Be the Voyce, Inc.\n${tags}`;
   }, [v, name, city, facts, story]);
 
   const fileBase = useMemo(() => {
