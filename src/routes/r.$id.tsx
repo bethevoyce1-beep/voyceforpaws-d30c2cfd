@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { Assessment } from "@/lib/analyze.functions";
 import { getSharedReport, type SharedReport } from "@/lib/share.functions";
+import { NetworkResponses } from "@/components/voyce/NetworkResponses";
 
 // =============================================================
 // Public shared rescue-card page (/r/<id>). This is what a recipient of a
@@ -65,6 +66,7 @@ function facts(d: Assessment): { label: string; value: string }[] {
 
 function SharePage() {
   const { report } = Route.useLoaderData();
+  const { id } = Route.useParams();
 
   if (!report || !report.data) {
     return (
@@ -185,6 +187,11 @@ function SharePage() {
             </p>
           </div>
         </article>
+
+        {/* How the network is responding — the shared ripple for this animal */}
+        <div className="mt-5 overflow-hidden rounded-2xl border border-[#EDE5D8] bg-white py-1">
+          <NetworkResponses subjectType="report" subjectId={id} animalName={name} />
+        </div>
 
         {/* What is Voyce */}
         <div className="mt-5 rounded-2xl border border-[#EDE5D8] bg-white px-5 py-4">
