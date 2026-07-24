@@ -20,6 +20,7 @@ import {
 } from "@/lib/acs.timer";
 import type { NetworkRole } from "@/lib/signups.functions";
 import { submitRescuePull } from "@/lib/rescue.functions";
+import { NetworkResponses } from "@/components/voyce/NetworkResponses";
 
 // Browser push helpers. Public VAPID key is safe to ship in the client.
 const VAPID_PUBLIC_KEY =
@@ -1017,6 +1018,10 @@ export function AcsShareCard({
 
           {/* ===== RESCUE PULL REQUEST ===== */}
           <RescuePullForm animal={animal} />
+
+          {/* ===== HOW THE NETWORK IS RESPONDING ===== */}
+          <SectionLabel>The pack</SectionLabel>
+          <NetworkResponses subjectType="acs" subjectId={animal.id} animalName={animal.name} />
         </article>
 
       </div>
