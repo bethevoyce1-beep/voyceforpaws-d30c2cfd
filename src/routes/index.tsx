@@ -67,6 +67,10 @@ type Stage = "mission" | "shelter" | "capture" | "processing" | "report" | "deta
 // time-on-page check — reports fired in under 10 seconds are a bot signal.
 const appLoadedAt = Date.now();
 
+// First-run welcome (splash → camera prompt) shows once per app session, not on
+// every in-app navigation back to the capture screen.
+let welcomeSeen = false;
+
 function isLikelyMobile() {
   if (typeof navigator === "undefined") return false;
   return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
@@ -749,6 +753,9 @@ function CaptureScreen({
   const [shots, setShots] = useState<{ src: string; meta: PhotoMeta | null }[]>([]);
   // Visible notice while a video is being processed into a still frame for the AI.
   const [videoProcessing, setVideoProcessing] = useState(false);
+  // First-run welcome: a splash logo that eases into a camera-first prompt with
+  // "Take a photo" / "Maybe later". Shows once per session.
+  const [welcome, setWelcome] = useState<"splash" | "prompt" | "done">(() => (welcomeSeen ? "done" : "splash"));
 
   // Track the active camera stream so we can stop it cleanly on unmount or mode-switch.
   const streamRef = useRef<MediaStream | null>(null);
@@ -892,6 +899,14 @@ function CaptureScreen({
     };
   }, []);
 
+  // Splash → camera prompt after a short beat (once per session).
+  useEffect(() => {
+    if (welcome !== "splash") return;
+    welcomeSeen = true;
+    const t = window.setTimeout(() => setWelcome("prompt"), 1600);
+    return () => window.clearTimeout(t);
+  }, [welcome]);
+
   // Phase 2: a captured/selected photo now waits on the preview overlay so the
   // reporter can Retake, "+ Add another" (batch), or Analyze — instead of the
   // first shot auto-advancing straight to analysis.
@@ -958,6 +973,36 @@ function CaptureScreen({
 
   return (
     <div className="relative flex min-h-[100dvh] flex-col bg-background text-foreground">
+      {/* First-run welcome — branded splash that eases into a camera-first prompt */}
+      {welcome !== "done" && (
+        <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-[#0B0B0C] px-6 text-center">
+          <img src={pawLogo} alt="Voyce for Paws" className="h-20 w-20 rounded-2xl object-contain" style={{ animation: "vfpPulse 1.8s ease-in-out infinite" }} />
+          <div className="mt-4 text-[26px] font-black tracking-tight text-white">
+            Voyce <span className="italic text-[#FFDF3B]">for</span> Paws
+          </div>
+          {welcome === "splash" ? (
+            <div className="mt-6 h-8 w-8 animate-spin rounded-full border-[3px] border-white/25 border-t-[#FFDF3B]" />
+          ) : (
+            <div className="mt-5 w-full max-w-xs">
+              <p className="text-[15px] font-semibold text-white">See an animal who needs help?</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-white/70">
+                Snap a photo — Voyce builds a rescue card and alerts the closest helpers in seconds.
+              </p>
+              <button type="button" onClick={() => { setWelcome("done"); handleTakePhoto(); }}
+                className="mt-5 w-full rounded-2xl px-5 py-3.5 text-[15px] font-bold text-[#3A2A07] shadow transition active:scale-[0.99]"
+                style={{ background: "linear-gradient(135deg,#FFDF3B,#C9871A)" }}>📷 Take a photo</button>
+              <button type="button" onClick={() => setWelcome("done")}
+                className="mt-2 w-full rounded-2xl border border-white/25 bg-transparent px-5 py-2.5 text-[13.5px] font-semibold text-white transition active:scale-[0.99]">
+                Maybe later
+              </button>
+              <button type="button" onClick={() => { setWelcome("done"); setMode("samples"); }}
+                className="mt-3 text-[12.5px] font-medium text-white/60 underline-offset-2 hover:underline">🎲 Try with a sample photo</button>
+            </div>
+          )}
+          <style>{`@keyframes vfpPulse { 0%,100% { transform: scale(1); opacity: 1 } 50% { transform: scale(1.06); opacity: .88 } }`}</style>
+        </div>
+      )}
+
       <header className="sticky top-0 z-30">
         <BrandHeader />
       </header>
