@@ -86,10 +86,13 @@ function SharePage() {
   const name = animalName(d);
   const T = toneOf(d);
   const chips = facts(d);
-  const loc = report.location?.label || (d.location_scene ? String(d.location_scene).split(/[.,]/)[0].trim() : "");
+  // The reporter's location-privacy choice governs what shows publicly:
+  // exact = label + map pin; area = coarse label, no map; hidden = nothing.
+  const priv = report.loc_privacy ?? "area";
+  const loc = report.location?.label ?? "";
   const lat = report.location?.lat;
   const lon = report.location?.lon;
-  const mapsUrl = typeof lat === "number" && typeof lon === "number"
+  const mapsUrl = priv === "exact" && typeof lat === "number" && typeof lon === "number"
     ? `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
     : null;
 
@@ -115,7 +118,9 @@ function SharePage() {
 
           <div className="px-5 pt-4">
             <h1 className="font-serif text-[24px] font-bold leading-[1.1]" style={{ color: T.title }}>{name} needs help</h1>
-            {loc && (
+            {priv === "hidden" ? (
+              <div className="mt-2 text-[13px] font-semibold text-[#5A3E12]">📍 Location shared privately with rescuers</div>
+            ) : loc ? (
               <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-[14px] font-semibold text-[#5A3E12]">
                 <span className="flex items-center gap-1.5"><span>📍</span><span>{loc}</span></span>
                 {mapsUrl && (
@@ -124,7 +129,7 @@ function SharePage() {
                     style={{ background: "#2563EB" }}>🗺 View map</a>
                 )}
               </div>
-            )}
+            ) : null}
 
             {chips.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1.5">
@@ -133,6 +138,13 @@ function SharePage() {
                     <span className="text-muted-foreground">{c.label}:</span><span className="font-medium">{c.value}</span>
                   </span>
                 ))}
+              </div>
+            )}
+
+            {report.note && (
+              <div className="mt-3 rounded-2xl border border-[#F0C88A] bg-[#FFF6E5] px-4 py-3">
+                <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8A5A0E]">✍️ From the person who found them</div>
+                <p className="mt-1 whitespace-pre-line text-[13.5px] leading-relaxed text-[#5A3E12]">{report.note}</p>
               </div>
             )}
 
