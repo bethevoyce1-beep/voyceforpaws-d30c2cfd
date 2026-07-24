@@ -101,7 +101,7 @@ function SharePage() {
       {/* Brand bar */}
       <a href={LANDING} className="flex items-center gap-2.5 bg-[#0B0B0C] px-5 py-3.5 no-underline">
         <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#141414] text-[15px]">🐾</span>
-        <span className="text-[16px] font-black tracking-tight text-white">Voyce <span className="italic text-[#FFDF3B]">for</span> Paws</span>
+        <span className="text-[16px] font-black tracking-tight text-white">Voyce <span className="italic text-[#FFDF3B]">for</span> Paws&trade;</span>
         <span className="ml-auto text-[11px] font-semibold uppercase tracking-[0.14em] text-white/55">Rescue card</span>
       </a>
 
@@ -197,6 +197,9 @@ function SharePage() {
 
         <p className="mx-auto mt-4 max-w-lg text-center text-[11px] italic leading-relaxed text-muted-foreground">
           ⚠️ Voyce shares AI observations, not veterinary advice. AI may misidentify breed, age, or condition. Confirm with a licensed veterinarian before any medical, rescue, or transport decision.
+        </p>
+        <p className="mx-auto mt-2 max-w-lg text-center text-[10.5px] leading-relaxed text-muted-foreground">
+          &copy; 2026 Be the Voyce, Inc. &middot; Voyce for Paws&trade; is a trademark of Be the Voyce, Inc.
         </p>
       </div>
     </div>
