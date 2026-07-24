@@ -172,6 +172,12 @@ export function RescueCard({
   // share sheet opens; shares fall back to the app root until it's ready.
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [shareSaving, setShareSaving] = useState(false);
+  // Privacy on the PUBLIC share link: show exact spot, coarse area only, or
+  // hide it entirely (default to area so a home address is never exposed). Plus
+  // an optional note from the finder — "what you saw" — which they can keep
+  // free of anything private.
+  const [locPrivacy, setLocPrivacy] = useState<"exact" | "area" | "hidden">("area");
+  const [note, setNote] = useState("");
   // Responder-safety: a report shouldn't go to rescuers without a location.
   // If GPS was denied (no `location`), the reporter can add an area manually or
   // retry GPS here; "Send to rescuers" stays gated until we have one.
@@ -224,32 +230,61 @@ export function RescueCard({
     else setShowLoc(true);
   };
 
-  const ensureShareUrl = useCallback(async () => {
-    if (shareUrl || shareSaving) return;
+  const ensureShareUrl = useCallback(async (): Promise<string | null> => {
+    if (shareUrl) return shareUrl;
+    if (shareSaving) return null;
     setShareSaving(true);
     try {
-      const loc = location
-        ? { lat: location.lat, lon: location.lon, label: location.label }
-        : gps
-          ? { lat: gps.lat, lon: gps.lon, label: manualArea.trim() || "Pinned location" }
-          : manualArea.trim()
-            ? { label: manualArea.trim() }
-            : null;
+      const rawLabel = (manualArea.trim() || location?.label || "").trim();
+      // Coarsen a full address to city/region for "area only" (drop the first
+      // component, usually the street number/name).
+      const coarse = (() => {
+        const parts = rawLabel.split(",").map((s) => s.trim()).filter(Boolean);
+        return parts.length > 2 ? parts.slice(1).join(", ") : rawLabel;
+      })();
+      const loc =
+        locPrivacy === "hidden"
+          ? null
+          : locPrivacy === "area"
+            ? (coarse ? { label: coarse } : null)
+            : location
+              ? { lat: location.lat, lon: location.lon, label: location.label }
+              : gps
+                ? { lat: gps.lat, lon: gps.lon, label: rawLabel || "Pinned location" }
+                : rawLabel
+                  ? { label: rawLabel }
+                  : null;
       const res = await createSharedReport({
-        data: { image, data, mission, situation: situation ?? undefined, location: loc },
+        data: {
+          image,
+          data,
+          mission,
+          situation: situation ?? undefined,
+          location: loc,
+          note: note.trim() || undefined,
+          locPrivacy,
+        },
       });
       const id = res?.id;
-      if (id && typeof window !== "undefined") setShareUrl(`${window.location.origin}/r/${id}`);
+      if (id && typeof window !== "undefined") {
+        const u = `${window.location.origin}/r/${id}`;
+        setShareUrl(u);
+        return u;
+      }
     } catch {
       /* leave shareUrl null — shares fall back to the app root */
     } finally {
       setShareSaving(false);
     }
-  }, [shareUrl, shareSaving, image, data, mission, situation, location, gps, manualArea]);
+    return null;
+  }, [shareUrl, shareSaving, image, data, mission, situation, location, gps, manualArea, note, locPrivacy]);
 
-  const doShare = (p: SharePlatform) => {
+  // Changing privacy or the note invalidates any link already minted.
+  const resetShareLink = () => setShareUrl(null);
+
+  const doShare = (p: SharePlatform, urlOverride?: string) => {
     const text = buildShareText(data, mission);
-    const url = shareUrl ?? (typeof window !== "undefined" ? window.location.href : "");
+    const url = urlOverride ?? shareUrl ?? (typeof window !== "undefined" ? window.location.href : "");
     const enc = encodeURIComponent;
     const nm = shareName(data);
     const copyIt = () => {
@@ -478,7 +513,7 @@ export function RescueCard({
                   <span>{r.icon}</span><span>{r.label}</span>
                 </button>
               ))}
-              <button type="button" onClick={() => { setShowShare(true); void ensureShareUrl(); }}
+              <button type="button" onClick={() => setShowShare(true)}
                 className="flex items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-[12.5px] font-bold text-white shadow-sm transition active:scale-[0.97]"
                 style={{ background: "linear-gradient(135deg,#7C5CFF,#5B3FD6)" }}>
                 <span>📣</span><span>Share</span>
@@ -563,16 +598,49 @@ export function RescueCard({
               <div>
                 <h3 className="font-serif text-lg font-semibold leading-tight">Share {shareName(data)}</h3>
                 <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
-                  Every share helps. <span className="font-semibold text-foreground/80">Nextdoor</span> is best for finding a local rescuer or foster fast.
+                  Would you share {shareName(data)} with friends or on social? Every share widens the circle — <span className="font-semibold text-foreground/80">Nextdoor</span> is best for finding a local rescuer fast.
                 </p>
               </div>
               <button type="button" onClick={() => setShowShare(false)} aria-label="Close"
                 className="shrink-0 rounded-full border border-border bg-background px-2.5 py-1 text-sm">✕</button>
             </div>
 
+            {/* Privacy — how much of the location the public link reveals */}
+            <div className="mt-3">
+              <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">📍 Location on this link</div>
+              <div className="mt-1.5 grid grid-cols-3 gap-2">
+                {([
+                  { id: "exact", label: "Exact", hint: "Shows the pin + map" },
+                  { id: "area", label: "Area only", hint: "City/area, no map pin" },
+                  { id: "hidden", label: "Hidden", hint: "Not shown publicly" },
+                ] as const).map((o) => {
+                  const on = locPrivacy === o.id;
+                  return (
+                    <button key={o.id} type="button" onClick={() => { setLocPrivacy(o.id); resetShareLink(); }}
+                      className="rounded-xl border px-2 py-2 text-center transition active:scale-[0.97]"
+                      style={on ? { borderColor: "#C9871A", background: "#FFF6E5", color: "#8A5A0E" } : { borderColor: "#E3DAC4", background: "#fff", color: "#6B5832" }}>
+                      <div className="text-[12.5px] font-bold">{on ? "✓ " : ""}{o.label}</div>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {locPrivacy === "exact" ? "The exact spot + map will show on the public link." : locPrivacy === "area" ? "Only a general area shows — no map pin, no street address." : "No location shows publicly — you can still share it privately with rescuers."}
+              </p>
+            </div>
+
+            {/* Optional note — the finder's experience, their words */}
+            <div className="mt-3">
+              <label className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">✍️ Share what you saw (optional)</label>
+              <textarea value={note} onChange={(e) => { setNote(e.target.value); resetShareLink(); }} rows={2}
+                placeholder="e.g. Found her hiding under my porch, very sweet but scared… (leave out anything private)"
+                className="mt-1 w-full resize-none rounded-xl border border-[#E2DED6] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#C9871A]" />
+              <p className="mt-1 text-[11px] text-muted-foreground">Only what you type here is shown — nothing private is included unless you add it.</p>
+            </div>
+
             <div className="mt-3 rounded-xl border border-[#EDE5D8] bg-[#FBF7EC] px-3 py-2 text-[11.5px]">
-              {!shareUrl && shareSaving && <span className="text-muted-foreground">Preparing this card's link…</span>}
-              {shareUrl && (
+              {shareSaving && <span className="text-muted-foreground">Preparing this card's link…</span>}
+              {!shareSaving && shareUrl && (
                 <div className="flex items-center gap-2">
                   <span className="min-w-0 flex-1 truncate font-semibold text-[#8A5A0E]">{shareUrl.replace(/^https?:\/\//, "")}</span>
                   <button type="button"
@@ -580,7 +648,11 @@ export function RescueCard({
                     className="shrink-0 rounded-full border border-[#E3DAC4] bg-white px-2.5 py-0.5 text-[11px] font-bold text-[#6B5832]">Copy link</button>
                 </div>
               )}
-              {!shareUrl && !shareSaving && <span className="text-muted-foreground">Opens a page showing this exact animal + how to help.</span>}
+              {!shareSaving && !shareUrl && (
+                <button type="button" onClick={() => void ensureShareUrl()}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-bold text-[#3A2A07]"
+                  style={{ background: "linear-gradient(135deg,#FFDF3B,#C9871A)" }}>🔗 Create shareable link</button>
+              )}
             </div>
 
             <div className="mt-3 grid grid-cols-3 gap-2.5">
@@ -671,7 +743,7 @@ export function RescueCard({
             <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">AI assessments may be inaccurate. Share anyway?</p>
             <div className="mt-5 flex items-center justify-end gap-2">
               <button type="button" onClick={() => setShareConfirm(null)} className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium">Cancel</button>
-              <button type="button" onClick={() => { const p = shareConfirm; setShareConfirm(null); if (p) doShare(p); }}
+              <button type="button" onClick={async () => { const p = shareConfirm; setShareConfirm(null); if (p) { const u = await ensureShareUrl(); doShare(p, u ?? undefined); } }}
                 className="rounded-full bg-gradient-to-b from-[#FFDF3B] to-[#C9871A] px-4 py-2 text-sm font-semibold text-[#3A2A07] shadow-sm">Share anyway</button>
             </div>
           </div>
