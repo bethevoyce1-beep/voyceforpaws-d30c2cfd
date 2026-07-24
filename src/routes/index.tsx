@@ -872,7 +872,7 @@ function CaptureScreen({
         const frameDataUrl = await extractVideoFrame(file);
         setVideoProcessing(false);
         captureMetaRef.current = null; // video frame — use current time/location
-        setPreview(frameDataUrl);
+        onAnalyze(frameDataUrl, captureMetaRef.current); // auto-analyze — no manual tap
       } catch (e) {
         setVideoProcessing(false);
         const msg = e instanceof Error ? e.message : "Could not read video";
@@ -949,7 +949,7 @@ function CaptureScreen({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.drawImage(video, 0, 0);
-    setPreview(canvas.toDataURL("image/jpeg", 0.92));
+    onAnalyze(canvas.toDataURL("image/jpeg", 0.92), captureMetaRef.current); // auto-analyze — no manual tap
   };
 
   // The tab bar shows only on the "chooser" states and never while a preview is
@@ -1313,11 +1313,11 @@ function CaptureScreen({
           const files = Array.from(e.target.files ?? []);
           if (files.length === 0) return;
           if (files.length === 1) {
-            // Single photo — keep the fast capture → analyze path.
+            // Single photo — auto-analyze straight away (no manual Analyze tap).
             const f = files[0];
             captureMetaRef.current = await readPhotoMeta(f);
             const reader = new FileReader();
-            reader.onload = () => setPreview(String(reader.result));
+            reader.onload = () => onAnalyze(String(reader.result), captureMetaRef.current);
             reader.readAsDataURL(f);
             return;
           }
@@ -1351,7 +1351,7 @@ function CaptureScreen({
           if (!f) return;
           captureMetaRef.current = await readPhotoMeta(f);
           const reader = new FileReader();
-          reader.onload = () => setPreview(String(reader.result));
+          reader.onload = () => onAnalyze(String(reader.result), captureMetaRef.current);
           reader.readAsDataURL(f);
         }}
       />
