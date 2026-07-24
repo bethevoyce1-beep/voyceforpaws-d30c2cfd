@@ -1,5 +1,6 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
+import { createSharedReport } from "@/lib/share.functions";
 import { MISSIONS, animalWord, type MissionId } from "@/lib/missions";
 import { getUrgency } from "@/lib/urgency";
 import { getCondition, CONDITION_COLORS, type ConditionInfo } from "@/lib/condition";
@@ -166,6 +167,11 @@ export function RescueCard({
   const [helpDone, setHelpDone] = useState(false);
   const openHelp = (r: (typeof HELP_ROLES)[number]) => { setHelpRole(r); setNeeds({}); setHelpDone(false); };
   const closeHelp = () => { setHelpRole(null); setNeeds({}); setHelpDone(false); };
+  // A shared card gets its own public permalink (/r/<id>) so recipients see
+  // THIS animal — not the generic app home. Created once, lazily, when the
+  // share sheet opens; shares fall back to the app root until it's ready.
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shareSaving, setShareSaving] = useState(false);
   // Responder-safety: a report shouldn't go to rescuers without a location.
   // If GPS was denied (no `location`), the reporter can add an area manually or
   // retry GPS here; "Send to rescuers" stays gated until we have one.
@@ -218,9 +224,32 @@ export function RescueCard({
     else setShowLoc(true);
   };
 
+  const ensureShareUrl = useCallback(async () => {
+    if (shareUrl || shareSaving) return;
+    setShareSaving(true);
+    try {
+      const loc = location
+        ? { lat: location.lat, lon: location.lon, label: location.label }
+        : gps
+          ? { lat: gps.lat, lon: gps.lon, label: manualArea.trim() || "Pinned location" }
+          : manualArea.trim()
+            ? { label: manualArea.trim() }
+            : null;
+      const res = await createSharedReport({
+        data: { image, data, mission, situation: situation ?? undefined, location: loc },
+      });
+      const id = res?.id;
+      if (id && typeof window !== "undefined") setShareUrl(`${window.location.origin}/r/${id}`);
+    } catch {
+      /* leave shareUrl null — shares fall back to the app root */
+    } finally {
+      setShareSaving(false);
+    }
+  }, [shareUrl, shareSaving, image, data, mission, situation, location, gps, manualArea]);
+
   const doShare = (p: SharePlatform) => {
     const text = buildShareText(data, mission);
-    const url = typeof window !== "undefined" ? window.location.href : "";
+    const url = shareUrl ?? (typeof window !== "undefined" ? window.location.href : "");
     const enc = encodeURIComponent;
     const nm = shareName(data);
     const copyIt = () => {
@@ -449,7 +478,7 @@ export function RescueCard({
                   <span>{r.icon}</span><span>{r.label}</span>
                 </button>
               ))}
-              <button type="button" onClick={() => setShowShare(true)}
+              <button type="button" onClick={() => { setShowShare(true); void ensureShareUrl(); }}
                 className="flex items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-[12.5px] font-bold text-white shadow-sm transition active:scale-[0.97]"
                 style={{ background: "linear-gradient(135deg,#7C5CFF,#5B3FD6)" }}>
                 <span>📣</span><span>Share</span>
@@ -539,6 +568,19 @@ export function RescueCard({
               </div>
               <button type="button" onClick={() => setShowShare(false)} aria-label="Close"
                 className="shrink-0 rounded-full border border-border bg-background px-2.5 py-1 text-sm">✕</button>
+            </div>
+
+            <div className="mt-3 rounded-xl border border-[#EDE5D8] bg-[#FBF7EC] px-3 py-2 text-[11.5px]">
+              {!shareUrl && shareSaving && <span className="text-muted-foreground">Preparing this card's link…</span>}
+              {shareUrl && (
+                <div className="flex items-center gap-2">
+                  <span className="min-w-0 flex-1 truncate font-semibold text-[#8A5A0E]">{shareUrl.replace(/^https?:\/\//, "")}</span>
+                  <button type="button"
+                    onClick={() => { if (typeof navigator !== "undefined" && navigator.clipboard) void navigator.clipboard.writeText(shareUrl); }}
+                    className="shrink-0 rounded-full border border-[#E3DAC4] bg-white px-2.5 py-0.5 text-[11px] font-bold text-[#6B5832]">Copy link</button>
+                </div>
+              )}
+              {!shareUrl && !shareSaving && <span className="text-muted-foreground">Opens a page showing this exact animal + how to help.</span>}
             </div>
 
             <div className="mt-3 grid grid-cols-3 gap-2.5">
