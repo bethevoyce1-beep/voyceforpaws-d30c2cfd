@@ -29,7 +29,7 @@ function TermsPage() {
         </Link>
         <h1 className="mt-3 font-serif text-3xl font-semibold tracking-tight">Terms of Service</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          This page is maintained by Voyce. Last updated: June 2026.
+          This page is maintained by Voyce. Last updated: July 2026.
         </p>
 
         <Section title="1. Acceptance">
@@ -80,22 +80,54 @@ function TermsPage() {
           submit content you don't have the right to share.
         </Section>
 
-        <Section title="5. No warranty">
+        <Section title="5. Intellectual property &amp; copyright">
+          <p>
+            Voyce for Paws, including its name, logo, brand, page and card designs, text, code,
+            rescue-card formats, and all related content, is owned by Be the Voyce, Inc. and is
+            protected by copyright and trademark law. &copy; 2026 Be the Voyce, Inc. All rights
+            reserved.
+          </p>
+          <ol className="mt-2 list-decimal space-y-1.5 pl-5">
+            <li>
+              You may not copy, reproduce, republish, scrape, mirror, reverse-engineer, or create
+              derivative works from any part of the service without our prior written permission.
+            </li>
+            <li>
+              &ldquo;Voyce for Paws,&rdquo; the Voyce for Paws logo, and related marks are
+              trademarks of Be the Voyce, Inc. You may not use them without permission.
+            </li>
+            <li>
+              Rescue cards are provided to help the specific animal shown. You may share them to
+              mobilize help, but not repurpose, resell, or use them for unrelated commercial
+              purposes.
+            </li>
+            <li>
+              You keep ownership of photos you upload, and grant Voyce a limited license to use
+              them solely to operate the service and coordinate rescue.
+            </li>
+          </ol>
+        </Section>
+
+        <Section title="6. No warranty">
           Voyce is provided "as is" without warranty of any kind. To the maximum extent permitted
           by law, Voyce disclaims all liability for any loss or harm arising from use of the
           service or reliance on AI output.
         </Section>
 
-        <Section title="6. Changes">
+        <Section title="7. Changes">
           We may update these terms. Continued use means you accept the updated terms.
         </Section>
 
-        <Section title="7. Contact">
+        <Section title="8. Contact">
           Questions? Reach out via the in-app help link.
         </Section>
 
-        <div className="mt-10 text-[12px] uppercase tracking-[0.14em] text-muted-foreground">
-          AI is advisory — not a diagnosis
+        <div className="mt-10 border-t border-[#EDE5D8] pt-4 text-[12px] text-muted-foreground">
+          <div>
+            &copy; 2026 Be the Voyce, Inc. All rights reserved. &ldquo;Voyce for Paws&rdquo; is a
+            trademark of Be the Voyce, Inc.
+          </div>
+          <div className="mt-1 uppercase tracking-[0.14em]">AI is advisory · not a diagnosis</div>
         </div>
       </div>
     </div>
