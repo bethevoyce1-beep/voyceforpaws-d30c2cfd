@@ -109,6 +109,18 @@ const HELP_ROLES: { id: string; icon: string; label: string; blurb: string }[] =
   { id: "pledge",    icon: "💵", label: "Pledge",     blurb: "chip in toward their vet care or pull fee" },
 ];
 
+// What the lead (first accepter) can say they STILL need to get the animal all
+// the way to safety. Mapped so we hide the need the lead already covers.
+const STILL_NEEDS: { id: string; icon: string; label: string }[] = [
+  { id: "foster",    icon: "🏠", label: "A foster" },
+  { id: "adopter",   icon: "🤝", label: "An adopter" },
+  { id: "transport", icon: "🚗", label: "Transport" },
+  { id: "funds",     icon: "💵", label: "Funds / pledges" },
+  { id: "vet",       icon: "🩺", label: "A vet" },
+];
+// The need each role already covers (so we don't ask the lead for it again).
+const ROLE_COVERS: Record<string, string> = { foster: "foster", adopt: "adopter", transport: "transport", pledge: "funds", rescue: "" };
+
 function shareName(data: Assessment): string {
   const breed = data.breed && !/unknown|mixed/i.test(data.breed) ? data.breed : "";
   return cap((breed || data.species || "animal"));
@@ -150,6 +162,10 @@ export function RescueCard({
   const [shareConfirm, setShareConfirm] = useState<SharePlatform | null>(null);
   const [showShare, setShowShare] = useState(false);
   const [helpRole, setHelpRole] = useState<(typeof HELP_ROLES)[number] | null>(null);
+  const [needs, setNeeds] = useState<Record<string, boolean>>({});
+  const [helpDone, setHelpDone] = useState(false);
+  const openHelp = (r: (typeof HELP_ROLES)[number]) => { setHelpRole(r); setNeeds({}); setHelpDone(false); };
+  const closeHelp = () => { setHelpRole(null); setNeeds({}); setHelpDone(false); };
   // Responder-safety: a report shouldn't go to rescuers without a location.
   // If GPS was denied (no `location`), the reporter can add an area manually or
   // retry GPS here; "Send to rescuers" stays gated until we have one.
@@ -427,7 +443,7 @@ export function RescueCard({
             <p className="text-[13px] font-bold" style={{ color: T.title }}>Can you help {shareName(data)}?</p>
             <div className="mt-2 grid grid-cols-3 gap-2">
               {HELP_ROLES.map((r) => (
-                <button key={r.id} type="button" onClick={() => setHelpRole(r)}
+                <button key={r.id} type="button" onClick={() => openHelp(r)}
                   className="flex items-center justify-center gap-1.5 rounded-xl border px-2 py-2.5 text-[12.5px] font-bold transition active:scale-[0.97]"
                   style={{ borderColor: "#E3DAC4", background: "#fff", color: "#6B5832" }}>
                   <span>{r.icon}</span><span>{r.label}</span>
@@ -545,23 +561,65 @@ export function RescueCard({
         </div>
       )}
 
-      {helpRole && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 sm:items-center sm:pb-10" onClick={() => setHelpRole(null)}>
+      {helpRole && (() => {
+        const covers = ROLE_COVERS[helpRole.id] ?? "";
+        const askable = STILL_NEEDS.filter((n) => n.id !== covers);
+        const chosen = askable.filter((n) => needs[n.id]);
+        const chosenList =
+          chosen.length === 0 ? "" :
+          chosen.length === 1 ? chosen[0].label.toLowerCase() :
+          chosen.slice(0, -1).map((n) => n.label.toLowerCase()).join(", ") + " and " + chosen[chosen.length - 1].label.toLowerCase();
+        return (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 sm:items-center sm:pb-10" onClick={closeHelp}>
           <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-3xl border border-border bg-card p-5 shadow-2xl">
-            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A5A0E]">{helpRole.icon} {helpRole.label}</div>
-            <h3 className="mt-2 font-serif text-lg font-semibold leading-tight">You're offering to {helpRole.label.toLowerCase()} {shareName(data)}.</h3>
-            <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-              That means you can {helpRole.blurb}. The first responder to accept becomes the lead and coordinates who else joins — so your offer goes to them for confirmation.
-            </p>
-            <div className="mt-4 flex items-center justify-end gap-2">
-              <button type="button" onClick={() => setHelpRole(null)} className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium">Cancel</button>
-              <button type="button" onClick={() => setHelpRole(null)}
-                className="rounded-full px-4 py-2 text-sm font-semibold text-[#3A2A07] shadow-sm"
-                style={{ background: "linear-gradient(135deg,#FFDF3B,#C9871A)" }}>Confirm my offer</button>
-            </div>
+            {!helpDone ? (
+              <>
+                <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A5A0E]">{helpRole.icon} {helpRole.label} · you'd be the lead</div>
+                <h3 className="mt-2 font-serif text-lg font-semibold leading-tight">You're stepping up to {helpRole.label.toLowerCase()} {shareName(data)}.</h3>
+                <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+                  You can {helpRole.blurb}. As the first to accept, you're the <span className="font-semibold text-foreground/80">lead</span> — you decide who else joins. What do you still need to get {shareName(data)} all the way to safety?
+                </p>
+                <div className="mt-3 space-y-2">
+                  {askable.map((n) => {
+                    const on = !!needs[n.id];
+                    return (
+                      <button key={n.id} type="button" onClick={() => setNeeds((s) => ({ ...s, [n.id]: !on }))}
+                        className="flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-[13px] font-semibold transition active:scale-[0.99]"
+                        style={on ? { borderColor: "#C9871A", background: "#FFF6E5", color: "#8A5A0E" } : { borderColor: "#E3DAC4", background: "#fff", color: "#6B5832" }}>
+                        <span className="text-[15px] leading-none">{on ? "✅" : n.icon}</span><span>{n.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="mt-4 flex items-center justify-end gap-2">
+                  <button type="button" onClick={closeHelp} className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium">Cancel</button>
+                  <button type="button" onClick={() => setHelpDone(true)}
+                    className="rounded-full px-4 py-2 text-sm font-semibold text-[#3A2A07] shadow-sm"
+                    style={{ background: "linear-gradient(135deg,#FFDF3B,#C9871A)" }}>
+                    {chosen.length > 0 ? "Accept & rally the rest" : "I've got it — accept"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#1F6B3D]">✅ You're the lead</div>
+                <h3 className="mt-2 font-serif text-lg font-semibold leading-tight">Thank you for stepping up for {shareName(data)}.</h3>
+                <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+                  {chosen.length > 0
+                    ? `We'll rally the pack for ${chosenList} and route every offer to you to approve before anyone's locked in.`
+                    : `You've got this one covered — we'll let the pack know it's handled.`}
+                </p>
+                <div className="mt-4 flex justify-end">
+                  <button type="button" onClick={closeHelp}
+                    className="rounded-full px-4 py-2 text-sm font-semibold text-[#3A2A07] shadow-sm"
+                    style={{ background: "linear-gradient(135deg,#FFDF3B,#C9871A)" }}>Done</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {shareConfirm && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 sm:items-center sm:pb-10" onClick={() => setShareConfirm(null)}>
