@@ -14,6 +14,10 @@ import { SaveCardControls } from "@/components/voyce/SaveCardControls";
 // every detail (health, behavior, environment, next steps, report info) behind
 // small tappable pills. Heading never defaults to "Healthy": it leads with the
 // situation and only shows a condition/urgency word when the AI flags one.
+//
+// Responder safety: "Send to rescuers" is gated on having a location. If GPS was
+// denied, the reporter is prompted to add an area (retry GPS or type
+// cross-streets) before the report can go out, and the card badges the gap.
 // =============================================================
 
 type Tone = "critical" | "urgent" | "care" | "calm" | "wildlife";
@@ -127,6 +131,14 @@ export function RescueCard({
 }) {
   const [openPill, setOpenPill] = useState<string | null>(null);
   const [shareConfirm, setShareConfirm] = useState<SharePlatform | null>(null);
+  // Responder-safety: a report shouldn't go to rescuers without a location.
+  // If GPS was denied (no `location`), the reporter can add an area manually or
+  // retry GPS here; "Send to rescuers" stays gated until we have one.
+  const [showLoc, setShowLoc] = useState(false);
+  const [manualArea, setManualArea] = useState("");
+  const [gps, setGps] = useState<{ lat: number; lon: number } | null>(null);
+  const [locNote, setLocNote] = useState<string | null>(null);
+  const hasPin = !!(location || gps || manualArea.trim());
 
   const urgency = useMemo(() => getUrgency(data, mission), [data, mission]);
   const condition = useMemo(() => getCondition(data), [data]);
@@ -136,9 +148,30 @@ export function RescueCard({
   const chips = profileChips(data);
   const m = MISSIONS[mission];
 
-  const mapsUrl = location
-    ? `https://www.google.com/maps/search/?api=1&query=${location.lat},${location.lon}`
+  const gpsForMap = location ?? gps;
+  const mapsUrl = gpsForMap
+    ? `https://www.google.com/maps/search/?api=1&query=${gpsForMap.lat},${gpsForMap.lon}`
     : null;
+  const shownLoc = manualArea.trim() || (gps ? "Pinned (your GPS)" : location?.label) || locationLine(data);
+
+  const useMyLocation = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setLocNote("This device can't share GPS — please type the area below.");
+      return;
+    }
+    setLocNote("Getting your location…");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { setGps({ lat: pos.coords.latitude, lon: pos.coords.longitude }); setLocNote("Location added ✓"); },
+      () => setLocNote("Couldn't get GPS — please type the nearest cross-streets or address below."),
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
+
+  const attemptSend = () => {
+    if (!onSend) return;
+    if (hasPin) onSend();
+    else setShowLoc(true);
+  };
 
   const doShare = (p: SharePlatform) => {
     const text = buildShareText(data, mission);
@@ -277,6 +310,14 @@ export function RescueCard({
               <span className="text-muted-foreground/70">Urgency:</span><span>{urgency.emoji} {urgency.label}</span>
             </div>
 
+            {!hasPin && (
+              <button type="button" onClick={() => setShowLoc(true)}
+                className="mt-2 block w-full rounded-xl border px-3 py-2 text-left text-[12.5px] font-semibold transition active:scale-[0.99]"
+                style={{ borderColor: "#F0C88A", background: "#FFF6E5", color: "#8A5A0E" }}>
+                ⚠ Location not shared — tap to add it so a responder can reach {animalWord(data) || "them"} safely.
+              </button>
+            )}
+
             {chips.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {chips.map((c) => (
@@ -288,7 +329,7 @@ export function RescueCard({
             )}
 
             <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-[14px] font-semibold">
-              <span className="flex items-center gap-1.5"><span>📍</span><span>{locationLine(data)}</span></span>
+              <span className="flex items-center gap-1.5"><span>📍</span><span>{shownLoc}</span></span>
               {mapsUrl && (
                 <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-[12px] font-bold no-underline transition active:scale-[0.97]"
@@ -304,11 +345,14 @@ export function RescueCard({
           {/* Primary action */}
           {onSend && (
             <div className="mx-5 mt-4">
-              <button onClick={onSend}
+              <button onClick={attemptSend}
                 className="w-full rounded-2xl px-5 py-4 text-[15px] font-bold uppercase tracking-wide shadow-sm transition hover:brightness-105 active:scale-[0.99]"
                 style={{ background: "linear-gradient(135deg,#FFDF3B,#C9871A)", color: "#3A2A07" }}>
                 🚨 Send to rescuers
               </button>
+              {!hasPin && (
+                <p className="mt-1.5 text-center text-[11.5px] text-[#8A5A0E]">A location is needed before this goes to rescuers.</p>
+              )}
             </div>
           )}
 
@@ -367,6 +411,39 @@ export function RescueCard({
           ⚠️ Voyce shares AI observations, not veterinary advice. AI may misidentify breed, age, or condition and can't detect internal injuries or disease. Confirm with a licensed veterinarian before any medical, rescue, or transport decision.
         </p>
       </div>
+
+      {showLoc && (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 sm:items-center sm:pb-10" onClick={() => setShowLoc(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-3xl border border-border bg-card p-5 shadow-2xl">
+            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#A8431F]">📍 Add a location</div>
+            <h3 className="mt-2 font-serif text-lg font-semibold leading-tight">Rescuers need a location to help safely.</h3>
+            <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+              Your exact GPS is never shown publicly — it just routes the closest responder and tells them what they're walking into. Add it one of these ways:
+            </p>
+            <button type="button" onClick={useMyLocation}
+              className="mt-3 w-full rounded-xl px-4 py-2.5 text-[13.5px] font-bold text-[#3A2A07]"
+              style={{ background: "linear-gradient(135deg,#FFDF3B,#C9871A)" }}>
+              📍 Use my current location
+            </button>
+            <div className="mt-3">
+              <label className="text-[12px] font-semibold text-[#6B5832]">Or type the address / nearest cross-streets</label>
+              <input value={manualArea} onChange={(e) => setManualArea(e.target.value)}
+                placeholder="e.g. Culebra Rd & Bandera Rd, or 4710 …"
+                className="mt-1 w-full rounded-lg border border-[#E2DED6] px-3 py-2 text-[13px] outline-none focus:border-[#C9871A]" />
+            </div>
+            {locNote && <p className="mt-2 text-[12px] font-semibold text-[#6B5832]">{locNote}</p>}
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button type="button" onClick={() => setShowLoc(false)} className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium">Cancel</button>
+              <button type="button" disabled={!(gps || manualArea.trim())}
+                onClick={() => { setShowLoc(false); if (onSend) onSend(); }}
+                className="rounded-full px-4 py-2 text-sm font-semibold text-[#3A2A07] shadow-sm disabled:opacity-50"
+                style={{ background: "linear-gradient(135deg,#FFDF3B,#C9871A)" }}>
+                Save + send
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {shareConfirm && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 sm:items-center sm:pb-10" onClick={() => setShareConfirm(null)}>
