@@ -451,6 +451,12 @@ export function RescueCard({
               style={{ background: T.bg, color: T.fg }}>
               {T.badge}
             </span>
+            {/* Compact mission timer — counts up from report until rescued, then freezes */}
+            <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold tabular-nums shadow-lg"
+              style={{ background: ago.frozen ? "#1F6B3D" : "rgba(0,0,0,0.72)", color: "#fff" }}
+              title={ago.frozen ? "Time to rescue" : "Time since reported — running until rescued"}>
+              {ago.frozen ? "✅" : "⏱"} {formatTimer(ago.totalSeconds)}
+            </span>
           </div>
 
           {/* Title + situation */}
@@ -462,11 +468,11 @@ export function RescueCard({
             </div>
 
             {hasPin && (
-              <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-[14px] font-semibold">
-                <span className="flex items-center gap-1.5"><span>📍</span><span>{shownLoc}</span></span>
+              <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] font-medium text-muted-foreground">
+                <span className="flex items-center gap-1"><span>📍</span><span>{shownLoc}</span></span>
                 {mapsUrl && (
                   <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-bold text-white no-underline shadow-sm transition active:scale-[0.97]"
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold text-white no-underline shadow-sm transition active:scale-[0.97]"
                     style={{ background: "#2563EB" }}>🗺 View map</a>
                 )}
               </div>
@@ -493,21 +499,28 @@ export function RescueCard({
             {data.first_look && (
               <p className="mt-2 text-[13.5px] italic leading-relaxed text-[oklch(0.45_0.03_70)]">{data.first_look}</p>
             )}
-          </div>
 
-          {/* Mission timer — runs from report until fully rescued, then freezes */}
-          <div className="mx-5 mt-4 flex items-center gap-3 rounded-2xl border px-4 py-3"
-            style={{ background: ago.frozen ? "#E7F5EC" : T.ring, borderColor: ago.frozen ? "#BFE3CC" : T.ring, color: ago.frozen ? "#1F6B3D" : T.title }}>
-            <span className="text-[22px] leading-none">{ago.frozen ? "✅" : "⏱"}</span>
-            <div className="min-w-0 flex-1">
-              <div className="text-[10px] font-bold uppercase tracking-[0.14em] opacity-70">
-                {ago.frozen ? "Rescued — timer stopped" : "On the clock · rescuers alerted"}
+            {/* Detail pills — tap to expand, right under Voyce's read */}
+            <div className="mt-3">
+              <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">More on this animal</div>
+              <div className="flex flex-wrap gap-1.5">
+                {pills.map((p) => {
+                  const on = openPill === p.id;
+                  return (
+                    <button key={p.id} type="button" onClick={() => setOpenPill(on ? null : p.id)} aria-expanded={on}
+                      className="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition active:scale-95"
+                      style={on ? { background: "#1A1611", color: "#FFDF3B", borderColor: "#1A1611" } : { background: "#fff", color: "#6B5832", borderColor: "#E3DAC4" }}>
+                      <span>{p.icon}</span><span>{p.label}</span>
+                    </button>
+                  );
+                })}
               </div>
-              <div className="text-[12.5px] font-semibold">
-                {ago.frozen ? "Safe after" : "Time since reported — running until rescued"}
-              </div>
+              {openPill && (
+                <div className="mt-3 rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3.5">
+                  {pills.find((p) => p.id === openPill)!.render()}
+                </div>
+              )}
             </div>
-            <div className="font-mono text-[22px] font-bold tabular-nums">{formatTimer(ago.totalSeconds)}</div>
           </div>
 
           {/* Primary action */}
@@ -541,27 +554,6 @@ export function RescueCard({
                 <span>📣</span><span>Share</span>
               </button>
             </div>
-          </div>
-
-          {/* Detail pills — tap to expand */}
-          <div className="mx-5 mt-4">
-            <div className="flex flex-wrap gap-1.5">
-              {pills.map((p) => {
-                const on = openPill === p.id;
-                return (
-                  <button key={p.id} type="button" onClick={() => setOpenPill(on ? null : p.id)} aria-expanded={on}
-                    className="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition active:scale-95"
-                    style={on ? { background: "#1A1611", color: "#FFDF3B", borderColor: "#1A1611" } : { background: "#fff", color: "#6B5832", borderColor: "#E3DAC4" }}>
-                    <span>{p.icon}</span><span>{p.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-            {openPill && (
-              <div className="mt-3 rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3.5">
-                {pills.find((p) => p.id === openPill)!.render()}
-              </div>
-            )}
           </div>
 
           <div className="mx-5 mt-5 mb-5 rounded-2xl border border-[#EDE5D8] px-4 py-3 text-[12.5px]" style={{ background: T.ring, color: T.title }}>
