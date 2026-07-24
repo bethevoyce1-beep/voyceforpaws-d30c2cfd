@@ -25,6 +25,8 @@ export type SharedReport = {
   mission: string | null;
   situation: string | null;
   location: { lat?: number; lon?: number; label?: string } | null;
+  note: string | null;
+  loc_privacy: "exact" | "area" | "hidden" | string | null;
   views: number;
 };
 
@@ -38,13 +40,18 @@ export const createSharedReport = createServerFn({ method: "POST" })
       mission?: string;
       situation?: string;
       location?: unknown;
+      note?: string;
+      locPrivacy?: string;
     };
+    const priv = o.locPrivacy === "exact" || o.locPrivacy === "hidden" ? o.locPrivacy : "area";
     return {
       image: o.image ? String(o.image) : null,
       data: (o.data ?? {}) as Record<string, unknown>,
       mission: o.mission ? String(o.mission) : null,
       situation: o.situation ? String(o.situation) : null,
       location: (o.location ?? null) as Record<string, unknown> | null,
+      note: o.note ? String(o.note).slice(0, 600) : null,
+      locPrivacy: priv,
     };
   })
   .handler(async ({ data }): Promise<{ id: string | null; error?: string }> => {
@@ -56,6 +63,8 @@ export const createSharedReport = createServerFn({ method: "POST" })
         mission: data.mission,
         situation: data.situation,
         location: data.location,
+        note: data.note,
+        loc_privacy: data.locPrivacy,
       },
     });
     if (error) return { id: null, error: error.message };
