@@ -6,6 +6,7 @@ import { getCondition, CONDITION_COLORS, type ConditionInfo } from "@/lib/condit
 import { AIDisclosureBanner } from "@/components/voyce/AIDisclosureBanner";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
 import { SaveCardControls } from "@/components/voyce/SaveCardControls";
+import { useLiveAgo, formatTimer } from "@/lib/useLiveAgo";
 
 // =============================================================
 // RescueCard — the SINGLE merged rescue card (replaces the old two-card flow of
@@ -14,10 +15,6 @@ import { SaveCardControls } from "@/components/voyce/SaveCardControls";
 // every detail (health, behavior, environment, next steps, report info) behind
 // small tappable pills. Heading never defaults to "Healthy": it leads with the
 // situation and only shows a condition/urgency word when the AI flags one.
-//
-// Responder safety: "Send to rescuers" is gated on having a location. If GPS was
-// denied, the reporter is prompted to add an area (retry GPS or type
-// cross-streets) before the report can go out, and the card badges the gap.
 // =============================================================
 
 type Tone = "critical" | "urgent" | "care" | "calm" | "wildlife";
@@ -83,13 +80,33 @@ function profileChips(data: Assessment): { label: string; value: string }[] {
   ].filter((c) => c.value && !/^unknown$/i.test(String(c.value))) as { label: string; value: string }[];
 }
 
-type SharePlatform = "nextdoor" | "facebook" | "whatsapp" | "x" | "copy";
-const SHARE_PLATFORMS: { id: SharePlatform; label: string; icon: string; bg: string; text: string }[] = [
-  { id: "facebook", label: "Facebook", icon: "📘", bg: "#1877F2", text: "#FFFFFF" },
-  { id: "whatsapp", label: "WhatsApp", icon: "💬", bg: "#25D366", text: "#FFFFFF" },
-  { id: "nextdoor", label: "Nextdoor", icon: "🏘", bg: "#1F9D57", text: "#FFFFFF" },
-  { id: "x", label: "X", icon: "✕", bg: "#111111", text: "#FFFFFF" },
-  { id: "copy", label: "Copy", icon: "📋", bg: "#E5E5E5", text: "#1F1F1F" },
+type SharePlatform =
+  | "nextdoor" | "facebook" | "whatsapp" | "x" | "instagram" | "email"
+  | "sms" | "linkedin" | "snapchat" | "telegram" | "reddit" | "messenger"
+  | "pinterest" | "copy";
+const SHARE_PLATFORMS: { id: SharePlatform; label: string; icon: string; bg: string; text: string; sub: string }[] = [
+  { id: "nextdoor",  label: "Nextdoor",  icon: "ND", bg: "#8ED04A", text: "#0B3D1E", sub: "Best for local rescues" },
+  { id: "facebook",  label: "Facebook",  icon: "f",  bg: "#1877F2", text: "#FFFFFF", sub: "Post to feed or groups" },
+  { id: "whatsapp",  label: "WhatsApp",  icon: "✆",  bg: "#25D366", text: "#FFFFFF", sub: "DM or rescue groups" },
+  { id: "x",         label: "X / Twitter", icon: "𝕏", bg: "#111111", text: "#FFFFFF", sub: "Tag rescues & shelters" },
+  { id: "instagram", label: "Instagram", icon: "IG", bg: "#E1306C", text: "#FFFFFF", sub: "Copy + paste to story" },
+  { id: "email",     label: "Email",     icon: "@",  bg: "#EA4335", text: "#FFFFFF", sub: "Forward to a rescuer" },
+  { id: "sms",       label: "SMS",       icon: "SMS", bg: "#1FB86B", text: "#FFFFFF", sub: "Text to the pack" },
+  { id: "linkedin",  label: "LinkedIn",  icon: "in", bg: "#0A66C2", text: "#FFFFFF", sub: "Reach professionals" },
+  { id: "snapchat",  label: "Snapchat",  icon: "SC", bg: "#FFFC00", text: "#1A1A1A", sub: "Post to your story" },
+  { id: "telegram",  label: "Telegram",  icon: "TG", bg: "#229ED9", text: "#FFFFFF", sub: "Channels & groups" },
+  { id: "reddit",    label: "Reddit",    icon: "R",  bg: "#FF4500", text: "#FFFFFF", sub: "r/Adopt · r/rescue" },
+  { id: "messenger", label: "Messenger", icon: "M",  bg: "#0084FF", text: "#FFFFFF", sub: "Copy + DM friends" },
+  { id: "pinterest", label: "Pinterest", icon: "P",  bg: "#E60023", text: "#FFFFFF", sub: "Pin to a rescue board" },
+  { id: "copy",      label: "Copy link", icon: "⧉",  bg: "#4B5563", text: "#FFFFFF", sub: "Paste anywhere" },
+];
+
+const HELP_ROLES: { id: string; icon: string; label: string; blurb: string }[] = [
+  { id: "foster",    icon: "🏠", label: "Foster",     blurb: "give them a temporary home while a permanent one is found" },
+  { id: "adopt",     icon: "🤝", label: "Adopt",      blurb: "offer them a forever home" },
+  { id: "rescue",    icon: "🐾", label: "Rescue pull", blurb: "pull them into your rescue's care" },
+  { id: "transport", icon: "🚗", label: "Transport",  blurb: "drive them to safety, a vet, or a foster" },
+  { id: "pledge",    icon: "💵", label: "Pledge",     blurb: "chip in toward their vet care or pull fee" },
 ];
 
 function shareName(data: Assessment): string {
@@ -131,6 +148,8 @@ export function RescueCard({
 }) {
   const [openPill, setOpenPill] = useState<string | null>(null);
   const [shareConfirm, setShareConfirm] = useState<SharePlatform | null>(null);
+  const [showShare, setShowShare] = useState(false);
+  const [helpRole, setHelpRole] = useState<(typeof HELP_ROLES)[number] | null>(null);
   // Responder-safety: a report shouldn't go to rescuers without a location.
   // If GPS was denied (no `location`), the reporter can add an area manually or
   // retry GPS here; "Send to rescuers" stays gated until we have one.
@@ -147,6 +166,16 @@ export function RescueCard({
   const title = headline(data, mission, situation, condition, tone);
   const chips = profileChips(data);
   const m = MISSIONS[mission];
+
+  // Mission timer — counts up from the moment the report went out and keeps
+  // running until the animal is fully rescued (status RESCUED/RESOLVED/etc.),
+  // at which point useLiveAgo freezes it at the rescue time.
+  const reportedAt = useMemo(
+    () => (data as { reportedAt?: string }).reportedAt ?? new Date().toISOString(),
+    [data],
+  );
+  const repStatus = (data as { status?: string }).status;
+  const ago = useLiveAgo(reportedAt, repStatus);
 
   const gpsForMap = location ?? gps;
   const mapsUrl = gpsForMap
@@ -177,17 +206,37 @@ export function RescueCard({
     const text = buildShareText(data, mission);
     const url = typeof window !== "undefined" ? window.location.href : "";
     const enc = encodeURIComponent;
-    if (p === "copy") {
+    const nm = shareName(data);
+    const copyIt = () => {
       if (typeof navigator !== "undefined" && navigator.clipboard) void navigator.clipboard.writeText(`${text}\n${url}`);
+    };
+    // Platforms with a clean web share intent.
+    const intents: Partial<Record<SharePlatform, string>> = {
+      facebook:  `https://www.facebook.com/sharer/sharer.php?u=${enc(url)}&quote=${enc(text)}`,
+      whatsapp:  `https://wa.me/?text=${enc(text + "\n" + url)}`,
+      nextdoor:  `https://nextdoor.com/sharekit/?body=${enc(text)}&url=${enc(url)}`,
+      x:         `https://twitter.com/intent/tweet?text=${enc(text)}&url=${enc(url)}`,
+      telegram:  `https://t.me/share/url?url=${enc(url)}&text=${enc(text)}`,
+      reddit:    `https://www.reddit.com/submit?url=${enc(url)}&title=${enc(nm + " needs help")}`,
+      linkedin:  `https://www.linkedin.com/sharing/share-offsite/?url=${enc(url)}`,
+      pinterest: `https://pinterest.com/pin/create/button/?url=${enc(url)}&description=${enc(text)}&media=${enc(image)}`,
+      email:     `mailto:?subject=${enc(nm + " needs help — Voyce for Paws")}&body=${enc(text + "\n" + url)}`,
+      sms:       `sms:?&body=${enc(text + "\n" + url)}`,
+    };
+    const href = intents[p];
+    if (href) {
+      if (typeof window !== "undefined") window.open(href, "_blank", "noopener,noreferrer");
       return;
     }
-    const intents: Record<Exclude<SharePlatform, "copy">, string> = {
-      facebook: `https://www.facebook.com/sharer/sharer.php?u=${enc(url)}&quote=${enc(text)}`,
-      whatsapp: `https://wa.me/?text=${enc(text + "\n" + url)}`,
-      nextdoor: `https://nextdoor.com/sharekit/?body=${enc(text)}&url=${enc(url)}`,
-      x: `https://twitter.com/intent/tweet?text=${enc(text)}&url=${enc(url)}`,
+    // instagram / snapchat / messenger / copy — no clean web post, so copy the
+    // caption to the clipboard (and open the app site for the first three).
+    copyIt();
+    const sites: Partial<Record<SharePlatform, string>> = {
+      instagram: "https://www.instagram.com",
+      snapchat:  "https://www.snapchat.com",
+      messenger: "https://www.messenger.com",
     };
-    if (typeof window !== "undefined") window.open(intents[p], "_blank", "noopener,noreferrer");
+    if (sites[p] && typeof window !== "undefined") window.open(sites[p], "_blank", "noopener,noreferrer");
   };
 
   // Detail pills — the collapsed sections. Each opens inline on tap.
@@ -240,7 +289,7 @@ export function RescueCard({
       ),
     },
     {
-      id: "details", icon: "📋", label: "Details",
+      id: "details", icon: "📋", label: "Case",
       render: () => (
         <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12.5px]">
           {data.caseId && <DRow label="Case #" value={data.caseId} />}
@@ -310,6 +359,17 @@ export function RescueCard({
               <span className="text-muted-foreground/70">Urgency:</span><span>{urgency.emoji} {urgency.label}</span>
             </div>
 
+            {hasPin && (
+              <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-[14px] font-semibold">
+                <span className="flex items-center gap-1.5"><span>📍</span><span>{shownLoc}</span></span>
+                {mapsUrl && (
+                  <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-bold text-white no-underline shadow-sm transition active:scale-[0.97]"
+                    style={{ background: "#2563EB" }}>🗺 View map</a>
+                )}
+              </div>
+            )}
+
             {!hasPin && (
               <button type="button" onClick={() => setShowLoc(true)}
                 className="mt-2 block w-full rounded-xl border px-3 py-2 text-left text-[12.5px] font-semibold transition active:scale-[0.99]"
@@ -328,18 +388,24 @@ export function RescueCard({
               </div>
             )}
 
-            <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-[14px] font-semibold">
-              <span className="flex items-center gap-1.5"><span>📍</span><span>{shownLoc}</span></span>
-              {mapsUrl && (
-                <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-[12px] font-bold no-underline transition active:scale-[0.97]"
-                  style={{ borderColor: "#EDE5D8", color: "#8A5A0E", background: "#FFF9E6" }}>View map</a>
-              )}
-            </div>
-
             {data.first_look && (
               <p className="mt-2 text-[13.5px] italic leading-relaxed text-[oklch(0.45_0.03_70)]">{data.first_look}</p>
             )}
+          </div>
+
+          {/* Mission timer — runs from report until fully rescued, then freezes */}
+          <div className="mx-5 mt-4 flex items-center gap-3 rounded-2xl border px-4 py-3"
+            style={{ background: ago.frozen ? "#E7F5EC" : T.ring, borderColor: ago.frozen ? "#BFE3CC" : T.ring, color: ago.frozen ? "#1F6B3D" : T.title }}>
+            <span className="text-[22px] leading-none">{ago.frozen ? "✅" : "⏱"}</span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] font-bold uppercase tracking-[0.14em] opacity-70">
+                {ago.frozen ? "Rescued — timer stopped" : "On the clock · rescuers alerted"}
+              </div>
+              <div className="text-[12.5px] font-semibold">
+                {ago.frozen ? "Safe after" : "Time since reported — running until rescued"}
+              </div>
+            </div>
+            <div className="font-mono text-[22px] font-bold tabular-nums">{formatTimer(ago.totalSeconds)}</div>
           </div>
 
           {/* Primary action */}
@@ -355,6 +421,25 @@ export function RescueCard({
               )}
             </div>
           )}
+
+          {/* Can you help? — role offers (mirrors the shelter card) */}
+          <div className="mx-5 mt-5">
+            <p className="text-[13px] font-bold" style={{ color: T.title }}>Can you help {shareName(data)}?</p>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              {HELP_ROLES.map((r) => (
+                <button key={r.id} type="button" onClick={() => setHelpRole(r)}
+                  className="flex items-center justify-center gap-1.5 rounded-xl border px-2 py-2.5 text-[12.5px] font-bold transition active:scale-[0.97]"
+                  style={{ borderColor: "#E3DAC4", background: "#fff", color: "#6B5832" }}>
+                  <span>{r.icon}</span><span>{r.label}</span>
+                </button>
+              ))}
+              <button type="button" onClick={() => setShowShare(true)}
+                className="flex items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-[12.5px] font-bold text-white shadow-sm transition active:scale-[0.97]"
+                style={{ background: "linear-gradient(135deg,#7C5CFF,#5B3FD6)" }}>
+                <span>📣</span><span>Share</span>
+              </button>
+            </div>
+          </div>
 
           {/* Detail pills — tap to expand */}
           <div className="mx-5 mt-4">
@@ -375,25 +460,6 @@ export function RescueCard({
                 {pills.find((p) => p.id === openPill)!.render()}
               </div>
             )}
-          </div>
-
-          {/* Share */}
-          <div className="mx-5 mt-5">
-            <p className="text-center text-[11px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">Share to get more eyes on {shareName(data)}</p>
-            <div className="mt-2 grid grid-cols-5 gap-2">
-              {SHARE_PLATFORMS.map((p) => (
-                <button key={p.id} onClick={() => setShareConfirm(p.id)} aria-label={`Share to ${p.label}`}
-                  className="flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2.5 text-[11px] font-semibold shadow-sm transition hover:brightness-110 active:scale-[0.97]"
-                  style={{ background: p.bg, color: p.text }}>
-                  <span className="text-[15px] leading-none">{p.icon}</span><span>{p.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Save / download flyer */}
-          <div className="mx-5">
-            <SaveCardControls image={image} data={data} name={shareName(data)} city={location?.label} v={flyerVariant} />
           </div>
 
           <div className="mx-5 mt-5 mb-5 rounded-2xl border border-[#EDE5D8] px-4 py-3 text-[12.5px]" style={{ background: T.ring, color: T.title }}>
@@ -440,6 +506,58 @@ export function RescueCard({
                 style={{ background: "linear-gradient(135deg,#FFDF3B,#C9871A)" }}>
                 Save + send
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showShare && (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-40 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 sm:items-center sm:pb-10" onClick={() => setShowShare(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-3xl border border-border bg-card p-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-serif text-lg font-semibold leading-tight">Share {shareName(data)}</h3>
+                <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
+                  Every share helps. <span className="font-semibold text-foreground/80">Nextdoor</span> is best for finding a local rescuer or foster fast.
+                </p>
+              </div>
+              <button type="button" onClick={() => setShowShare(false)} aria-label="Close"
+                className="shrink-0 rounded-full border border-border bg-background px-2.5 py-1 text-sm">✕</button>
+            </div>
+
+            <div className="mt-3 grid grid-cols-3 gap-2.5">
+              {SHARE_PLATFORMS.map((p) => (
+                <button key={p.id} type="button" onClick={() => setShareConfirm(p.id)}
+                  className="flex flex-col items-center gap-1.5 rounded-2xl border border-[#EDE5D8] bg-white px-2 py-3 text-center transition hover:border-[#D8CEB8] active:scale-[0.97]">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full text-[13px] font-bold"
+                    style={{ background: p.bg, color: p.text }}>{p.icon}</span>
+                  <span className="text-[12px] font-bold text-foreground/85">{p.label}</span>
+                  <span className="text-[10px] leading-tight text-muted-foreground">{p.sub}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-4 border-t border-[#EDE5D8] pt-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">Or save a poster to post anywhere</p>
+              <SaveCardControls image={image} data={data} name={shareName(data)} city={location?.label} v={flyerVariant} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {helpRole && (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 sm:items-center sm:pb-10" onClick={() => setHelpRole(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-3xl border border-border bg-card p-5 shadow-2xl">
+            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A5A0E]">{helpRole.icon} {helpRole.label}</div>
+            <h3 className="mt-2 font-serif text-lg font-semibold leading-tight">You're offering to {helpRole.label.toLowerCase()} {shareName(data)}.</h3>
+            <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+              That means you can {helpRole.blurb}. The first responder to accept becomes the lead and coordinates who else joins — so your offer goes to them for confirmation.
+            </p>
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button type="button" onClick={() => setHelpRole(null)} className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium">Cancel</button>
+              <button type="button" onClick={() => setHelpRole(null)}
+                className="rounded-full px-4 py-2 text-sm font-semibold text-[#3A2A07] shadow-sm"
+                style={{ background: "linear-gradient(135deg,#FFDF3B,#C9871A)" }}>Confirm my offer</button>
             </div>
           </div>
         </div>
