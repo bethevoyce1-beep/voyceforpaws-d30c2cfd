@@ -71,6 +71,38 @@ export const createSharedReport = createServerFn({ method: "POST" })
     return { id: (id as string) ?? null };
   });
 
+// Analytics: log every real (non-sample) test the app runs — the small image
+// plus the AI read — so we can see what people are photographing and how Voyce
+// is doing. Fire-and-forget from the client; never blocks the report.
+export const logReportEvent = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => {
+    const o = (input ?? {}) as Record<string, unknown>;
+    const s = (k: string) => (typeof o[k] === "string" ? (o[k] as string) : null);
+    return {
+      image: s("image"),
+      mission: s("mission"),
+      species: s("species"),
+      breed: s("breed"),
+      size: s("size"),
+      color: s("color"),
+      status: s("status"),
+      visible_condition: s("visible_condition"),
+      ai_confidence: s("ai_confidence"),
+      suggested_situation: s("suggested_situation"),
+      authenticity: s("authenticity"),
+      observations: Array.isArray(o.observations) ? (o.observations as unknown[]).map(String) : [],
+    };
+  })
+  .handler(async ({ data }): Promise<{ ok: boolean }> => {
+    try {
+      const sb = serverClient();
+      await sb.rpc("log_report_event", { p: data });
+      return { ok: true };
+    } catch {
+      return { ok: false };
+    }
+  });
+
 // Fetch a shared rescue card for the public /r/<id> page (also bumps views).
 export const getSharedReport = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => {
