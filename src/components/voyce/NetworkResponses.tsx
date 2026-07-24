@@ -13,6 +13,8 @@ import {
 // ripple. Persisted in Supabase (network_responses), keyed by animal.
 // =============================================================
 
+const NAME_KEY = "voyce_responder_name";
+
 type KindMeta = { label: string; dot: string; icon?: string; chip?: string };
 const KINDS: Record<string, KindMeta> = {
   adopt:         { label: "wants to adopt", dot: "#993556", icon: "🤝", chip: "Adopt" },
@@ -57,6 +59,13 @@ export function NetworkResponses({
   const [items, setItems] = useState<NetworkResponse[]>([]);
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    try {
+      const n = typeof window !== "undefined" ? window.localStorage.getItem(NAME_KEY) : null;
+      if (n) { setName(n); setDraft(n); }
+    } catch { /* ignore */ }
+  }, []);
+
   const refresh = useCallback(async () => {
     try {
       const rows = await listNetworkResponses({ data: { subjectType, subjectId } });
@@ -66,11 +75,10 @@ export function NetworkResponses({
 
   useEffect(() => { void refresh(); }, [refresh]);
 
-  // The name is NOT remembered — the field starts blank so each person adds
-  // their own initials, and it clears again after every response.
   const saveName = () => {
     const v = draft.trim();
     if (!v) return;
+    try { window.localStorage.setItem(NAME_KEY, v); } catch { /* ignore */ }
     setName(v);
   };
 
@@ -82,9 +90,6 @@ export function NetworkResponses({
         data: { subjectType, subjectId, animalName, responderName: name, kind },
       });
       await refresh();
-      // Clear so the next person adds their own initials.
-      setName("");
-      setDraft("");
     } catch { /* ignore */ } finally {
       setBusy(false);
     }
