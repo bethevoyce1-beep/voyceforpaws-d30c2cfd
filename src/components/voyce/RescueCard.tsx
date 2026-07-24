@@ -297,7 +297,15 @@ export function RescueCard({
       const u = await ensureShareUrl();
       if (u) {
         const mm = u.match(/\/r\/([^/?#]+)/);
-        if (mm) setReportId(mm[1]);
+        if (mm) {
+          setReportId(mm[1]);
+          // Remember this card on the device so the Saved gallery can mark it "Yours".
+          try {
+            const key = "voyce_my_reports";
+            const cur = JSON.parse(window.localStorage.getItem(key) || "[]") as string[];
+            if (!cur.includes(mm[1])) window.localStorage.setItem(key, JSON.stringify([mm[1], ...cur].slice(0, 200)));
+          } catch { /* ignore */ }
+        }
       }
     })();
     // run once on mount
@@ -537,6 +545,7 @@ export function RescueCard({
             </div>
           )}
 
+          {/* Can you help? — role offers, sitting just above the pack feed */}
           <div className="mx-5 mt-5 rounded-2xl border border-[#EDE5D8] px-4 py-3 text-[12.5px]" style={{ background: T.ring, color: T.title }}>
             <span className="font-semibold">👥 Closest helpers alerted first.</span> {m.nearbyHelpers}
           </div>
