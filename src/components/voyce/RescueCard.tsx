@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
 import { createSharedReport } from "@/lib/share.functions";
 import { MISSIONS, animalWord, type MissionId } from "@/lib/missions";
@@ -8,6 +8,7 @@ import { AIDisclosureBanner } from "@/components/voyce/AIDisclosureBanner";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
 import { SaveCardControls } from "@/components/voyce/SaveCardControls";
 import { useLiveAgo, formatTimer } from "@/lib/useLiveAgo";
+import { NetworkResponses } from "@/components/voyce/NetworkResponses";
 
 // =============================================================
 // RescueCard — the SINGLE merged rescue card (replaces the old two-card flow of
@@ -172,6 +173,11 @@ export function RescueCard({
   // share sheet opens; shares fall back to the app root until it's ready.
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [shareSaving, setShareSaving] = useState(false);
+  // A stable report id for the shared "How the network is responding" feed —
+  // ensured once on mount so the reporter's card and the public /r/<id> page
+  // share the same live ripple (and this card is saved for the record).
+  const [reportId, setReportId] = useState<string | null>(null);
+  const ensuredRef = useRef(false);
   // Privacy on the PUBLIC share link: show exact spot, coarse area only, or
   // hide it entirely (default to area so a home address is never exposed). Plus
   // an optional note from the finder — "what you saw" — which they can keep
@@ -281,6 +287,22 @@ export function RescueCard({
 
   // Changing privacy or the note invalidates any link already minted.
   const resetShareLink = () => setShareUrl(null);
+
+  // Ensure this report has a permalink id on mount, so the ripple feed below is
+  // shared with anyone who later opens the public link (same live responses).
+  useEffect(() => {
+    if (ensuredRef.current) return;
+    ensuredRef.current = true;
+    void (async () => {
+      const u = await ensureShareUrl();
+      if (u) {
+        const mm = u.match(/\/r\/([^/?#]+)/);
+        if (mm) setReportId(mm[1]);
+      }
+    })();
+    // run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const doShare = (p: SharePlatform, urlOverride?: string) => {
     const text = buildShareText(data, mission);
@@ -545,6 +567,13 @@ export function RescueCard({
           <div className="mx-5 mt-5 mb-5 rounded-2xl border border-[#EDE5D8] px-4 py-3 text-[12.5px]" style={{ background: T.ring, color: T.title }}>
             <span className="font-semibold">👥 Closest helpers alerted first.</span> {m.nearbyHelpers}
           </div>
+
+          {/* How the network is responding — shared ripple for this animal */}
+          {reportId && (
+            <div className="border-t border-[#EDE5D8]">
+              <NetworkResponses subjectType="report" subjectId={reportId} animalName={shareName(data)} />
+            </div>
+          )}
         </article>
 
         <div className="mt-4 flex items-center justify-center gap-3">
