@@ -2,9 +2,10 @@
  * Persistent bottom tab bar — the primary navigation on the app's two "home"
  * screens (the Report capture intake and the At-Risk shelter list).
  *
- * Four tabs, left→right: 📷 Report · 🏠 At-Risk · 💬 Messages · 🐾 Join the Pack.
+ * Five tabs, left→right: 📷 Report · 🏠 At-Risk · 🖼 Saved · 💬 Messages · 🐾 Join.
  *   - Report   → returns to the capture intake (camera-first flow, unchanged).
  *   - At-Risk  → opens the ShelterPicker (at-risk shelter list).
+ *   - Saved    → navigates to /saved (the Saved cards gallery of every card taken).
  *   - Messages → opens the Messages inbox overlay, managed HERE (does NOT call
  *                onSelect / navigate) so it works without any change to the
  *                parent screen machine. Shows an unread badge (red dot + count)
@@ -24,7 +25,7 @@ const GOLD = "#FFDF3B";
 const GOLD_DEEP = "#C9871A";
 const INK = "#1A1611";
 
-export type BottomTab = "report" | "atrisk" | "messages" | "join";
+export type BottomTab = "report" | "atrisk" | "saved" | "messages" | "join";
 
 type TabDef = {
   id: BottomTab;
@@ -35,8 +36,9 @@ type TabDef = {
 const TABS: TabDef[] = [
   { id: "report", icon: "📷", label: "Report" },
   { id: "atrisk", icon: "🏠", label: "At-Risk" },
+  { id: "saved", icon: "🖼", label: "Saved" },
   { id: "messages", icon: "💬", label: "Messages" },
-  { id: "join", icon: "🐾", label: "Join the Pack" },
+  { id: "join", icon: "🐾", label: "Join" },
 ];
 
 export function BottomTabBar({
@@ -72,6 +74,12 @@ export function BottomTabBar({
   const handleClick = (id: BottomTab) => {
     if (id === "messages") {
       setShowMessages(true);
+      return;
+    }
+    if (id === "saved") {
+      // The Saved gallery is its own route — hard-navigate so it works from
+      // either home screen without threading routing through index.tsx.
+      if (typeof window !== "undefined") window.location.assign("/saved");
       return;
     }
     onSelect(id);
