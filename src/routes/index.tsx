@@ -35,6 +35,7 @@ import {
 } from "@/lib/acs.functions";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
 import { MISSIONS, isWildSpecies, type MissionId } from "@/lib/missions";
+import { logReportEvent } from "@/lib/share.functions";
 
 
 
@@ -298,6 +299,26 @@ function Home() {
             ? { ...result, caseId, reportedAt: new Date(meta.takenAt).toISOString() }
             : { ...result, caseId },
         );
+        // Analytics: log real (non-sample) tests — the small image + the AI read —
+        // so we can see what people photograph and how Voyce performs. Never blocks.
+        if (!isSample) {
+          void logReportEvent({
+            data: {
+              image: small,
+              mission: missionOverride ?? mission,
+              species: result.species,
+              breed: result.breed,
+              size: result.size,
+              color: result.color,
+              status: result.status,
+              visible_condition: result.visible_condition,
+              ai_confidence: result.ai_confidence,
+              suggested_situation: result.suggested_situation,
+              authenticity: result.capture_authenticity,
+              observations: result.observations,
+            },
+          }).catch(() => {});
+        }
       } catch (e) {
         const msg = e instanceof Error ? e.message : "AI analysis failed.";
         console.error("[voyce] analyze failed:", msg);
