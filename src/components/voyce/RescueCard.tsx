@@ -537,8 +537,12 @@ export function RescueCard({
             </div>
           )}
 
-          {/* Can you help? — role offers (mirrors the shelter card) */}
-          <div className="mx-5 mt-5">
+          <div className="mx-5 mt-5 rounded-2xl border border-[#EDE5D8] px-4 py-3 text-[12.5px]" style={{ background: T.ring, color: T.title }}>
+            <span className="font-semibold">👥 Closest helpers alerted first.</span> {m.nearbyHelpers}
+          </div>
+
+          {/* Can you help? — role offers, sitting just above the pack feed */}
+          <div className="mx-5 mt-5 mb-5">
             <p className="text-[13px] font-bold" style={{ color: T.title }}>Can you help {shareName(data)}?</p>
             <div className="mt-2 grid grid-cols-3 gap-2">
               {HELP_ROLES.map((r) => (
@@ -554,10 +558,6 @@ export function RescueCard({
                 <span>📣</span><span>Share</span>
               </button>
             </div>
-          </div>
-
-          <div className="mx-5 mt-5 mb-5 rounded-2xl border border-[#EDE5D8] px-4 py-3 text-[12.5px]" style={{ background: T.ring, color: T.title }}>
-            <span className="font-semibold">👥 Closest helpers alerted first.</span> {m.nearbyHelpers}
           </div>
 
           {/* How the network is responding — shared ripple for this animal */}
