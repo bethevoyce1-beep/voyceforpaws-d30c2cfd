@@ -185,17 +185,33 @@ export function SaveCardControls({ image, data, name, city, v }: Props) {
       const img = new Image();
       await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = () => rej(new Error("decode failed")); img.src = dataUrl; });
       const jsPDFmod: any = await import(/* @vite-ignore */ "https://esm.sh/jspdf@2.5.2");
-      const JsPDF = jsPDFmod.jsPDF || jsPDFmod.default;
+      const JsPDF = jsPDFmod.jsPDF || (jsPDFmod.default && (jsPDFmod.default.jsPDF || jsPDFmod.default));
+      if (typeof JsPDF !== "function") throw new Error("jsPDF constructor not found");
       const PX_TO_MM = 25.4 / 96;
       const wMm = (img.width / 2) * PX_TO_MM;
       const hMm = (img.height / 2) * PX_TO_MM;
       const pdf = new JsPDF({ orientation: hMm >= wMm ? "portrait" : "landscape", unit: "mm", format: [wMm, hMm] });
       pdf.addImage(dataUrl, "PNG", 0, 0, wMm, hMm);
-      pdf.save(`${fileBase}.pdf`);
-      setNote("PDF downloaded ✓");
+      // pdf.save() often no-ops inside a mobile PWA, so hand off a real blob:
+      // native share sheet first, then open in a new tab, then a direct download.
+      const filename = `${fileBase}.pdf`;
+      const blob: Blob = pdf.output("blob");
+      try {
+        const file = new File([blob], filename, { type: "application/pdf" });
+        const nav: any = navigator;
+        if (nav.canShare && nav.canShare({ files: [file] })) {
+          await nav.share({ files: [file], title: name || "Voyce rescue card" });
+          setSaving(null); return;
+        }
+      } catch { /* fall through to open/download */ }
+      const blobUrl = URL.createObjectURL(blob);
+      const opened = typeof window !== "undefined" ? window.open(blobUrl, "_blank", "noopener") : null;
+      if (!opened) triggerDownload(blobUrl, filename);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      setNote("PDF ready ✓");
     } catch (e) {
       console.warn("[voyce] save pdf failed:", e);
-      setNote("Couldn't make the PDF just now — please try again.");
+      setNote("Couldn't make the PDF — try Save image instead.");
     } finally {
       setSaving(null);
     }
