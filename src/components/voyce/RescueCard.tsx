@@ -131,7 +131,7 @@ function buildShareText(data: Assessment, mission: MissionId): string {
   const m = MISSIONS[mission];
   const name = shareName(data);
   const where = locationLine(data);
-  return `🐾 ${name} needs help\n📍 ${where}\n\n${data.first_look}\n\n${m.callout.body}\n\nvia Voyce for Paws`;
+  return `🐾 ${name} needs help\n📍 ${where}\n\n${data.first_look}\n\n${m.callout.body}\n\nvia Voyce for Paws™ · © 2026 Be the Voyce, Inc.`;
 }
 
 export function RescueCard({
