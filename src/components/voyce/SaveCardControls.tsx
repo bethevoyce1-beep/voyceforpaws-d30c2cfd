@@ -5,11 +5,11 @@ import type { Assessment } from "@/lib/analyze.functions";
 // SaveCardControls — turns the rescue card into a real, shareable social post.
 // It renders a purpose-built "flyer" (a clean rescue poster: photo + status +
 // facts + location + story + a HOW YOU CAN HELP call-to-action + Voyce branding),
-// shows a scaled live preview, lets the reporter copy a ready-made caption, and
-// SAVE it as an image (for Photos / sharing) or PDF (for printing/email). The
-// rendering libraries load on demand from a CDN, so the app build is untouched.
-// We snapshot the off-screen flyer so the saved file is a poster with none of
-// the app's buttons in it.
+// lets the reporter PREVIEW how the post will look, copy a ready-made caption,
+// and SAVE it as an image (for Photos / sharing) or PDF (for printing/email).
+// The rendering libraries load on demand from a CDN, so the app build is
+// untouched. We snapshot the off-screen flyer so the saved file is a poster with
+// none of the app's buttons in it.
 // =============================================================
 
 type FlyerVariant = {
@@ -96,7 +96,7 @@ function FlyerBody({
 
         {/* Footer */}
         <div style={{ marginTop: "14px", borderTop: "1px solid #F0EBDD", paddingTop: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ fontSize: "10.5px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#9CA3AF" }}>AI is advisory — not a diagnosis</div>
+          <div style={{ fontSize: "10.5px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#9CA3AF" }}>AI is advisory, not a diagnosis</div>
           <div style={{ fontSize: "10.5px", fontWeight: 700, color: "#C9871A" }}>🐾 Voyce for Paws</div>
         </div>
       </div>
@@ -122,7 +122,7 @@ export function SaveCardControls({ image, data, name, city, v }: Props) {
     const where = city ? ` in ${city}` : "";
     const factLine = facts ? `\n${facts}` : "";
     const tags = "#AdoptDontShop #FosterSaves #Rescue #Voyce";
-    return `${v.badgeIcon} ${v.badgeText.toUpperCase()} — ${name} needs help${where}.${factLine}\n\n${story}\n\n💛 Foster · Adopt · Rescue · or share this post. Every share widens the circle.\nvoyceforpaws.org\n${tags}`;
+    return `${v.badgeIcon} ${v.badgeText.toUpperCase()}: ${name} needs help${where}.${factLine}\n\n${story}\n\n💛 Foster · Adopt · Rescue · or share this post. Every share widens the circle.\nvoyceforpaws.org\n${tags}`;
   }, [v, name, city, facts, story]);
 
   const fileBase = useMemo(() => {
@@ -171,7 +171,7 @@ export function SaveCardControls({ image, data, name, city, v }: Props) {
       setNote("Saved as an image ✓");
     } catch (e) {
       console.warn("[voyce] save image failed:", e);
-      setNote("Couldn't save the image just now — please try again.");
+      setNote("Couldn't save the image just now. Please try again.");
     } finally {
       setSaving(null);
     }
@@ -211,7 +211,7 @@ export function SaveCardControls({ image, data, name, city, v }: Props) {
       setNote("PDF ready ✓");
     } catch (e) {
       console.warn("[voyce] save pdf failed:", e);
-      setNote("Couldn't make the PDF — try Save image instead.");
+      setNote("Couldn't make the PDF. Try Save image instead.");
     } finally {
       setSaving(null);
     }
