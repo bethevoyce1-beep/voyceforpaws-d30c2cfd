@@ -22,10 +22,10 @@ export const Route = createFileRoute("/r/$id")({
     const rep = loaderData?.report as SharedReport | null | undefined;
     const d = rep?.data ?? null;
     const name = d ? animalName(d) : "An animal";
-    const title = rep ? `${name} needs help — Voyce for Paws` : "Voyce for Paws";
+    const title = rep ? `${name} needs help · Voyce for Paws` : "Voyce for Paws";
     const desc = d?.first_look
       ? String(d.first_look).slice(0, 180)
-      : "A rescue card from Voyce for Paws — connecting animals in need with the people who can help.";
+      : "A rescue card from Voyce for Paws. Connecting animals in need with the people who can help.";
     return {
       meta: [
         { title },
@@ -169,7 +169,7 @@ function SharePage() {
 
           {/* Call to action */}
           <div className="mx-5 mt-5 mb-5 rounded-2xl border border-[#F0C88A] bg-[#FFF6E5] px-4 py-4">
-            <div className="text-[13px] font-bold text-[#8A5A0E]">💛 You can help save {name} — and the next one</div>
+            <div className="text-[13px] font-bold text-[#8A5A0E]">💛 You can help save {name}, and the next one</div>
             <p className="mt-1 text-[12.5px] leading-relaxed text-[#6B5832]">
               Voyce for Paws alerts the closest rescuers first, then ripples outward until an animal is safe. Join the pack to foster, adopt, transport, or just share the next alert.
             </p>
@@ -181,7 +181,7 @@ function SharePage() {
               </a>
             </div>
             <p className="mt-2.5 text-center text-[11px] italic text-[#8A5A0E]">
-              We're a 501(c)(3) · donations open at launch — join the pack to be first.
+              We're a 501(c)(3) · donations open at launch. Join the pack to be first.
             </p>
           </div>
         </article>
@@ -190,7 +190,7 @@ function SharePage() {
         <div className="mt-5 rounded-2xl border border-[#EDE5D8] bg-white px-5 py-4">
           <h2 className="font-serif text-[16px] font-bold text-[#0B0B0C]">What is Voyce for Paws?</h2>
           <p className="mt-1.5 text-[13px] leading-relaxed text-foreground/80">
-            A nonprofit rescue network. Snap or upload a photo of a stray, injured, or at-risk animal and Voyce's AI builds a rescue card in seconds, then alerts the closest fosters, rescues, and adopters — rippling outward until the animal is safe.
+            A nonprofit rescue network. Snap or upload a photo of a stray, injured, or at-risk animal and Voyce's AI builds a rescue card in seconds, then alerts the closest fosters, rescues, and adopters, rippling outward until the animal is safe.
           </p>
           <a href={LANDING} className="mt-2 inline-block text-[13px] font-semibold text-[#8A5A0E] underline-offset-2 hover:underline">Learn more at voyceforpaws.org →</a>
         </div>
