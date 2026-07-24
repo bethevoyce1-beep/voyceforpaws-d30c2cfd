@@ -1,0 +1,414 @@
+import { useMemo, useState, type ReactNode } from "react";
+import type { Assessment } from "@/lib/analyze.functions";
+import { MISSIONS, animalWord, type MissionId } from "@/lib/missions";
+import { getUrgency } from "@/lib/urgency";
+import { getCondition, CONDITION_COLORS, type ConditionInfo } from "@/lib/condition";
+import { AIDisclosureBanner } from "@/components/voyce/AIDisclosureBanner";
+import { BrandHeader } from "@/components/voyce/BrandHeader";
+import { SaveCardControls } from "@/components/voyce/SaveCardControls";
+
+// =============================================================
+// RescueCard — the SINGLE merged rescue card (replaces the old two-card flow of
+// RescueReport + ShareCard). Shows only the essentials up top — photo, an honest
+// status, name/situation, key facts, location, and the main action — and tucks
+// every detail (health, behavior, environment, next steps, report info) behind
+// small tappable pills. Heading never defaults to "Healthy": it leads with the
+// situation and only shows a condition/urgency word when the AI flags one.
+// =============================================================
+
+type Tone = "critical" | "urgent" | "care" | "calm" | "wildlife";
+
+const TONES: Record<Tone, { badge: string; bg: string; fg: string; ring: string; title: string }> = {
+  critical: { badge: "🚨 Critical", bg: "#7E1F1F", fg: "#FFF1EE", ring: "#F8D7D7", title: "#7E1F1F" },
+  urgent:   { badge: "🟠 Urgent",   bg: "#A8431F", fg: "#FFF6F0", ring: "#FFE4D6", title: "#A8431F" },
+  care:     { badge: "💛 Needs care", bg: "#8A5A0E", fg: "#FFF9E6", ring: "#FCEFC9", title: "#8A5A0E" },
+  calm:     { badge: "✓ Stable",   bg: "#1F6B3D", fg: "#E7F5EC", ring: "#E7F5EC", title: "#1F6B3D" },
+  wildlife: { badge: "🦝 Wildlife", bg: "#2C5C7C", fg: "#E4F0F8", ring: "#E4F0F8", title: "#2C5C7C" },
+};
+
+function cap(s: string): string {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
+function toneFor(mission: MissionId, level: string): Tone {
+  if (mission === "wildlife") return "wildlife";
+  if (mission === "at-risk-shelter") return level === "CRITICAL" ? "critical" : "urgent";
+  if (level === "CRITICAL") return "critical";
+  if (level === "HIGH") return "urgent";
+  if (level === "LOW") return "calm";
+  return "care";
+}
+
+// The honest headline — leads with who + situation, never a bare "Healthy".
+function headline(
+  data: Assessment,
+  mission: MissionId,
+  situation: string | undefined,
+  condition: ConditionInfo,
+  tone: Tone,
+): string {
+  const who = animalWord(data) || data.species || "animal";
+  const Who = cap(who);
+  // A condition word (Injured, Sick…) only when there's an actual concern.
+  const condWord = tone !== "calm" && tone !== "wildlife" && condition.titleWord
+    ? cap(condition.titleWord.toLowerCase()) + " "
+    : "";
+  if (mission === "wildlife") return `Wildlife · ${Who}`;
+  if (mission === "at-risk-shelter") return `At-risk shelter ${who}`;
+  const sit = (situation || "").trim();
+  if (sit) return cap(`${condWord}${sit}`);
+  if (mission === "lost-found") return `${data.is_likely_pet ? "Found" : "Lost"} ${who}`;
+  const stray = data.is_likely_pet ? "" : "Stray ";
+  if (tone === "calm") return cap(`${stray}${who} · no urgent concerns`);
+  return cap(`${condWord}${stray}${who}`);
+}
+
+function locationLine(data: Assessment): string {
+  const scene = (data.location_scene || "").split(/[.,]/)[0].trim();
+  if (scene && scene.length < 60) return scene;
+  return "Location pinned nearby";
+}
+
+function profileChips(data: Assessment): { label: string; value: string }[] {
+  return [
+    { label: "Species", value: data.species },
+    { label: "Breed", value: data.breed },
+    { label: "Age", value: data.age },
+    { label: "Size", value: data.size },
+    { label: "Color", value: data.color },
+  ].filter((c) => c.value && !/^unknown$/i.test(String(c.value))) as { label: string; value: string }[];
+}
+
+type SharePlatform = "nextdoor" | "facebook" | "whatsapp" | "x" | "copy";
+const SHARE_PLATFORMS: { id: SharePlatform; label: string; icon: string; bg: string; text: string }[] = [
+  { id: "facebook", label: "Facebook", icon: "📘", bg: "#1877F2", text: "#FFFFFF" },
+  { id: "whatsapp", label: "WhatsApp", icon: "💬", bg: "#25D366", text: "#FFFFFF" },
+  { id: "nextdoor", label: "Nextdoor", icon: "🏘", bg: "#1F9D57", text: "#FFFFFF" },
+  { id: "x", label: "X", icon: "✕", bg: "#111111", text: "#FFFFFF" },
+  { id: "copy", label: "Copy", icon: "📋", bg: "#E5E5E5", text: "#1F1F1F" },
+];
+
+function shareName(data: Assessment): string {
+  const breed = data.breed && !/unknown|mixed/i.test(data.breed) ? data.breed : "";
+  return cap((breed || data.species || "animal"));
+}
+
+function buildShareText(data: Assessment, mission: MissionId): string {
+  const m = MISSIONS[mission];
+  const name = shareName(data);
+  const where = locationLine(data);
+  return `🐾 ${name} needs help\n📍 ${where}\n\n${data.first_look}\n\n${m.callout.body}\n\nvia Voyce for Paws`;
+}
+
+export function RescueCard({
+  image,
+  data,
+  mission,
+  location,
+  situation,
+  animals,
+  animalIndex = 0,
+  onSelectAnimal,
+  onContinue,
+  onSend,
+}: {
+  image: string;
+  data: Assessment;
+  mission: MissionId;
+  location?: { lat: number; lon: number; label: string } | null;
+  situation?: string;
+  animals?: Assessment[];
+  animalIndex?: number;
+  onSelectAnimal?: (i: number) => void;
+  onContinue: () => void;
+  onDone?: () => void;
+  onSend?: () => void;
+  onEditDetails?: () => void;
+}) {
+  const [openPill, setOpenPill] = useState<string | null>(null);
+  const [shareConfirm, setShareConfirm] = useState<SharePlatform | null>(null);
+
+  const urgency = useMemo(() => getUrgency(data, mission), [data, mission]);
+  const condition = useMemo(() => getCondition(data), [data]);
+  const tone = toneFor(mission, urgency.level);
+  const T = TONES[tone];
+  const title = headline(data, mission, situation, condition, tone);
+  const chips = profileChips(data);
+  const m = MISSIONS[mission];
+
+  const mapsUrl = location
+    ? `https://www.google.com/maps/search/?api=1&query=${location.lat},${location.lon}`
+    : null;
+
+  const doShare = (p: SharePlatform) => {
+    const text = buildShareText(data, mission);
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    const enc = encodeURIComponent;
+    if (p === "copy") {
+      if (typeof navigator !== "undefined" && navigator.clipboard) void navigator.clipboard.writeText(`${text}\n${url}`);
+      return;
+    }
+    const intents: Record<Exclude<SharePlatform, "copy">, string> = {
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${enc(url)}&quote=${enc(text)}`,
+      whatsapp: `https://wa.me/?text=${enc(text + "\n" + url)}`,
+      nextdoor: `https://nextdoor.com/sharekit/?body=${enc(text)}&url=${enc(url)}`,
+      x: `https://twitter.com/intent/tweet?text=${enc(text)}&url=${enc(url)}`,
+    };
+    if (typeof window !== "undefined") window.open(intents[p], "_blank", "noopener,noreferrer");
+  };
+
+  // Detail pills — the collapsed sections. Each opens inline on tap.
+  const pills: { id: string; icon: string; label: string; render: () => ReactNode }[] = [
+    {
+      id: "health", icon: "🩺", label: "Health",
+      render: () => (
+        <div className="space-y-2 text-[13.5px] leading-relaxed text-foreground/85">
+          <p className="rounded-lg bg-[#FFFBEB] px-3 py-2 text-[12px] italic text-[#8A5A0E] ring-1 ring-[#F3E5B6]">
+            AI observations, not veterinary advice. Confirm with a vet.
+          </p>
+          <Row label="Visible condition" value={condition.visibleCondition} colors={CONDITION_COLORS[condition.visibleCondition]} />
+          {(data.symptoms ?? []).length > 0 && <Field label="Possible symptoms">{(data.symptoms ?? []).join(", ")}</Field>}
+          {data.vet_notes?.bcs && <Field label="Body condition">{data.vet_notes.bcs}</Field>}
+          {data.vet_notes?.posture && <Field label="Posture">{data.vet_notes.posture}</Field>}
+          {data.vet_notes?.hydration && <Field label="Hydration">{data.vet_notes.hydration}</Field>}
+          {data.vet_notes?.clinical && <Field label="Summary (not a diagnosis)">{data.vet_notes.clinical}</Field>}
+        </div>
+      ),
+    },
+    {
+      id: "behavior", icon: "🐾", label: "Behavior",
+      render: () => <p className="text-[13.5px] leading-relaxed text-foreground/85">{data.behavior || "No behavior notes."}</p>,
+    },
+    {
+      id: "where", icon: "📍", label: "Where found",
+      render: () => (
+        <div className="space-y-2 text-[13.5px] leading-relaxed text-foreground/85">
+          <p className="whitespace-pre-line">{data.environment_text || data.location_scene || "Limited environmental context in this frame."}</p>
+          {data.setting_type && <Field label="Setting">{data.setting_type}</Field>}
+          {data.lighting_conditions && <Field label="Lighting">{data.lighting_conditions}</Field>}
+          {(data.surrounding_objects ?? []).length > 0 && (
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {(data.surrounding_objects ?? []).map((o, i) => (
+                <span key={i} className="rounded-full border border-[#EDE5D8] bg-white px-2.5 py-0.5 text-[12px] text-foreground/80">{o}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: "next", icon: "✅", label: "Next steps",
+      render: () => (
+        <ul className="space-y-1.5 text-[13.5px] leading-relaxed text-foreground/85">
+          {(data.next_steps ?? []).map((n, i) => (
+            <li key={i} className="flex gap-2"><span className="text-[oklch(0.65_0.18_70)]">→</span><span>{n}</span></li>
+          ))}
+        </ul>
+      ),
+    },
+    {
+      id: "details", icon: "📋", label: "Details",
+      render: () => (
+        <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12.5px]">
+          {data.caseId && <DRow label="Case #" value={data.caseId} />}
+          {data.reportedAt && <DRow label="Reported" value={new Date(data.reportedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} />}
+          {data.ai_confidence && <DRow label="AI confidence" value={cap(data.ai_confidence)} />}
+          <DRow label="Type" value={situation || cap(mission.replace(/-/g, " "))} />
+        </dl>
+      ),
+    },
+  ];
+  if (Array.isArray(data.observations) && data.observations.filter(Boolean).length > 0) {
+    pills.unshift({
+      id: "obs", icon: "🔎", label: "AI read",
+      render: () => (
+        <ul className="space-y-1 text-[13.5px] leading-relaxed text-foreground/85">
+          {data.observations!.filter(Boolean).map((o, i) => (
+            <li key={i} className="flex gap-2"><span className="text-[oklch(0.65_0.18_70)]">•</span><span>{o}</span></li>
+          ))}
+        </ul>
+      ),
+    });
+  }
+
+  const flyerVariant = {
+    badgeIcon: T.badge.split(" ")[0],
+    badgeText: T.badge.replace(/^\S+\s/, ""),
+    badgeGradient: T.bg,
+    title,
+    titleColor: T.title,
+    subhead: m.titleSub || "",
+  };
+
+  return (
+    <div className="min-h-[100dvh] bg-background pb-28">
+      <BrandHeader />
+      <AIDisclosureBanner />
+
+      {animals && animals.length > 1 && (
+        <div className="mx-auto flex w-full max-w-xl flex-wrap items-center gap-2 px-5 pt-3">
+          <span className="text-[12px] font-semibold text-muted-foreground">{animals.length} animals:</span>
+          {animals.map((a, i) => (
+            <button key={i} type="button" onClick={() => onSelectAnimal?.(i)}
+              className="rounded-full border-[1.5px] px-3 py-1 text-[12.5px] font-bold transition active:scale-[0.97]"
+              style={i === animalIndex ? { background: "#FFDF3B", borderColor: "#FFDF3B", color: "#3A2A07" } : { borderColor: "#E6DED0", color: "#8A5A0E" }}>
+              {cap(a.species || "animal")} {i + 1}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="mx-auto w-full max-w-xl px-5 pt-4">
+        <article className="overflow-hidden rounded-3xl border border-border bg-card shadow-[0_8px_30px_-12px_rgba(60,40,10,0.12)]">
+          {/* Photo + honest status badge */}
+          <div className="relative bg-[oklch(0.96_0.02_85)]">
+            <img src={image} alt={title} className="aspect-[4/3] w-full object-cover" />
+            <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-bold uppercase tracking-[0.1em] shadow-sm"
+              style={{ background: T.bg, color: T.fg }}>
+              {T.badge}
+            </span>
+          </div>
+
+          {/* Title + situation */}
+          <div className="px-5 pt-4">
+            <h1 className="font-serif text-[24px] font-bold leading-[1.1]" style={{ color: T.title }}>{title}</h1>
+            <div className="mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-bold uppercase tracking-[0.1em]"
+              style={{ background: urgency.soft, color: urgency.deep }}>
+              <span className="text-muted-foreground/70">Urgency:</span><span>{urgency.emoji} {urgency.label}</span>
+            </div>
+
+            {chips.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {chips.map((c) => (
+                  <span key={c.label} className="inline-flex items-center gap-1 rounded-full border border-[#EDE5D8] bg-white px-2.5 py-0.5 text-[11.5px] text-foreground/80">
+                    <span className="text-muted-foreground">{c.label}:</span><span className="font-medium text-foreground/90">{c.value}</span>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-[14px] font-semibold">
+              <span className="flex items-center gap-1.5"><span>📍</span><span>{locationLine(data)}</span></span>
+              {mapsUrl && (
+                <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-[12px] font-bold no-underline transition active:scale-[0.97]"
+                  style={{ borderColor: "#EDE5D8", color: "#8A5A0E", background: "#FFF9E6" }}>View map</a>
+              )}
+            </div>
+
+            {data.first_look && (
+              <p className="mt-2 text-[13.5px] italic leading-relaxed text-[oklch(0.45_0.03_70)]">{data.first_look}</p>
+            )}
+          </div>
+
+          {/* Primary action */}
+          {onSend && (
+            <div className="mx-5 mt-4">
+              <button onClick={onSend}
+                className="w-full rounded-2xl px-5 py-4 text-[15px] font-bold uppercase tracking-wide shadow-sm transition hover:brightness-105 active:scale-[0.99]"
+                style={{ background: "linear-gradient(135deg,#FFDF3B,#C9871A)", color: "#3A2A07" }}>
+                🚨 Send to rescuers
+              </button>
+            </div>
+          )}
+
+          {/* Detail pills — tap to expand */}
+          <div className="mx-5 mt-4">
+            <div className="flex flex-wrap gap-1.5">
+              {pills.map((p) => {
+                const on = openPill === p.id;
+                return (
+                  <button key={p.id} type="button" onClick={() => setOpenPill(on ? null : p.id)} aria-expanded={on}
+                    className="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition active:scale-95"
+                    style={on ? { background: "#1A1611", color: "#FFDF3B", borderColor: "#1A1611" } : { background: "#fff", color: "#6B5832", borderColor: "#E3DAC4" }}>
+                    <span>{p.icon}</span><span>{p.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {openPill && (
+              <div className="mt-3 rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3.5">
+                {pills.find((p) => p.id === openPill)!.render()}
+              </div>
+            )}
+          </div>
+
+          {/* Share */}
+          <div className="mx-5 mt-5">
+            <p className="text-center text-[11px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">Share to get more eyes on {shareName(data)}</p>
+            <div className="mt-2 grid grid-cols-5 gap-2">
+              {SHARE_PLATFORMS.map((p) => (
+                <button key={p.id} onClick={() => setShareConfirm(p.id)} aria-label={`Share to ${p.label}`}
+                  className="flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2.5 text-[11px] font-semibold shadow-sm transition hover:brightness-110 active:scale-[0.97]"
+                  style={{ background: p.bg, color: p.text }}>
+                  <span className="text-[15px] leading-none">{p.icon}</span><span>{p.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Save / download flyer */}
+          <div className="mx-5">
+            <SaveCardControls image={image} data={data} name={shareName(data)} city={location?.label} v={flyerVariant} />
+          </div>
+
+          <div className="mx-5 mt-5 mb-5 rounded-2xl border border-[#EDE5D8] px-4 py-3 text-[12.5px]" style={{ background: T.ring, color: T.title }}>
+            <span className="font-semibold">👥 Closest helpers alerted first.</span> {m.nearbyHelpers}
+          </div>
+        </article>
+
+        <div className="mt-4 flex items-center justify-center gap-3">
+          <button onClick={onContinue} className="text-[13px] font-semibold text-[#8A5A0E] underline-offset-2 hover:underline">
+            Continue →
+          </button>
+        </div>
+
+        <p className="mx-auto mt-3 max-w-lg text-center text-[11.5px] italic leading-relaxed text-muted-foreground">
+          ⚠️ Voyce shares AI observations, not veterinary advice. AI may misidentify breed, age, or condition and can't detect internal injuries or disease. Confirm with a licensed veterinarian before any medical, rescue, or transport decision.
+        </p>
+      </div>
+
+      {shareConfirm && (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 sm:items-center sm:pb-10" onClick={() => setShareConfirm(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-3xl border border-border bg-card p-5 shadow-2xl">
+            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#A8431F]">⚠️ Confirm share</div>
+            <h3 className="mt-2 font-serif text-lg font-semibold leading-tight">You're about to share this AI-generated rescue card.</h3>
+            <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">AI assessments may be inaccurate. Share anyway?</p>
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button type="button" onClick={() => setShareConfirm(null)} className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium">Cancel</button>
+              <button type="button" onClick={() => { const p = shareConfirm; setShareConfirm(null); if (p) doShare(p); }}
+                className="rounded-full bg-gradient-to-b from-[#FFDF3B] to-[#C9871A] px-4 py-2 text-sm font-semibold text-[#3A2A07] shadow-sm">Share anyway</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div>
+      <span className="text-muted-foreground">{label}: </span>
+      <span className="text-foreground/90">{children}</span>
+    </div>
+  );
+}
+
+function DRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-2">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="text-right font-medium text-foreground/85">{value}</dd>
+    </div>
+  );
+}
+
+function Row({ label, value, colors }: { label: string; value: string; colors: { bg: string; text: string; dot: string } }) {
+  return (
+    <div className="flex items-center justify-between rounded-xl border px-3 py-2" style={{ background: colors.bg, borderColor: colors.dot, color: colors.text }}>
+      <span className="text-[11px] font-bold uppercase tracking-[0.12em] opacity-80">{label}</span>
+      <span className="text-[13px] font-bold uppercase">{value}</span>
+    </div>
+  );
+}
