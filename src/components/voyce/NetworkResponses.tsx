@@ -6,34 +6,36 @@ import {
 } from "@/lib/network.functions";
 
 // =============================================================
-// NetworkResponses — the shared "How the network is responding" feed.
-// A viewer enters their name once, then taps how they can help (Foster, Adopt,
-// Rescue pull, Transport, Pledge, Share). Each tap posts to a shared feed so
-// EVERYONE watching this animal sees the pack step up in real time — that's the
-// ripple. Persisted in Supabase (network_responses), keyed by animal.
+// NetworkResponses — the shared "Can you help? + How the network is responding"
+// block. It does BOTH jobs in one place:
+//   1) Commitment — a viewer enters their name once, taps how they can help
+//      (Foster, Adopt, Rescue pull, Transport, Pledge), then a popup asks what
+//      ELSE is still needed to get the animal all the way to safety.
+//   2) Live pack feed — that commitment posts to a shared feed so EVERYONE
+//      watching this animal sees the pack step up in real time, and the feed
+//      line reflects both the role AND the still-needs, e.g.
+//      "Rachna · can foster · still needs an adopter, a vet".
+// Persisted in Supabase (network_responses), keyed by animal. A "➕ Other" pill
+// opens a sheet with the less-common paths (shelter transfer, transport, vet,
+// trainer, boarding) plus a free-text "Something else" field.
 //
-// The six primary pills cover the common ways to step up. A seventh "➕ Other"
-// pill opens a "More ways to help" sheet with the less-common paths (shelter
-// transfer, transport, vet care, trainer, boarding) plus a free-text
-// "Something else" field — every one of them posts to the same live feed, and
-// the free-text answer is saved in the response's `detail` so it shows verbatim.
-//
-// It also EXPLAINS itself: a short "this is the pack, live" intro up top, and a
-// "Join the pack / Donate" footer so a newcomer understands what they're seeing
-// and can step in. The footer is link-based by default (works on every card);
-// a host can pass onJoin / onDonate to open its own modals instead, or hide the
-// footer with showJoinCta={false} when the card already has its own join CTA.
+// It also EXPLAINS itself (a short "this is the pack, live" intro) and offers a
+// "Join the pack / Donate" footer (hide with showJoinCta={false}).
 // =============================================================
 
 const NAME_KEY = "voyce_responder_name";
 const GOLD = "linear-gradient(135deg,#FFDF3B,#C9871A)";
 
+function cap(s: string): string {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
 type KindMeta = { label: string; dot: string; icon?: string; chip?: string };
 const KINDS: Record<string, KindMeta> = {
   adopt:         { label: "wants to adopt", dot: "#993556", icon: "🤝", chip: "Adopt" },
   rescue:        { label: "will pull · rescue partner", dot: "#7C3AED", icon: "🐾", chip: "Rescue pull" },
-  foster_rescue: { label: "can foster · with a rescue", dot: "#12805C", icon: "🏠", chip: "Foster" },
-  transport:     { label: "can transport · get them there", dot: "#2563EB", icon: "🚚", chip: "Transport" },
+  foster_rescue: { label: "can foster", dot: "#12805C", icon: "🏠", chip: "Foster" },
+  transport:     { label: "can transport", dot: "#2563EB", icon: "🚚", chip: "Transport" },
   pledge:        { label: "pledged funds toward the pull", dot: "#0F6E56", icon: "💵", chip: "Pledge" },
   share:         { label: "shared to the network", dot: "#8A8175", icon: "📣", chip: "Share" },
   foster_acs:    { label: "can foster · can pick up nearby", dot: "#8A5A0E" },
@@ -43,8 +45,35 @@ const KINDS: Record<string, KindMeta> = {
   boarding:      { label: "can offer boarding · temporary space", dot: "#B45309", icon: "🛏", chip: "Boarding" },
   other:         { label: "wants to help", dot: "#8A5A0E" },
 };
-// The tappable actions, in order.
+// The tappable actions, in order. Each role (all but "share") opens the
+// commitment popup; "share" posts directly and lets the host open its share UI.
 const ACTIONS = ["foster_rescue", "adopt", "rescue", "transport", "pledge", "share"] as const;
+
+// The verb shown in the commitment popup header for each role.
+const ROLE_VERB: Record<string, string> = {
+  foster_rescue: "foster",
+  adopt: "adopt",
+  rescue: "pull",
+  transport: "transport",
+  pledge: "pledge for",
+};
+// After picking a role, the responder says what ELSE is still needed. These
+// post together so the feed reads "can foster · still needs an adopter, a vet".
+const STILL_NEEDS: { id: string; label: string }[] = [
+  { id: "foster",    label: "a foster" },
+  { id: "adopter",   label: "an adopter" },
+  { id: "transport", label: "transport" },
+  { id: "funds",     label: "funds / pledges" },
+  { id: "vet",       label: "a vet" },
+];
+// The need each role already covers (so we don't ask the lead for it again).
+const ROLE_COVERS: Record<string, string> = {
+  foster_rescue: "foster",
+  adopt: "adopter",
+  rescue: "",
+  transport: "transport",
+  pledge: "funds",
+};
 
 // The less-common ways to step up, shown in the "More ways to help" sheet that
 // the ➕ Other pill opens. Each posts to the same live feed via respond().
@@ -54,15 +83,6 @@ const MORE_WAYS: { kind: string; icon: string; label: string; tag: string }[] = 
   { kind: "vet",       icon: "🩺", label: "Vet care",          tag: "medical" },
   { kind: "trainer",   icon: "🎓", label: "Trainer",           tag: "behavior help" },
   { kind: "boarding",  icon: "🛏", label: "Boarding",          tag: "temporary space" },
-];
-
-// Foster has two flavors — the picker the Foster pill opens. The difference is
-// how far the animal is: "pick up nearby" for a local pickup, or "with a rescue"
-// when a rescue partner coordinates transport from anywhere. Both post to the
-// same live feed (foster_acs / foster_rescue).
-const FOSTER_WAYS: { kind: string; icon: string; label: string; tag: string }[] = [
-  { kind: "foster_acs",    icon: "🏠", label: "Foster & pick up nearby", tag: "within ~40 mi" },
-  { kind: "foster_rescue", icon: "🐾", label: "Foster with a rescue",    tag: "anywhere" },
 ];
 
 function initials(n: string): string {
@@ -104,18 +124,19 @@ export function NetworkResponses({
   onJoin?: () => void;
   /** If provided, the Donate button calls this instead of navigating. */
   onDonate?: () => void;
-  /** If provided, tapping an action ALSO calls this so the host can open its deeper flow. */
+  /** If provided, tapping an action ALSO calls this so the host can open its own UI (e.g. the share sheet). */
   onAction?: (kind: string) => void;
 }) {
   const [name, setName] = useState<string>("");
   const [draft, setDraft] = useState("");
   const [items, setItems] = useState<NetworkResponse[]>([]);
   const [busy, setBusy] = useState(false);
+  // Commitment popup — the role the responder tapped + what else they still need.
+  const [commitRole, setCommitRole] = useState<string | null>(null);
+  const [needs, setNeeds] = useState<Record<string, boolean>>({});
   // "More ways to help" sheet (opened by the ➕ Other pill) + its free-text draft.
   const [showMore, setShowMore] = useState(false);
   const [customText, setCustomText] = useState("");
-  // "Foster" picker sheet — the Foster pill opens this to pick which way to foster.
-  const [showFoster, setShowFoster] = useState(false);
 
   const who = animalName || "this animal";
 
@@ -142,8 +163,8 @@ export function NetworkResponses({
     setName(v);
   };
 
-  // Post a response to the shared feed. `detail` carries the free-text answer
-  // for the "Something else" path so it shows verbatim in the feed.
+  // Post a response to the shared feed. `detail` carries the "still needs …"
+  // phrase (or the free-text "Something else" answer) so it shows in the feed.
   const respond = async (kind: string, detail?: string) => {
     if (!name || busy) return;
     setBusy(true);
@@ -155,6 +176,12 @@ export function NetworkResponses({
     } catch { /* ignore */ } finally {
       setBusy(false);
     }
+  };
+
+  const openCommit = (role: string) => {
+    if (!name) return;
+    setCommitRole(role);
+    setNeeds({});
   };
 
   const submitCustom = () => {
@@ -203,19 +230,18 @@ export function NetworkResponses({
         </div>
       )}
 
-      {/* Can you help? — actions post to the live feed and (if the host wants) open its deeper flow */}
+      {/* Can you help? — tap a role to commit; a popup asks what else is still
+          needed, then it posts to the live feed below. */}
       {name && (
         <div className="mt-3">
           <div className="text-[13px] font-bold text-[#0B0B0C]">Can you help {who}?</div>
           <div className="mt-2 grid grid-cols-3 gap-2">
             {ACTIONS.map((k) => {
               const meta = KINDS[k];
-              // Foster opens a picker (pick up nearby vs. with a rescue) instead
-              // of responding straight away — each choice in it posts to the feed.
-              const isFoster = k === "foster_rescue";
+              const isShare = k === "share";
               return (
                 <button key={k} type="button" disabled={busy}
-                  onClick={() => { if (isFoster) { setShowFoster(true); return; } void respond(k); onAction?.(k); }}
+                  onClick={() => { if (isShare) { void respond(k); onAction?.(k); return; } openCommit(k); }}
                   className="flex items-center justify-center gap-1.5 rounded-xl border px-2 py-2.5 text-[12.5px] font-bold transition active:scale-[0.97] disabled:opacity-60"
                   style={{ borderColor: "#E3DAC4", background: "#fff", color: "#6B5832" }}>
                   <span>{meta.icon}</span><span>{meta.chip}</span>
@@ -246,8 +272,11 @@ export function NetworkResponses({
         <ul className="mt-2 space-y-1.5">
           {items.map((r) => {
             const meta = KINDS[r.kind] ?? KINDS.other;
-            // A free-text "Something else" answer shows verbatim; presets show their label.
-            const sub = r.kind === "other" && r.detail ? r.detail : meta.label;
+            // Free-text "Something else" shows verbatim; a role commitment shows
+            // its label plus any "still needs …" detail the responder added.
+            const sub = r.kind === "other"
+              ? (r.detail || meta.label)
+              : (meta.label + (r.detail ? ` · ${r.detail}` : ""));
             return (
               <li key={r.id} className="flex items-center gap-2.5 rounded-xl border border-[#EDE5D8] bg-white px-3 py-2">
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: meta.dot }} />
@@ -283,37 +312,63 @@ export function NetworkResponses({
         </div>
       )}
 
-      {/* Foster — the Foster pill opens this picker. Each choice posts to the
-          same live feed (foster_acs = pick up nearby, foster_rescue = anywhere). */}
-      {showFoster && (
-        <div role="dialog" aria-modal="true"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 sm:items-center sm:pb-10"
-          onClick={() => setShowFoster(false)}>
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-3xl border border-border bg-card p-5 shadow-2xl">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="font-serif text-lg font-semibold leading-tight">Foster {who}</h3>
-              <button type="button" onClick={() => setShowFoster(false)} aria-label="Close"
-                className="shrink-0 rounded-full border border-border bg-background px-2.5 py-1 text-sm">✕</button>
-            </div>
-            <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
-              Two ways to foster — pick whichever fits how far you can travel to pick {who} up.
-            </p>
-            <div className="mt-3 space-y-2">
-              {FOSTER_WAYS.map((w) => (
-                <button key={w.kind} type="button" disabled={busy}
-                  onClick={() => { void respond(w.kind); onAction?.(w.kind); setShowFoster(false); }}
-                  className="flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-[13.5px] font-semibold transition active:scale-[0.99] disabled:opacity-60"
-                  style={{ borderColor: "#E3DAC4", background: "#fff", color: "#6B5832" }}>
-                  <span className="flex items-center gap-2"><span>{w.icon}</span><span>{w.label}</span></span>
-                  <span className="shrink-0 rounded-full bg-[#EAF7EE] px-2 py-0.5 text-[10.5px] font-bold text-[#1F7A3A]">{w.tag}</span>
+      {/* Commitment popup — opened by a role pill. Pick what else is still
+          needed (optional), then it posts to the live feed above with both the
+          role and the "still needs …" detail. */}
+      {commitRole && (() => {
+        const covers = ROLE_COVERS[commitRole] ?? "";
+        const askable = STILL_NEEDS.filter((n) => n.id !== covers);
+        const chosen = askable.filter((n) => needs[n.id]);
+        const verb = ROLE_VERB[commitRole] ?? "help";
+        const accept = () => {
+          const list = chosen.map((n) => n.label);
+          const phrase =
+            list.length === 0 ? undefined :
+            "still needs " + (list.length === 1
+              ? list[0]
+              : list.slice(0, -1).join(", ") + " and " + list[list.length - 1]);
+          void respond(commitRole, phrase);
+          onAction?.(commitRole);
+          setCommitRole(null);
+          setNeeds({});
+        };
+        return (
+          <div role="dialog" aria-modal="true"
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 sm:items-center sm:pb-10"
+            onClick={() => setCommitRole(null)}>
+            <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-3xl border border-border bg-card p-5 shadow-2xl">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="font-serif text-lg font-semibold leading-tight">You're stepping up to {verb} {who}</h3>
+                <button type="button" onClick={() => setCommitRole(null)} aria-label="Close"
+                  className="shrink-0 rounded-full border border-border bg-background px-2.5 py-1 text-sm">✕</button>
+              </div>
+              <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+                As the first to accept, you're the <span className="font-semibold text-foreground/80">lead</span>. What else does {who} still need to get all the way to safety? <span className="italic">(Optional — you can just commit.)</span>
+              </p>
+              <div className="mt-3 space-y-2">
+                {askable.map((n) => {
+                  const on = !!needs[n.id];
+                  return (
+                    <button key={n.id} type="button" onClick={() => setNeeds((s) => ({ ...s, [n.id]: !on }))}
+                      className="flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-[13px] font-semibold transition active:scale-[0.99]"
+                      style={on ? { borderColor: "#C9871A", background: "#FFF6E5", color: "#8A5A0E" } : { borderColor: "#E3DAC4", background: "#fff", color: "#6B5832" }}>
+                      <span className="text-[15px] leading-none">{on ? "✅" : "▢"}</span><span>{cap(n.label)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-4 flex items-center justify-end gap-2">
+                <button type="button" onClick={() => setCommitRole(null)} className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium">Cancel</button>
+                <button type="button" disabled={busy} onClick={accept}
+                  className="rounded-full px-4 py-2 text-sm font-semibold text-[#3A2A07] shadow-sm disabled:opacity-60"
+                  style={{ background: GOLD }}>
+                  {chosen.length > 0 ? "Commit & rally the rest" : "Commit — I've got it"}
                 </button>
-              ))}
+              </div>
             </div>
-            <button type="button" onClick={() => setShowFoster(false)}
-              className="mt-4 w-full rounded-xl bg-[#1A1611] py-2.5 text-[13.5px] font-bold text-white">Done</button>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* More ways to help — opened by the ➕ Other pill. Every option posts to
           the same live feed; the free-text answer is saved verbatim in `detail`. */}
