@@ -12,7 +12,6 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AddToHomeBanner } from "@/components/voyce/AddToHomeBanner";
-import { VoyceSplash } from "@/components/voyce/VoyceSplash";
 
 function NotFoundComponent() {
   return (
@@ -257,8 +256,6 @@ function RootComponent() {
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <AddToHomeBanner />
-      {/* Animated intro splash — plays once per session, skips /r/ share pages */}
-      <VoyceSplash />
     </QueryClientProvider>
   );
 }
