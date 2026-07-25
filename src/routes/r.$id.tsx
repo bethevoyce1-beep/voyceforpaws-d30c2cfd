@@ -5,6 +5,7 @@ import { getSharedReport, type SharedReport } from "@/lib/share.functions";
 import { NetworkResponses } from "@/components/voyce/NetworkResponses";
 import { getUrgency } from "@/lib/urgency";
 import { getCondition, CONDITION_COLORS } from "@/lib/condition";
+import { VoyceMark } from "@/components/voyce/VoyceMark";
 
 // =============================================================
 // Public shared rescue-card page (/r/<id>). This is what a recipient of a
@@ -109,7 +110,7 @@ function TopNav() {
         ‹ Back
       </button>
       <a href={APP} className="flex items-center gap-2 no-underline">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#141414] text-[15px]">🐾</span>
+        <VoyceMark size={28} />
         <span className="text-[15px] font-black tracking-tight text-white">Voyce <span className="italic text-[#FFDF3B]">for</span> Paws&trade;</span>
       </a>
       <a href={APP} className="ml-auto inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1.5 text-[13px] font-bold text-white no-underline active:scale-95">
@@ -344,7 +345,7 @@ function SharePage() {
 
         {/* How the network is responding — the shared ripple for this animal */}
         <div className="mt-5 overflow-hidden rounded-2xl border border-[#EDE5D8] bg-white py-1">
-          <NetworkResponses subjectType="report" subjectId={id} animalName={name} />
+          <NetworkResponses subjectType="report" subjectId={id} animalName={name} showJoinCta={false} />
         </div>
 
         {/* What is Voyce */}
