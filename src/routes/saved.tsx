@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
 import { listSharedReports, type SavedReport } from "@/lib/saved.functions";
 import { getUrgency } from "@/lib/urgency";
+import { VoyceMark } from "@/components/voyce/VoyceMark";
 
 // =============================================================
 // /saved — the "Saved cards" gallery. Every rescue card auto-saves the moment
@@ -80,7 +81,7 @@ function SavedPage() {
     <div className="min-h-[100dvh] bg-[#FBF7EC] pb-16">
       {/* Brand bar — logo returns to the app home */}
       <a href="/" className="flex items-center gap-2.5 bg-[#0B0B0C] px-5 py-3.5 no-underline">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#141414] text-[15px]">🐾</span>
+        <VoyceMark size={28} />
         <span className="text-[16px] font-black tracking-tight text-white">Voyce <span className="italic text-[#FFDF3B]">for</span> Paws&trade;</span>
         <span className="ml-auto text-[11px] font-semibold uppercase tracking-[0.14em] text-white/55">Saved cards</span>
       </a>
