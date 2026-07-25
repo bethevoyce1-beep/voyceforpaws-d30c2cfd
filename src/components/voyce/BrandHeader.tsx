@@ -3,7 +3,8 @@
  * disclosure / Donate. Appears at the top of every screen for consistent brand
  * identity and an always-visible urgency signal.
  *
- * A screen can surface a back button by wrapping itself in
+ * The logo is a Home link (→ "/") so there's always a one-tap way home. A screen
+ * can also surface a back button by wrapping itself in
  * <BackNavContext.Provider value={goBack}> — the header then shows a "‹ Back" pill.
  *
  * Likewise, wrapping in <DonateContext.Provider value={openDonate}> surfaces a
@@ -311,18 +312,20 @@ export function BrandHeader() {
             <span>Back</span>
           </button>
         )}
-        <span className="voyce-brand-mark" aria-hidden>
-          <svg width="17" height="17" viewBox="0 0 100 100" fill="currentColor">
-            <path d="M50,91 C33,91 24,80 24,68 C24,56 33,49 50,49 C67,49 76,56 76,68 C76,80 67,91 50,91 Z" />
-            <ellipse cx="21" cy="40" rx="9.5" ry="13" />
-            <ellipse cx="39" cy="27" rx="9.5" ry="13" />
-            <ellipse cx="57" cy="27" rx="9.5" ry="13" />
-            <ellipse cx="73" cy="40" rx="9.5" ry="13" />
-          </svg>
-        </span>
-        <span className="voyce-wordmark font-serif" style={{ fontSize: 17, fontWeight: 700, color: "#0B0B0C", letterSpacing: "-0.01em" }}>
-          Voyce <em>for</em> Paws
-        </span>
+        <a href="/" aria-label="Voyce for Paws — home" className="flex items-center gap-2.5 no-underline">
+          <span className="voyce-brand-mark" aria-hidden>
+            <svg width="17" height="17" viewBox="0 0 100 100" fill="currentColor">
+              <path d="M50,91 C33,91 24,80 24,68 C24,56 33,49 50,49 C67,49 76,56 76,68 C76,80 67,91 50,91 Z" />
+              <ellipse cx="21" cy="40" rx="9.5" ry="13" />
+              <ellipse cx="39" cy="27" rx="9.5" ry="13" />
+              <ellipse cx="57" cy="27" rx="9.5" ry="13" />
+              <ellipse cx="73" cy="40" rx="9.5" ry="13" />
+            </svg>
+          </span>
+          <span className="voyce-wordmark font-serif" style={{ fontSize: 17, fontWeight: 700, color: "#0B0B0C", letterSpacing: "-0.01em" }}>
+            Voyce <em>for</em> Paws
+          </span>
+        </a>
       </div>
       <div className="flex items-center gap-1.5">
         <NotifyBell />
