@@ -61,6 +61,7 @@ export function NetworkResponses({
   donateHref = "/auth/register",
   onJoin,
   onDonate,
+  onAction,
 }: {
   subjectType?: string;
   subjectId: string;
@@ -75,6 +76,8 @@ export function NetworkResponses({
   onJoin?: () => void;
   /** If provided, the Donate button calls this instead of navigating. */
   onDonate?: () => void;
+  /** If provided, tapping an action ALSO calls this so the host can open its deeper flow. */
+  onAction?: (kind: string) => void;
 }) {
   const [name, setName] = useState<string>("");
   const [draft, setDraft] = useState("");
@@ -156,15 +159,15 @@ export function NetworkResponses({
         </div>
       )}
 
-      {/* What would you like to do? */}
+      {/* Can you help? — actions post to the live feed and (if the host wants) open its deeper flow */}
       {name && (
         <div className="mt-3">
-          <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">What would you like to do?</div>
+          <div className="text-[13px] font-bold text-[#0B0B0C]">Can you help {who}?</div>
           <div className="mt-2 grid grid-cols-3 gap-2">
             {ACTIONS.map((k) => {
               const meta = KINDS[k];
               return (
-                <button key={k} type="button" disabled={busy} onClick={() => void respond(k)}
+                <button key={k} type="button" disabled={busy} onClick={() => { void respond(k); onAction?.(k); }}
                   className="flex items-center justify-center gap-1.5 rounded-xl border px-2 py-2.5 text-[12.5px] font-bold transition active:scale-[0.97] disabled:opacity-60"
                   style={{ borderColor: "#E3DAC4", background: "#fff", color: "#6B5832" }}>
                   <span>{meta.icon}</span><span>{meta.chip}</span>
