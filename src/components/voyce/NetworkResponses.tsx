@@ -32,11 +32,11 @@ type KindMeta = { label: string; dot: string; icon?: string; chip?: string };
 const KINDS: Record<string, KindMeta> = {
   adopt:         { label: "wants to adopt", dot: "#993556", icon: "🤝", chip: "Adopt" },
   rescue:        { label: "will pull · rescue partner", dot: "#7C3AED", icon: "🐾", chip: "Rescue pull" },
-  foster_rescue: { label: "can foster", dot: "#12805C", icon: "🏠", chip: "Foster" },
+  foster_rescue: { label: "can foster · with a rescue", dot: "#12805C", icon: "🏠", chip: "Foster" },
   transport:     { label: "can transport · get them there", dot: "#2563EB", icon: "🚚", chip: "Transport" },
   pledge:        { label: "pledged funds toward the pull", dot: "#0F6E56", icon: "💵", chip: "Pledge" },
   share:         { label: "shared to the network", dot: "#8A8175", icon: "📣", chip: "Share" },
-  foster_acs:    { label: "can foster · through ACS", dot: "#8A5A0E" },
+  foster_acs:    { label: "can foster · can pick up nearby", dot: "#8A5A0E" },
   transfer:      { label: "another shelter can take · transfer", dot: "#185FA5", icon: "🏢", chip: "Shelter transfer" },
   vet:           { label: "can help with vet care", dot: "#0F766E", icon: "🩺", chip: "Vet care" },
   trainer:       { label: "can help with training · behavior", dot: "#7C3AED", icon: "🎓", chip: "Trainer" },
@@ -54,6 +54,15 @@ const MORE_WAYS: { kind: string; icon: string; label: string; tag: string }[] = 
   { kind: "vet",       icon: "🩺", label: "Vet care",          tag: "medical" },
   { kind: "trainer",   icon: "🎓", label: "Trainer",           tag: "behavior help" },
   { kind: "boarding",  icon: "🛏", label: "Boarding",          tag: "temporary space" },
+];
+
+// Foster has two flavors — the picker the Foster pill opens. The difference is
+// how far the animal is: "pick up nearby" for a local pickup, or "with a rescue"
+// when a rescue partner coordinates transport from anywhere. Both post to the
+// same live feed (foster_acs / foster_rescue).
+const FOSTER_WAYS: { kind: string; icon: string; label: string; tag: string }[] = [
+  { kind: "foster_acs",    icon: "🏠", label: "Foster & pick up nearby", tag: "within ~40 mi" },
+  { kind: "foster_rescue", icon: "🐾", label: "Foster with a rescue",    tag: "anywhere" },
 ];
 
 function initials(n: string): string {
@@ -105,6 +114,8 @@ export function NetworkResponses({
   // "More ways to help" sheet (opened by the ➕ Other pill) + its free-text draft.
   const [showMore, setShowMore] = useState(false);
   const [customText, setCustomText] = useState("");
+  // "Foster" picker sheet — the Foster pill opens this to pick which way to foster.
+  const [showFoster, setShowFoster] = useState(false);
 
   const who = animalName || "this animal";
 
@@ -199,8 +210,12 @@ export function NetworkResponses({
           <div className="mt-2 grid grid-cols-3 gap-2">
             {ACTIONS.map((k) => {
               const meta = KINDS[k];
+              // Foster opens a picker (pick up nearby vs. with a rescue) instead
+              // of responding straight away — each choice in it posts to the feed.
+              const isFoster = k === "foster_rescue";
               return (
-                <button key={k} type="button" disabled={busy} onClick={() => { void respond(k); onAction?.(k); }}
+                <button key={k} type="button" disabled={busy}
+                  onClick={() => { if (isFoster) { setShowFoster(true); return; } void respond(k); onAction?.(k); }}
                   className="flex items-center justify-center gap-1.5 rounded-xl border px-2 py-2.5 text-[12.5px] font-bold transition active:scale-[0.97] disabled:opacity-60"
                   style={{ borderColor: "#E3DAC4", background: "#fff", color: "#6B5832" }}>
                   <span>{meta.icon}</span><span>{meta.chip}</span>
@@ -265,6 +280,38 @@ export function NetworkResponses({
           <p className="mt-2 text-[10.5px] italic text-muted-foreground">
             We're a 501(c)(3) · donations open at launch. Joining the pack is always free.
           </p>
+        </div>
+      )}
+
+      {/* Foster — the Foster pill opens this picker. Each choice posts to the
+          same live feed (foster_acs = pick up nearby, foster_rescue = anywhere). */}
+      {showFoster && (
+        <div role="dialog" aria-modal="true"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 sm:items-center sm:pb-10"
+          onClick={() => setShowFoster(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-3xl border border-border bg-card p-5 shadow-2xl">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="font-serif text-lg font-semibold leading-tight">Foster {who}</h3>
+              <button type="button" onClick={() => setShowFoster(false)} aria-label="Close"
+                className="shrink-0 rounded-full border border-border bg-background px-2.5 py-1 text-sm">✕</button>
+            </div>
+            <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
+              Two ways to foster — pick whichever fits how far you can travel to pick {who} up.
+            </p>
+            <div className="mt-3 space-y-2">
+              {FOSTER_WAYS.map((w) => (
+                <button key={w.kind} type="button" disabled={busy}
+                  onClick={() => { void respond(w.kind); onAction?.(w.kind); setShowFoster(false); }}
+                  className="flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-[13.5px] font-semibold transition active:scale-[0.99] disabled:opacity-60"
+                  style={{ borderColor: "#E3DAC4", background: "#fff", color: "#6B5832" }}>
+                  <span className="flex items-center gap-2"><span>{w.icon}</span><span>{w.label}</span></span>
+                  <span className="shrink-0 rounded-full bg-[#EAF7EE] px-2 py-0.5 text-[10.5px] font-bold text-[#1F7A3A]">{w.tag}</span>
+                </button>
+              ))}
+            </div>
+            <button type="button" onClick={() => setShowFoster(false)}
+              className="mt-4 w-full rounded-xl bg-[#1A1611] py-2.5 text-[13.5px] font-bold text-white">Done</button>
+          </div>
         </div>
       )}
 
