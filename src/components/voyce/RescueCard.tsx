@@ -551,34 +551,22 @@ export function RescueCard({
             </div>
           )}
 
-          {/* Can you help? — role offers, sitting just above the pack feed */}
+          {/* Closest-helpers ripple note, sitting just above the pack feed */}
           <div className="mx-5 mt-5 rounded-2xl border border-[#EDE5D8] px-4 py-3 text-[12.5px]" style={{ background: T.ring, color: T.title }}>
             <span className="font-semibold">👥 Closest helpers alerted first.</span> {m.nearbyHelpers}
           </div>
 
-          {/* Can you help? — role offers, sitting just above the pack feed */}
-          <div className="mx-5 mt-5 mb-5">
-            <p className="text-[13px] font-bold" style={{ color: T.title }}>Can you help {shareName(data)}?</p>
-            <div className="mt-2 grid grid-cols-3 gap-2">
-              {HELP_ROLES.map((r) => (
-                <button key={r.id} type="button" onClick={() => openHelp(r)}
-                  className="flex items-center justify-center gap-1.5 rounded-xl border px-2 py-2.5 text-[12.5px] font-bold transition active:scale-[0.97]"
-                  style={{ borderColor: "#E3DAC4", background: "#fff", color: "#6B5832" }}>
-                  <span>{r.icon}</span><span>{r.label}</span>
-                </button>
-              ))}
-              <button type="button" onClick={() => setShowShare(true)}
-                className="flex items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-[12.5px] font-bold text-white shadow-sm transition active:scale-[0.97]"
-                style={{ background: "linear-gradient(135deg,#7C5CFF,#5B3FD6)" }}>
-                <span>📣</span><span>Share</span>
-              </button>
-            </div>
-          </div>
+          {/* Can you help? — the deeper-flow pills live in the pack feed below (single block). */}
 
-          {/* How the network is responding — shared ripple for this animal */}
+          {/* How the network is responding — rich action pills + shared ripple for this animal */}
           {reportId && (
-            <div className="border-t border-[#EDE5D8]">
-              <NetworkResponses subjectType="report" subjectId={reportId} animalName={shareName(data)} />
+            <div className="mt-5 border-t border-[#EDE5D8]">
+              <NetworkResponses subjectType="report" subjectId={reportId} animalName={shareName(data)}
+                onAction={(kind) => {
+                  if (kind === "share") { setShowShare(true); return; }
+                  const role = HELP_ROLES.find((x) => x.id === (kind === "foster_rescue" ? "foster" : kind));
+                  if (role) openHelp(role);
+                }} />
             </div>
           )}
         </article>
