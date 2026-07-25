@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { signInEmail, currentUser } from "@/lib/auth";
+import { VoyceMark } from "@/components/voyce/VoyceMark";
 
 // Sign in. Also handles the landing after the email-confirmation link: if a
 // session is already present (captured from the URL), it sends you into the app.
@@ -15,6 +16,8 @@ function Login() {
   const [err, setErr] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
 
+  // If we arrived here already authenticated (e.g. straight after confirming
+  // email), go into the app.
   useEffect(() => {
     void (async () => {
       try {
@@ -52,7 +55,7 @@ function Login() {
   return (
     <div className="flex min-h-[100dvh] flex-col items-center bg-[#FBF7EC] px-5 py-10">
       <div className="mb-6 flex flex-col items-center text-center">
-        <span className="mb-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0B0B0C] text-[28px]">🐾</span>
+        <VoyceMark size={56} className="mb-2" />
         <div className="text-[22px] font-black tracking-tight text-[#0B0B0C]">Voyce <span className="italic text-[#C9871A]">for</span> Paws&trade;</div>
         <h1 className="mt-4 font-serif text-[26px] font-bold text-[#0B0B0C]">Welcome back</h1>
         <p className="mt-1 text-[13.5px] text-[#6B5832]">Sign in to the pack.</p>
