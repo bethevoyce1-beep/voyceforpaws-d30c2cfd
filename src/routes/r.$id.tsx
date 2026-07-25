@@ -6,18 +6,16 @@ import { NetworkResponses } from "@/components/voyce/NetworkResponses";
 import { getUrgency } from "@/lib/urgency";
 import { getCondition, CONDITION_COLORS } from "@/lib/condition";
 import { VoyceMark } from "@/components/voyce/VoyceMark";
+import { useLiveAgo, formatTimer } from "@/lib/useLiveAgo";
 
 // =============================================================
-// Public shared rescue-card page (/r/<id>). This is what a recipient of a
-// shared link lands on — it shows the exact animal the reporter shared (photo,
-// Voyce's First Look, facts, location), then turns that moment into action:
-// Join the pack, learn what Voyce for Paws is, and (at launch) donate. No app
-// chrome; it's a standalone, link-friendly page that works for anyone.
-//
-// Parity note (Jul 2026): brought in line with the in-app rescue card so the
-// same animal reads the same everywhere — AI observations (incl. tail/body
-// language), a compact health read, the environment, an AI-confidence chip, and
-// a tap-to-switch when the photo held 2+ animals.
+// Public shared rescue-card page (/r/<id>). Rebuilt to MIRROR the in-app rescue
+// card so the same animal reads the same everywhere: honest status-based title,
+// the full fact-pill row, a bright count-up timer, photo-taken time, and the
+// tap-to-open "More on this animal" pills (AI read, Health, Behavior,
+// Environment, Next steps, Case). The only difference from the in-app card is
+// the reporter-only "Send to rescuers" is replaced with the public "Join the
+// pack" CTA.
 // =============================================================
 
 const LANDING = "https://voyceforpaws.org";
@@ -32,7 +30,7 @@ export const Route = createFileRoute("/r/$id")({
     const rep = loaderData?.report as SharedReport | null | undefined;
     const d = rep?.data ?? null;
     const name = d ? animalName(d) : "An animal";
-    const title = rep ? `${name} needs help · Voyce for Paws` : "Voyce for Paws";
+    const title = rep ? `${name} · Voyce for Paws` : "Voyce for Paws";
     const desc = d?.first_look
       ? String(d.first_look).slice(0, 180)
       : "A rescue card from Voyce for Paws. Connecting animals in need with the people who can help.";
@@ -60,14 +58,13 @@ function animalName(d: Assessment): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-// Same urgency + tone mapping the rescue card and Saved tiles use, so the badge
-// here always agrees with them. Calm/healthy pets read a green "Stable".
-const TONE: Record<string, { badge: string; bg: string; fg: string; title: string }> = {
-  critical: { badge: "🚨 Critical", bg: "#7E1F1F", fg: "#FFF1EE", title: "#7E1F1F" },
-  urgent:   { badge: "🟠 Urgent",   bg: "#A8431F", fg: "#FFF6F0", title: "#A8431F" },
-  care:     { badge: "💛 Needs care", bg: "#8A5A0E", fg: "#FFF9E6", title: "#8A5A0E" },
-  calm:     { badge: "✓ Stable",   bg: "#1F6B3D", fg: "#E7F5EC", title: "#1F6B3D" },
-  wildlife: { badge: "🦝 Wildlife", bg: "#2C5C7C", fg: "#E4F0F8", title: "#2C5C7C" },
+// Same urgency + tone mapping the in-app card and Saved tiles use.
+const TONE: Record<string, { badge: string; bg: string; fg: string; title: string; ring: string }> = {
+  critical: { badge: "🚨 Critical", bg: "#7E1F1F", fg: "#FFF1EE", title: "#7E1F1F", ring: "#F8D7D7" },
+  urgent:   { badge: "🟠 Urgent",   bg: "#A8431F", fg: "#FFF6F0", title: "#A8431F", ring: "#FFE4D6" },
+  care:     { badge: "💛 Needs care", bg: "#8A5A0E", fg: "#FFF9E6", title: "#8A5A0E", ring: "#FCEFC9" },
+  calm:     { badge: "✓ Stable",   bg: "#1F6B3D", fg: "#E7F5EC", title: "#1F6B3D", ring: "#E7F5EC" },
+  wildlife: { badge: "🦝 Wildlife", bg: "#2C5C7C", fg: "#E4F0F8", title: "#2C5C7C", ring: "#E4F0F8" },
 };
 function toneKey(mission: string | undefined, level: string): keyof typeof TONE {
   if (mission === "wildlife") return "wildlife";
@@ -77,28 +74,44 @@ function toneKey(mission: string | undefined, level: string): keyof typeof TONE 
   if (level === "LOW") return "calm";
   return "care";
 }
-function toneOf(d: Assessment, mission: string | undefined): { badge: string; bg: string; fg: string; title: string } {
+function toneKeyOf(d: Assessment, mission: string | undefined): keyof typeof TONE {
   try {
-    const u = getUrgency(d);
-    return TONE[toneKey(mission, u.level)] ?? TONE.care;
+    return toneKey(mission, getUrgency(d).level);
   } catch {
-    return TONE.care;
+    return "care";
   }
 }
 
+// Honest, status-based headline — never "needs help" for a settled/safe animal.
+function headline(d: Assessment, mission: string | undefined, tk: keyof typeof TONE, name: string): string {
+  if (tk === "wildlife") return `Wildlife · ${name}`;
+  if (tk === "calm") {
+    const atHome = d.is_likely_pet && /home|indoor/i.test(d.setting_type || "");
+    return atHome ? `${name} · safe at home` : `${name} · stable, no action needed`;
+  }
+  if (mission === "at-risk-shelter") return `At-risk shelter · ${name}`;
+  const sit = (d.suggested_situation || "").trim();
+  if (sit) return cap(sit);
+  return `${name} needs help`;
+}
+
 function facts(d: Assessment): { label: string; value: string }[] {
+  const dateStr = d.reportedAt ? new Date(d.reportedAt).toLocaleDateString() : "";
   return [
     { label: "Species", value: d.species },
     { label: "Breed", value: d.breed },
     { label: "Age", value: d.age },
     { label: "Size", value: d.size },
+    { label: "Weight", value: d.weight },
     { label: "Color", value: d.color },
-    ...(d.ai_confidence ? [{ label: "AI confidence", value: cap(d.ai_confidence) }] : []),
+    { label: "Case #", value: d.caseId ?? "" },
+    { label: "AI confidence", value: d.ai_confidence ? cap(d.ai_confidence) : "" },
+    { label: "Reported by", value: "Reporter" },
+    { label: "Date", value: dateStr },
   ].filter((c) => c.value && !/^unknown$/i.test(String(c.value))) as { label: string; value: string }[];
 }
 
-// Sticky top nav so there's always a clear way out of the card — Back returns
-// to wherever you came from (Saved gallery, a link), Home goes to the app.
+// Sticky top nav — always a way out (Back + Home).
 function TopNav() {
   return (
     <div className="sticky top-0 z-40 flex items-center gap-2 bg-[#0B0B0C] px-3 py-2.5">
@@ -120,19 +133,34 @@ function TopNav() {
   );
 }
 
-// A small labelled block used for the parity sections below.
 function MicroLabel({ children }: { children: ReactNode }) {
   return <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">{children}</div>;
+}
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div>
+      <span className="text-muted-foreground">{label}: </span>
+      <span className="text-foreground/90">{children}</span>
+    </div>
+  );
 }
 
 function SharePage() {
   const { report } = Route.useLoaderData();
   const { id } = Route.useParams();
-  // When the photo held more than one animal, let the recipient tap between
-  // each one's full read on this single card (matches the in-app card).
   const [idx, setIdx] = useState(0);
+  const [openPill, setOpenPill] = useState<string | null>(null);
 
-  if (!report || !report.data) {
+  const top = report?.data ?? null;
+  const animalsList = top && top.animals && top.animals.length > 1 ? top.animals : top ? [top] : [];
+  const safeIdx = Math.min(idx, Math.max(0, animalsList.length - 1));
+  const d = animalsList[safeIdx] ?? null;
+
+  // Count-up timer from the photo's own capture time (reportedAt = EXIF taken).
+  const reportedAt = (d?.reportedAt) || (report?.created_at ?? new Date().toISOString());
+  const ago = useLiveAgo(reportedAt, d?.status);
+
+  if (!report || !report.data || !d) {
     return (
       <div className="min-h-[100dvh] bg-[#FBF7EC]">
         <TopNav />
@@ -151,29 +179,24 @@ function SharePage() {
     );
   }
 
-  const top = report.data;
-  // Multiple animals: one card, tap to switch. Falls back to the single animal.
-  const animalsList =
-    top.animals && top.animals.length > 1 ? top.animals : [top];
-  const safeIdx = Math.min(idx, animalsList.length - 1);
-  const d = animalsList[safeIdx];
   const multi = animalsList.length > 1;
-
   const name = animalName(d);
-  const T = toneOf(d, report.mission ?? undefined);
-  const chips = facts(d);
+  const mission = report.mission ?? undefined;
+  const tk = toneKeyOf(d, mission);
+  const T = TONE[tk];
+  const title = headline(d, mission, tk, name);
+  const urgency = (() => { try { return getUrgency(d); } catch { return null; } })();
   const cond = getCondition(d);
   const condColors = CONDITION_COLORS[cond.visibleCondition];
+  const chips = facts(d);
   const obs = Array.isArray(d.observations) ? d.observations.filter(Boolean) : [];
   const symptoms = Array.isArray(d.symptoms) ? d.symptoms.filter(Boolean) : [];
   const objects = Array.isArray(d.surrounding_objects) ? d.surrounding_objects.filter(Boolean) : [];
-  const hasHealth =
-    symptoms.length > 0 || !!d.vet_notes?.posture || !!d.vet_notes?.bcs ||
-    !!d.vet_notes?.hydration || !!d.body_language || cond.visibleCondition !== "Healthy";
-  const hasEnv = !!(d.environment_text || d.location_scene || d.setting_type || objects.length);
+  const takenStr = d.reportedAt
+    ? new Date(d.reportedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+    : "";
 
-  // The reporter's location-privacy choice governs what shows publicly:
-  // exact = label + map pin; area = coarse label, no map; hidden = nothing.
+  // The reporter's location-privacy choice governs what shows publicly.
   const priv = report.loc_privacy ?? "area";
   const loc = report.location?.label ?? "";
   const lat = report.location?.lat;
@@ -182,30 +205,90 @@ function SharePage() {
     ? `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
     : null;
 
+  // Tap-to-open detail pills — same set as the in-app card.
+  const pills: { id: string; icon: string; label: string; render: () => ReactNode }[] = [];
+  if (obs.length > 0) {
+    pills.push({ id: "obs", icon: "🔎", label: "AI read", render: () => (
+      <ul className="space-y-1 text-[13.5px] leading-relaxed text-foreground/85">
+        {obs.slice(0, 8).map((o, i) => (<li key={i} className="flex gap-2"><span className="text-[#C9871A]">•</span><span>{o}</span></li>))}
+        {d.body_language && <li className="mt-1 flex gap-2"><span className="text-[#C9871A]">•</span><span>{d.body_language}</span></li>}
+      </ul>
+    ) });
+  }
+  pills.push({ id: "health", icon: "🩺", label: "Health", render: () => (
+    <div className="space-y-2 text-[13.5px] leading-relaxed text-foreground/85">
+      <p className="rounded-lg bg-[#FFFBEB] px-3 py-2 text-[12px] italic text-[#8A5A0E] ring-1 ring-[#F3E5B6]">AI observations, not veterinary advice. Confirm with a vet.</p>
+      <div className="flex items-center justify-between rounded-xl border px-3 py-2" style={{ background: condColors.bg, borderColor: condColors.dot, color: condColors.text }}>
+        <span className="text-[11px] font-bold uppercase tracking-[0.12em] opacity-80">Visible condition</span>
+        <span className="text-[13px] font-bold uppercase">{cond.visibleCondition}</span>
+      </div>
+      {symptoms.length > 0 && <Field label="Possible signs">{symptoms.join(", ")}</Field>}
+      {d.vet_notes?.bcs && <Field label="Body condition">{d.vet_notes.bcs}</Field>}
+      {d.vet_notes?.posture && <Field label="Posture &amp; tail">{d.vet_notes.posture}</Field>}
+      {d.vet_notes?.hydration && <Field label="Hydration">{d.vet_notes.hydration}</Field>}
+      {d.vet_notes?.clinical && <Field label="Summary (not a diagnosis)">{d.vet_notes.clinical}</Field>}
+    </div>
+  ) });
+  if (d.behavior) {
+    pills.push({ id: "behavior", icon: "🐾", label: "Behavior", render: () => (
+      <p className="text-[13.5px] leading-relaxed text-foreground/85">{d.behavior}</p>
+    ) });
+  }
+  pills.push({ id: "env", icon: "🌤", label: "Environment", render: () => (
+    <div className="space-y-2 text-[13.5px] leading-relaxed text-foreground/85">
+      <p className="whitespace-pre-line">{d.environment_text || d.location_scene || "Limited environmental context in this frame."}</p>
+      {d.setting_type && <Field label="Setting">{d.setting_type}</Field>}
+      {d.lighting_conditions && <Field label="Lighting">{d.lighting_conditions}</Field>}
+      {d.weather && !/not visible/i.test(d.weather) && <Field label="Weather">{d.weather}</Field>}
+      {objects.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {objects.slice(0, 8).map((o, i) => (<span key={i} className="rounded-full border border-[#EDE5D8] bg-white px-2.5 py-0.5 text-[12px] text-foreground/80">{o}</span>))}
+        </div>
+      )}
+    </div>
+  ) });
+  if (Array.isArray(d.next_steps) && d.next_steps.filter(Boolean).length > 0) {
+    pills.push({ id: "next", icon: "✅", label: "Next steps", render: () => (
+      <ul className="space-y-1.5 text-[13.5px] leading-relaxed text-foreground/85">
+        {d.next_steps!.filter(Boolean).slice(0, 5).map((n, i) => (<li key={i} className="flex gap-2"><span className="text-[#C9871A]">→</span><span>{n}</span></li>))}
+      </ul>
+    ) });
+  }
+  pills.push({ id: "case", icon: "📋", label: "Case", render: () => (
+    <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12.5px]">
+      {d.caseId && <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Case #</dt><dd className="text-right font-medium">{d.caseId}</dd></div>}
+      {takenStr && <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Reported</dt><dd className="text-right font-medium">{takenStr}</dd></div>}
+      {d.ai_confidence && <div className="flex justify-between gap-2"><dt className="text-muted-foreground">AI confidence</dt><dd className="text-right font-medium">{cap(d.ai_confidence)}</dd></div>}
+      {mission && <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Type</dt><dd className="text-right font-medium">{cap(mission.replace(/-/g, " "))}</dd></div>}
+    </dl>
+  ) });
+
   return (
     <div className="min-h-[100dvh] bg-[#FBF7EC] pb-16">
       <TopNav />
 
       <div className="mx-auto w-full max-w-xl px-5 pt-5">
         <article className="overflow-hidden rounded-3xl border border-[#EDE5D8] bg-white shadow-[0_8px_30px_-12px_rgba(60,40,10,0.15)]">
-          {/* Photo + urgency */}
           {report.image && (
             <div className="relative bg-[#f2ede2]">
               <img src={report.image} alt={name} className="aspect-[4/3] w-full object-cover" />
               <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-bold uppercase tracking-[0.1em] shadow-sm"
                 style={{ background: T.bg, color: T.fg }}>{T.badge}</span>
+              {/* Bright, high-contrast count-up timer, top-right so it reads on any photo */}
+              <span className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-extrabold tabular-nums shadow-lg ring-1 ring-black/10"
+                style={{ background: ago.frozen ? "#1F6B3D" : "#FFDF3B", color: ago.frozen ? "#fff" : "#1A1611" }}
+                title={ago.frozen ? "Time to rescue" : "Time since the photo was taken"}>
+                {ago.frozen ? "✅" : "⏱"} {formatTimer(ago.totalSeconds)}
+              </span>
             </div>
           )}
 
           <div className="px-5 pt-4">
-            {/* Multi-animal switcher — one card, tap between each animal */}
             {multi && (
               <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className="text-[12px] font-semibold text-muted-foreground">
-                  {animalsList.length} {(d.species || "animals").toLowerCase()}s in this photo:
-                </span>
+                <span className="text-[12px] font-semibold text-muted-foreground">{animalsList.length} {(d.species || "animals").toLowerCase()}s in this photo:</span>
                 {animalsList.map((a, i) => (
-                  <button key={i} type="button" onClick={() => setIdx(i)}
+                  <button key={i} type="button" onClick={() => { setIdx(i); setOpenPill(null); }}
                     className="rounded-full border-[1.5px] px-3 py-1 text-[12.5px] font-bold transition active:scale-[0.97]"
                     style={i === safeIdx ? { background: "#FFDF3B", borderColor: "#FFDF3B", color: "#3A2A07" } : { borderColor: "#E6DED0", color: "#8A5A0E" }}>
                     {cap(a.species || "animal")} {i + 1}
@@ -214,7 +297,19 @@ function SharePage() {
               </div>
             )}
 
-            <h1 className="font-serif text-[24px] font-bold leading-[1.1]" style={{ color: T.title }}>{name} needs help</h1>
+            <h1 className="font-serif text-[24px] font-bold leading-[1.1]" style={{ color: T.title }}>{title}</h1>
+
+            {urgency && (
+              <div className="mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-bold uppercase tracking-[0.1em]"
+                style={{ background: urgency.soft, color: urgency.deep }}>
+                <span className="text-muted-foreground/70">Urgency:</span><span>{urgency.emoji} {urgency.label}</span>
+              </div>
+            )}
+
+            {takenStr && (
+              <div className="mt-2 text-[12px] font-medium text-muted-foreground">📷 Photo taken {takenStr}</div>
+            )}
+
             {priv === "hidden" ? (
               <div className="mt-2 text-[13px] font-semibold text-[#5A3E12]">📍 Location shared privately with rescuers</div>
             ) : loc ? (
@@ -246,85 +341,35 @@ function SharePage() {
             )}
 
             {d.first_look && (
-              <div className="mt-3 rounded-2xl border border-[#EDE5D8] bg-[#FBF7EC] px-4 py-3">
-                <MicroLabel>✨ Voyce's First Look</MicroLabel>
-                <p className="mt-1 text-[13.5px] leading-relaxed text-foreground/85">{d.first_look}</p>
-              </div>
+              <p className="mt-3 text-[13.5px] italic leading-relaxed text-[oklch(0.45_0.03_70)]">{d.first_look}</p>
             )}
 
-            {/* AI read — quick scannable observations, incl. tail/body language */}
-            {obs.length > 0 && (
-              <div className="mt-3 rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3">
-                <MicroLabel>🔎 What Voyce noticed</MicroLabel>
-                <ul className="mt-1.5 grid grid-cols-1 gap-1 text-[13px] leading-relaxed text-foreground/85 sm:grid-cols-2">
-                  {obs.slice(0, 8).map((o, i) => (
-                    <li key={i} className="flex gap-2"><span className="text-[#C9871A]">•</span><span>{o}</span></li>
-                  ))}
-                </ul>
-                {d.body_language && (
-                  <p className="mt-2 rounded-lg bg-[#FBF7EC] px-3 py-2 text-[12.5px] leading-relaxed text-[#6B5832]">
-                    <span className="font-semibold">Body language:</span> {d.body_language}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Health at a glance — observations only, never a diagnosis */}
-            {hasHealth && (
-              <div className="mt-3 rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3">
-                <MicroLabel>🩺 Health at a glance</MicroLabel>
-                <p className="mt-1.5 rounded-lg bg-[#FFFBEB] px-3 py-2 text-[11.5px] italic text-[#8A5A0E] ring-1 ring-[#F3E5B6]">
-                  AI observations, not veterinary advice. Always confirm with a vet.
-                </p>
-                <div className="mt-2 flex items-center justify-between rounded-xl border px-3 py-2"
-                  style={{ background: condColors.bg, borderColor: condColors.dot, color: condColors.text }}>
-                  <span className="text-[11px] font-bold uppercase tracking-[0.12em] opacity-80">Visible condition</span>
-                  <span className="text-[13px] font-bold uppercase">{cond.visibleCondition}</span>
+            {/* More on this animal — tap-to-open pills, same as the in-app card */}
+            {pills.length > 0 && (
+              <div className="mt-3">
+                <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">More on this animal</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {pills.map((p) => {
+                    const on = openPill === p.id;
+                    return (
+                      <button key={p.id} type="button" onClick={() => setOpenPill(on ? null : p.id)} aria-expanded={on}
+                        className="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition active:scale-95"
+                        style={on ? { background: "#1A1611", color: "#FFDF3B", borderColor: "#1A1611" } : { background: "#fff", color: "#6B5832", borderColor: "#E3DAC4" }}>
+                        <span>{p.icon}</span><span>{p.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
-                <dl className="mt-2 space-y-1 text-[13px] leading-relaxed text-foreground/85">
-                  {symptoms.length > 0 && <FieldRow label="Possible signs">{symptoms.join(", ")}</FieldRow>}
-                  {d.vet_notes?.bcs && <FieldRow label="Body condition">{d.vet_notes.bcs}</FieldRow>}
-                  {d.vet_notes?.posture && <FieldRow label="Posture &amp; tail">{d.vet_notes.posture}</FieldRow>}
-                  {d.vet_notes?.hydration && <FieldRow label="Hydration">{d.vet_notes.hydration}</FieldRow>}
-                </dl>
-              </div>
-            )}
-
-            {/* Where we found them — the environment a rescuer needs */}
-            {hasEnv && (
-              <div className="mt-3 rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3">
-                <MicroLabel>📍 Where we found them</MicroLabel>
-                <p className="mt-1.5 whitespace-pre-line text-[13px] leading-relaxed text-foreground/85">
-                  {d.environment_text || d.location_scene}
-                </p>
-                <dl className="mt-2 space-y-1 text-[13px] leading-relaxed text-foreground/85">
-                  {d.setting_type && <FieldRow label="Setting">{d.setting_type}</FieldRow>}
-                  {d.lighting_conditions && <FieldRow label="Lighting">{d.lighting_conditions}</FieldRow>}
-                  {d.weather && !/not visible/i.test(d.weather) && <FieldRow label="Weather">{d.weather}</FieldRow>}
-                </dl>
-                {objects.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {objects.slice(0, 8).map((o, i) => (
-                      <span key={i} className="rounded-full border border-[#EDE5D8] bg-[#FBF7EC] px-2.5 py-0.5 text-[11.5px] text-foreground/80">{o}</span>
-                    ))}
+                {openPill && (
+                  <div className="mt-3 rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3.5">
+                    {pills.find((p) => p.id === openPill)!.render()}
                   </div>
                 )}
               </div>
             )}
-
-            {Array.isArray(d.next_steps) && d.next_steps.filter(Boolean).length > 0 && (
-              <div className="mt-3">
-                <MicroLabel>How this one gets saved</MicroLabel>
-                <ul className="mt-1.5 space-y-1.5 text-[13.5px] leading-relaxed text-foreground/85">
-                  {d.next_steps.filter(Boolean).slice(0, 4).map((n, i) => (
-                    <li key={i} className="flex gap-2"><span className="text-[#C9871A]">→</span><span>{n}</span></li>
-                  ))}
-                </ul>
-              </div>
-            )}
           </div>
 
-          {/* Call to action */}
+          {/* Public CTA — where the in-app card has 'Send to rescuers' */}
           <div className="mx-5 mt-5 mb-5 rounded-2xl border border-[#F0C88A] bg-[#FFF6E5] px-4 py-4">
             <div className="text-[13px] font-bold text-[#8A5A0E]">💛 You can help save {name}, and the next one</div>
             <p className="mt-1 text-[12.5px] leading-relaxed text-[#6B5832]">
@@ -343,12 +388,11 @@ function SharePage() {
           </div>
         </article>
 
-        {/* How the network is responding — the shared ripple for this animal */}
+        {/* How the network is responding — shared live ripple */}
         <div className="mt-5 overflow-hidden rounded-2xl border border-[#EDE5D8] bg-white py-1">
           <NetworkResponses subjectType="report" subjectId={id} animalName={name} showJoinCta={false} />
         </div>
 
-        {/* What is Voyce */}
         <div className="mt-5 rounded-2xl border border-[#EDE5D8] bg-white px-5 py-4">
           <h2 className="font-serif text-[16px] font-bold text-[#0B0B0C]">What is Voyce for Paws?</h2>
           <p className="mt-1.5 text-[13px] leading-relaxed text-foreground/80">
@@ -364,15 +408,6 @@ function SharePage() {
           &copy; 2026 Be the Voyce, Inc. &middot; Voyce for Paws&trade; is a trademark of Be the Voyce, Inc.
         </p>
       </div>
-    </div>
-  );
-}
-
-function FieldRow({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div>
-      <span className="text-muted-foreground">{label}: </span>
-      <span className="text-foreground/90">{children}</span>
     </div>
   );
 }
