@@ -57,12 +57,16 @@ function headline(
     ? cap(condition.titleWord.toLowerCase()) + " "
     : "";
   if (mission === "wildlife") return `Wildlife · ${Who}`;
+  // Honest calm title — never "Found"/"Lost"/a condition word for a settled, safe animal.
+  if (tone === "calm") {
+    const atHome = data.is_likely_pet && /home|indoor/i.test(data.setting_type || "");
+    return cap(atHome ? `${who} · safe at home` : `${who} · stable, no action needed`);
+  }
   if (mission === "at-risk-shelter") return `At-risk shelter ${who}`;
   const sit = (situation || "").trim();
   if (sit) return cap(`${condWord}${sit}`);
   if (mission === "lost-found") return `${data.is_likely_pet ? "Found" : "Lost"} ${who}`;
   const stray = data.is_likely_pet ? "" : "Stray ";
-  if (tone === "calm") return cap(`${stray}${who} · no urgent concerns`);
   return cap(`${condWord}${stray}${who}`);
 }
 
@@ -219,6 +223,7 @@ export function RescueCard({
   );
   const repStatus = (data as { status?: string }).status;
   const ago = useLiveAgo(reportedAt, repStatus);
+  const takenStr = new Date(reportedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
   const gpsForMap = location ?? gps;
   const mapsUrl = gpsForMap
@@ -381,12 +386,13 @@ export function RescueCard({
       render: () => <p className="text-[13.5px] leading-relaxed text-foreground/85">{data.behavior || "No behavior notes."}</p>,
     },
     {
-      id: "where", icon: "📍", label: "Where found",
+      id: "where", icon: "🌤", label: "Environment",
       render: () => (
         <div className="space-y-2 text-[13.5px] leading-relaxed text-foreground/85">
           <p className="whitespace-pre-line">{data.environment_text || data.location_scene || "Limited environmental context in this frame."}</p>
           {data.setting_type && <Field label="Setting">{data.setting_type}</Field>}
           {data.lighting_conditions && <Field label="Lighting">{data.lighting_conditions}</Field>}
+          {data.weather && !/not visible/i.test(data.weather) && <Field label="Weather">{data.weather}</Field>}
           {(data.surrounding_objects ?? []).length > 0 && (
             <div className="flex flex-wrap gap-1.5 pt-1">
               {(data.surrounding_objects ?? []).map((o, i) => (
@@ -458,9 +464,9 @@ export function RescueCard({
               {T.badge}
             </span>
             {/* Compact mission timer — counts up from report until rescued, then freezes */}
-            <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold tabular-nums shadow-lg"
-              style={{ background: ago.frozen ? "#1F6B3D" : "rgba(0,0,0,0.72)", color: "#fff" }}
-              title={ago.frozen ? "Time to rescue" : "Time since reported — running until rescued"}>
+            <span className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-extrabold tabular-nums shadow-lg ring-1 ring-black/10"
+              style={{ background: ago.frozen ? "#1F6B3D" : "#FFDF3B", color: ago.frozen ? "#fff" : "#1A1611" }}
+              title={ago.frozen ? "Time to rescue" : "Time since the photo was taken"}>
               {ago.frozen ? "✅" : "⏱"} {formatTimer(ago.totalSeconds)}
             </span>
           </div>
@@ -472,6 +478,8 @@ export function RescueCard({
               style={{ background: urgency.soft, color: urgency.deep }}>
               <span className="text-muted-foreground/70">Urgency:</span><span>{urgency.emoji} {urgency.label}</span>
             </div>
+
+            <div className="mt-2 text-[12px] font-medium text-muted-foreground">📷 Photo taken {takenStr}</div>
 
             {hasPin && (
               <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] font-medium text-muted-foreground">
