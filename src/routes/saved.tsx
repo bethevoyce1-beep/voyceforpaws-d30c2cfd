@@ -4,6 +4,7 @@ import type { Assessment } from "@/lib/analyze.functions";
 import { listSharedReports, type SavedReport } from "@/lib/saved.functions";
 import { getUrgency } from "@/lib/urgency";
 import { VoyceMark } from "@/components/voyce/VoyceMark";
+import { BottomTabBar } from "@/components/voyce/BottomTabBar";
 
 // =============================================================
 // /saved — the "Saved cards" gallery. Every rescue card auto-saves the moment
@@ -78,7 +79,7 @@ function SavedPage() {
   const list = reports ?? [];
 
   return (
-    <div className="min-h-[100dvh] bg-[#FBF7EC] pb-16">
+    <div className="min-h-[100dvh] bg-[#FBF7EC] pb-24">
       {/* Brand bar — logo returns to the app home */}
       <a href="/" className="flex items-center gap-2.5 bg-[#0B0B0C] px-5 py-3.5 no-underline">
         <VoyceMark size={28} />
@@ -151,6 +152,16 @@ function SavedPage() {
           Pre-launch testing view. Voyce shares AI observations, not veterinary advice — always confirm with a licensed vet or the shelter before acting.
         </p>
       </div>
+
+      {/* Persistent bottom nav so there's always a way out of the gallery */}
+      <BottomTabBar
+        active="saved"
+        onSelect={(tab) => {
+          if (typeof window === "undefined") return;
+          if (tab === "join") window.location.assign("/auth/register");
+          else window.location.assign("/"); // report / atrisk → app home
+        }}
+      />
     </div>
   );
 }
