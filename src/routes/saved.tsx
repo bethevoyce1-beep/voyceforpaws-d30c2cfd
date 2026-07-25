@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
 import { listSharedReports, type SavedReport } from "@/lib/saved.functions";
+import { getUrgency } from "@/lib/urgency";
 
 // =============================================================
 // /saved — the "Saved cards" gallery. Every rescue card auto-saves the moment
@@ -22,11 +23,31 @@ function animalName(d: Assessment | null): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function tone(d: Assessment | null): { badge: string; bg: string; fg: string } {
-  const s = `${d?.status ?? ""} ${d?.visible_condition ?? ""} ${d?.status_reason ?? ""}`.toLowerCase();
-  if (/critical|emergency|euthan/.test(s)) return { badge: "🚨 Critical", bg: "#7E1F1F", fg: "#FFF1EE" };
-  if (/urgent|concern|injur|sick|distress|bleed|hit by/.test(s)) return { badge: "🟠 Urgent", bg: "#A8431F", fg: "#FFF6F0" };
-  return { badge: "💛 Needs care", bg: "#8A5A0E", fg: "#FFF9E6" };
+// Badge tones mirror the rescue card's own header exactly, so a tile never
+// disagrees with the card it opens. Calm/healthy pets get a green "Stable".
+const TONE_BADGE: Record<string, { badge: string; bg: string; fg: string }> = {
+  critical: { badge: "🚨 Critical", bg: "#7E1F1F", fg: "#FFF1EE" },
+  urgent:   { badge: "🟠 Urgent",   bg: "#A8431F", fg: "#FFF6F0" },
+  care:     { badge: "💛 Needs care", bg: "#8A5A0E", fg: "#FFF9E6" },
+  calm:     { badge: "✓ Stable",   bg: "#1F6B3D", fg: "#E7F5EC" },
+  wildlife: { badge: "🦝 Wildlife", bg: "#2C5C7C", fg: "#E4F0F8" },
+};
+function toneKey(mission: string | undefined, level: string): keyof typeof TONE_BADGE {
+  if (mission === "wildlife") return "wildlife";
+  if (mission === "at-risk-shelter") return level === "CRITICAL" ? "critical" : "urgent";
+  if (level === "CRITICAL") return "critical";
+  if (level === "HIGH") return "urgent";
+  if (level === "LOW") return "calm";
+  return "care";
+}
+function tone(d: Assessment | null, mission: string | undefined): { badge: string; bg: string; fg: string } {
+  if (!d) return TONE_BADGE.care;
+  try {
+    const u = getUrgency(d);
+    return TONE_BADGE[toneKey(mission, u.level)] ?? TONE_BADGE.care;
+  } catch {
+    return TONE_BADGE.care;
+  }
 }
 
 function when(iso: string): string {
@@ -97,7 +118,7 @@ function SavedPage() {
             {list.map((r) => {
               const d = r.data;
               const name = animalName(d);
-              const T = tone(d);
+              const T = tone(d, r.mission ?? undefined);
               const isMine = mine.includes(r.id);
               return (
                 <a key={r.id} href={`/r/${r.id}`}
