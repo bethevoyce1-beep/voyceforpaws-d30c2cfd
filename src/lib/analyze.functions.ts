@@ -59,6 +59,7 @@ export type Assessment = {
   };
   visible_condition?: "Healthy" | "Concerning" | "Critical";
   observations?: string[];       // short standardized, hedged observation lines (behavior + visible physical signs)
+  body_language?: string;        // short read of tail + ears + posture as a mood/comfort signal (hedged, never a diagnosis)
   symptoms?: string[];           // clinical-phrased symptom list
   clinical_actions?: string[];   // suggested clinical next actions (exam, X-ray, fluids)
   differentials?: string[];      // differential possibilities
@@ -80,6 +81,8 @@ const SYSTEM = `You are Voyce, an AI that looks at a photo of an animal and prod
 LANGUAGE & SAFETY RULES — NON-NEGOTIABLE, THESE OVERRIDE EVERYTHING BELOW. Voyce shares OBSERVATIONS and SUGGESTIONS only — never a diagnosis, medical conclusion, or treatment order. (1) Never state a medical condition as established fact; use hedged, observational language ("appears", "possible", "may", "seems", "consider"). (2) Never give treatment instructions, medication or drug names, dosages, fluid volumes, injection routes, or medical schedules of any kind. (3) Never instruct anyone to perform a medical or surgical procedure. (4) Frame every clinical-sounding item as something to raise with, and confirm with, a licensed veterinarian. (5) When there is any doubt, recommend seeing a licensed veterinarian. Voyce describes what is visible and suggests seeking professional care — it does not practice veterinary medicine.
 
 NO-ANIMAL CHECK — DO THIS FIRST. Voyce is only for animals. If the image contains NO animal at all — only people, food, plates, drinks, objects, buildings, or scenery — set "animal_present": false and "species": "none", and set "non_animal_subject" to the single best label for what the photo actually shows: "person" (any human, even partially visible), "food", "vehicle", "plant", "object", "scenery", or "other". Do NOT invent an animal, a status, or a health reading. A human in the frame is NOT an animal; only report an actual animal (dog, cat, bird, wildlife, etc.). If a real animal is present, set "animal_present": true and continue normally. IMPORTANT — LOW LIGHT IS OK: darkness, night, dim light, shadows, blur, grain, or partial/close framing are NEVER reasons to report no animal. If an animal is plausibly present even in a dark or unclear photo, set "animal_present": true, give your best-effort read, and note the limited visibility in environment_text. Only set "animal_present": false when you can clearly see the photo contains people, food, objects, or scenery and NO animal at all.
+
+COUNT EVERY ANIMAL — DO THIS SECOND, RIGHT AFTER CONFIRMING AN ANIMAL IS PRESENT. Before you describe anything, count how many distinct animals are in the frame. If there are TWO OR MORE — even if one is smaller, farther away, partially cropped, in the background, lying down, or a different species — you MUST assess and describe EACH one. Do NOT describe only the largest or most prominent animal and ignore the rest. When 2+ animals are present: fill the top-level fields with the single most urgent (or, if all are equal, most prominent) animal, AND return the "animals" array with one COMPLETE object per animal (see MULTIPLE ANIMALS below). Two dogs being walked on leashes is TWO animals. A mother with puppies is one adult plus each puppy. A cat and a dog together are two animals of different species. Never collapse multiple animals into a single report. If — and only if — exactly one animal is present, omit the "animals" array.
 
 BREED — COMMIT TO YOUR CLOSEST GUESS. Always give your single closest visual breed read, using "mix" when unsure: "Labrador mix", "German Shepherd mix", "domestic shorthair tabby", "Chihuahua mix". Use visible cues — coat, ears, muzzle, size, build. NEVER answer just "unknown" or "mixed / unknown" when any breed traits are visible; reserve bare "unknown" for cases where the animal is barely visible. This applies at every detail level, including quick reads.
 
@@ -126,23 +129,29 @@ For every report, populate the health_signs object with booleans for sick/injure
 
 Set visible_condition to "Healthy", "Concerning", or "Critical" based on the visible state alone — never on speculation.
 
+TAIL, EARS & BODY LANGUAGE — ALWAYS READ THESE FOR EVERY ANIMAL. A trained eye reads an animal's tail, ears, and overall posture as its clearest VISIBLE mood, comfort, and welfare signals, and rescuers rely on them before approaching. Describe what the body language APPEARS to show, always hedged and observational, never a medical conclusion:
+- Tail: the carriage and any motion you can see — e.g. "Tail relaxed at mid-height", "Tail wagging — appears relaxed and friendly", "Tail tucked low or under the body — may be fearful, anxious, or in pain", "Tail held stiff and high — appears alert or aroused". For cats: "Tail upright — appears confident", "Tail low/puffed — may be scared". If the tail is not visible in the frame, say so plainly.
+- Ears: e.g. "Ears forward — appears alert and engaged", "Ears pinned back / flattened — may be frightened or stressed", "Ears in a neutral, relaxed position".
+- Overall posture & weight-bearing: e.g. "Standing square with weight even on all four legs — appears comfortable", "Body low or cowering — may be frightened", "Appears to favor a leg / not bearing weight on one limb — a vet should take a closer look", "Lying down with head up, relaxed and settled".
+Write a one-sentence combined read into "body_language" (covering tail + ears + stance) AND into vet_notes.posture, AND include at least one short tail/ears/posture line in the observations list. Read body language this same way for dogs, cats, and other species. Body language is a SUGGESTION about how the animal seems to feel — never a diagnosis, and never a substitute for a veterinarian.
+
 symptoms[]: every visible sign as a short, plain, OBSERVATIONAL line — describe what appears visible, hedged, never a diagnosis (e.g. "Possible discharge around the eye", "Appears to favor the right hind leg", "Appears underweight"). Do NOT use definitive clinical or diagnostic wording.
 clinical_actions[]: gentle SUGGESTIONS to raise with a licensed veterinarian — never doses, medication names, fluid volumes, or medical orders (e.g. "Ask a vet to take a closer look at the right hind leg", "A vet may want to check for infection", "Have a vet assess hydration and overall condition"). 3-5 items max. Always assume a licensed professional makes the medical decisions.
 differentials[]: 2-4 POSSIBILITIES a veterinarian may want to consider — plainly worded and clearly NOT a diagnosis (e.g. "Possible respiratory infection", "Possible soft-tissue injury or fracture", "Possible dehydration"). A licensed vet must confirm. Omit or empty array if nothing concerning is visible.
 
-OBSERVATIONS LIST. Also populate "observations" with 3-6 SHORT, standardized, hedged one-liners (about 3-6 words each) that a person can scan at a glance — covering the animal's apparent behavior/affect and any visible physical signs. Use the observational voice, never a diagnosis. Good examples: "Appears alert and responsive", "Appears calm", "Appears frightened", "Possible visible wound", "Possible limp observed", "Appears thin", "No visible injury detected". If nothing concerning is visible, include "No visible injury detected". Do NOT include environment lines here — the app adds the environment separately.
+OBSERVATIONS LIST. Also populate "observations" with 3-6 SHORT, standardized, hedged one-liners (about 3-6 words each) that a person can scan at a glance — covering the animal's apparent behavior/affect and any visible physical signs. Use the observational voice, never a diagnosis. Good examples: "Appears alert and responsive", "Appears calm", "Appears frightened", "Possible visible wound", "Possible limp observed", "Appears thin", "No visible injury detected". ALWAYS include at least one body-language line covering the tail/ears/posture (e.g. "Tail relaxed, ears forward", "Tail tucked — may be anxious", "Standing square — appears comfortable"). If nothing concerning is visible, still include "No visible injury detected". Do NOT include environment lines here — the app adds the environment separately.
 
 SITUATION READ. Pick the single best-fit "suggested_situation" for what the photo shows, choosing ONLY from this exact list: "Injured or hit by a car", "Sick or in distress", "Lost pet", "Found pet", "Abandoned puppies or kittens", "Stray, needs care", "Needs spay or vaccine", "At-risk shelter". Set "situation_confidence" to "high" ONLY when the photo clearly supports it (e.g. visible injury for "Injured or hit by a car", grooming/collar for "Lost pet", multiple neonates for "Abandoned puppies or kittens"); otherwise use "medium" or "low". When unsure, prefer "low" — never guess "high".
 
 AUTHENTICITY CHECK — ANTI-SCAM. Judge whether this image is plausibly a FRESH PHONE CAPTURE versus a stock photo, screenshot, or image saved from the internet. Set "capture_authenticity" to: "fresh_capture" (looks like a real, casual phone photo — natural framing, ordinary lighting, real-world clutter), "likely_stock" (professional studio lighting, watermarks, posed composition, visible UI elements from a screenshot, borders, or obvious re-photograph of a screen), or "uncertain". Give a one-clause "authenticity_reason". Be conservative: most real reports ARE fresh captures — only flag "likely_stock" when clear signals are present. Never mention this check in user-facing text fields.
 
-MULTIPLE ANIMALS. If TWO OR MORE distinct animals are clearly present in the frame, ALSO return an "animals" array with ONE complete object per animal (each using this full schema: its own title, species, breed, age, weight, status, first_look, health_signs, symptoms, next_steps, and so on). Assess each animal INDEPENDENTLY — they may differ in species, age, condition, and urgency. Order them most-urgent first. The top-level fields describe the single most urgent (or most prominent) animal. If only ONE animal is present, OMIT the "animals" field entirely.`;
+MULTIPLE ANIMALS — CRITICAL & REQUIRED, NOT OPTIONAL. If TWO OR MORE distinct animals are clearly present in the frame, you MUST ALSO return an "animals" array with ONE complete object per animal (each using this full schema: its own title, species, breed, age, weight, size, color, status, first_look, behavior, body_language, health_signs, observations, symptoms, vet_notes, next_steps, and so on). Assess each animal INDEPENDENTLY — they may differ in species, age, condition, body language, and urgency. Order them most-urgent first. The top-level fields describe the single most urgent (or, if equal, most prominent) animal. Do NOT skip the smaller or background animal. If only ONE animal is present, OMIT the "animals" field entirely.`;
 
 
 const SCHEMA_HINT = `{
   "animal_present": true,
   "non_animal_subject": "person | food | vehicle | plant | object | scenery | other (ONLY when animal_present is false; omit otherwise)",
-  "animals": "OPTIONAL array of complete per-animal objects (same shape) — include ONLY when 2+ animals are present; omit for a single animal",
+  "animals": "REQUIRED array of complete per-animal objects (same shape) whenever 2+ animals are present — one object per animal, most-urgent first; OMIT entirely for a single animal",
   "title": "short cinematic title, e.g. 'Tabby resting on a sunlit couch'",
   "status": "Urgent | Monitoring | Stable | Healthy | Safe",
   "status_reason": "one short clause, e.g. 'Likely a pet at home'",
@@ -158,14 +167,15 @@ const SCHEMA_HINT = `{
   "size": "overall body size from visible build: Small | Medium | Large | Extra large",
   "color": "main visible coat color(s), e.g. 'Black', 'Black & white', 'Golden', 'Tabby brown'",
   "first_look": "2-3 warm sentences, Voyce's First Look",
-  "behavior": "cinematic detail about posture, breath, alertness",
+  "behavior": "cinematic detail about posture, breath, alertness — include what the tail and ears appear to say",
   "location_scene": "cinematic detail about surfaces, lighting, objects nearby",
   "noticed": ["only real visible signs, plainly worded; [] if none"],
-  "observations": ["3-6 SHORT standardized observation lines (<=6 words), hedged & observational — apparent behavior/affect and any visible physical signs; include 'No visible injury detected' when nothing concerning; never a diagnosis; do NOT include environment lines"],
+  "observations": ["3-6 SHORT standardized observation lines (<=6 words), hedged & observational — apparent behavior/affect and any visible physical signs; ALWAYS include at least one tail/ears/posture body-language line; include 'No visible injury detected' when nothing concerning; never a diagnosis; do NOT include environment lines"],
+  "body_language": "one hedged sentence reading the tail + ears + posture as a mood/comfort signal, e.g. 'Tail relaxed at mid-height and ears forward — appears calm and alert' (never a diagnosis)",
   "next_steps": ["3-4 short suggested actions appropriate to status"],
   "vet_notes": {
     "bcs": "plain observation of apparent weight, e.g. 'Appears an ideal weight' or 'Appears underweight' — not a clinical score",
-    "posture": "plain observation of how the animal is holding itself",
+    "posture": "plain observation of how the animal is holding itself — cover the tail, ears, and stance/weight-bearing, hedged",
     "hydration": "plain observation, hedged (e.g. 'Appears well hydrated' or 'May be dehydrated — a vet should confirm')",
     "clinical": "1-2 sentence plain-language summary of what is visible — not a diagnosis"
   },
@@ -280,6 +290,22 @@ export function validateAssessment(
           ? a.noticed.slice(0, 5)
           : [];
     a.observations = base.length > 0 ? base : ["No visible injury detected"];
+  }
+
+  // Body-language: keep the field tidy, and make sure at least one tail/ears/
+  // posture read reaches the observations list even if the model tucked it only
+  // into body_language / vet_notes.posture. This is a mood/comfort signal, never
+  // a diagnosis, so it can never escalate urgency on its own.
+  if (typeof a.body_language !== "string") a.body_language = "";
+  const hasBodyLangObs = a.observations.some((o) =>
+    /\b(tail|ears?|posture|stance|standing|cowering|crouch|weight)\b/i.test(o),
+  );
+  if (!hasBodyLangObs) {
+    const bl = (a.body_language || a.vet_notes?.posture || "").trim();
+    if (bl) {
+      const short = bl.length > 44 ? bl.slice(0, 41).replace(/[\s,;.:]+$/, "") + "…" : bl;
+      a.observations.push(short);
+    }
   }
 
   // Consistency safeguard — enforces an "as-is" read. If the AI detected NO
