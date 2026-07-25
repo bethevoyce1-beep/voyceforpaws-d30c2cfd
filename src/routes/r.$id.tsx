@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState, type ReactNode } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
 import { getSharedReport, type SharedReport } from "@/lib/share.functions";
 import { NetworkResponses } from "@/components/voyce/NetworkResponses";
 import { getUrgency } from "@/lib/urgency";
+import { getCondition, CONDITION_COLORS } from "@/lib/condition";
 
 // =============================================================
 // Public shared rescue-card page (/r/<id>). This is what a recipient of a
@@ -10,6 +12,11 @@ import { getUrgency } from "@/lib/urgency";
 // Voyce's First Look, facts, location), then turns that moment into action:
 // Join the pack, learn what Voyce for Paws is, and (at launch) donate. No app
 // chrome; it's a standalone, link-friendly page that works for anyone.
+//
+// Parity note (Jul 2026): brought in line with the in-app rescue card so the
+// same animal reads the same everywhere — AI observations (incl. tail/body
+// language), a compact health read, the environment, an AI-confidence chip, and
+// a tap-to-switch when the photo held 2+ animals.
 // =============================================================
 
 const LANDING = "https://voyceforpaws.org";
@@ -41,6 +48,10 @@ export const Route = createFileRoute("/r/$id")({
   },
   component: SharePage,
 });
+
+function cap(s: string): string {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
 
 function animalName(d: Assessment): string {
   const breed = d.breed && !/unknown|mixed/i.test(d.breed) ? d.breed : "";
@@ -81,6 +92,7 @@ function facts(d: Assessment): { label: string; value: string }[] {
     { label: "Age", value: d.age },
     { label: "Size", value: d.size },
     { label: "Color", value: d.color },
+    ...(d.ai_confidence ? [{ label: "AI confidence", value: cap(d.ai_confidence) }] : []),
   ].filter((c) => c.value && !/^unknown$/i.test(String(c.value))) as { label: string; value: string }[];
 }
 
@@ -107,9 +119,17 @@ function TopNav() {
   );
 }
 
+// A small labelled block used for the parity sections below.
+function MicroLabel({ children }: { children: ReactNode }) {
+  return <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">{children}</div>;
+}
+
 function SharePage() {
   const { report } = Route.useLoaderData();
   const { id } = Route.useParams();
+  // When the photo held more than one animal, let the recipient tap between
+  // each one's full read on this single card (matches the in-app card).
+  const [idx, setIdx] = useState(0);
 
   if (!report || !report.data) {
     return (
@@ -130,10 +150,27 @@ function SharePage() {
     );
   }
 
-  const d = report.data;
+  const top = report.data;
+  // Multiple animals: one card, tap to switch. Falls back to the single animal.
+  const animalsList =
+    top.animals && top.animals.length > 1 ? top.animals : [top];
+  const safeIdx = Math.min(idx, animalsList.length - 1);
+  const d = animalsList[safeIdx];
+  const multi = animalsList.length > 1;
+
   const name = animalName(d);
   const T = toneOf(d, report.mission ?? undefined);
   const chips = facts(d);
+  const cond = getCondition(d);
+  const condColors = CONDITION_COLORS[cond.visibleCondition];
+  const obs = Array.isArray(d.observations) ? d.observations.filter(Boolean) : [];
+  const symptoms = Array.isArray(d.symptoms) ? d.symptoms.filter(Boolean) : [];
+  const objects = Array.isArray(d.surrounding_objects) ? d.surrounding_objects.filter(Boolean) : [];
+  const hasHealth =
+    symptoms.length > 0 || !!d.vet_notes?.posture || !!d.vet_notes?.bcs ||
+    !!d.vet_notes?.hydration || !!d.body_language || cond.visibleCondition !== "Healthy";
+  const hasEnv = !!(d.environment_text || d.location_scene || d.setting_type || objects.length);
+
   // The reporter's location-privacy choice governs what shows publicly:
   // exact = label + map pin; area = coarse label, no map; hidden = nothing.
   const priv = report.loc_privacy ?? "area";
@@ -160,6 +197,22 @@ function SharePage() {
           )}
 
           <div className="px-5 pt-4">
+            {/* Multi-animal switcher — one card, tap between each animal */}
+            {multi && (
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <span className="text-[12px] font-semibold text-muted-foreground">
+                  {animalsList.length} {(d.species || "animals").toLowerCase()}s in this photo:
+                </span>
+                {animalsList.map((a, i) => (
+                  <button key={i} type="button" onClick={() => setIdx(i)}
+                    className="rounded-full border-[1.5px] px-3 py-1 text-[12.5px] font-bold transition active:scale-[0.97]"
+                    style={i === safeIdx ? { background: "#FFDF3B", borderColor: "#FFDF3B", color: "#3A2A07" } : { borderColor: "#E6DED0", color: "#8A5A0E" }}>
+                    {cap(a.species || "animal")} {i + 1}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <h1 className="font-serif text-[24px] font-bold leading-[1.1]" style={{ color: T.title }}>{name} needs help</h1>
             {priv === "hidden" ? (
               <div className="mt-2 text-[13px] font-semibold text-[#5A3E12]">📍 Location shared privately with rescuers</div>
@@ -193,14 +246,74 @@ function SharePage() {
 
             {d.first_look && (
               <div className="mt-3 rounded-2xl border border-[#EDE5D8] bg-[#FBF7EC] px-4 py-3">
-                <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">✨ Voyce's First Look</div>
+                <MicroLabel>✨ Voyce's First Look</MicroLabel>
                 <p className="mt-1 text-[13.5px] leading-relaxed text-foreground/85">{d.first_look}</p>
+              </div>
+            )}
+
+            {/* AI read — quick scannable observations, incl. tail/body language */}
+            {obs.length > 0 && (
+              <div className="mt-3 rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3">
+                <MicroLabel>🔎 What Voyce noticed</MicroLabel>
+                <ul className="mt-1.5 grid grid-cols-1 gap-1 text-[13px] leading-relaxed text-foreground/85 sm:grid-cols-2">
+                  {obs.slice(0, 8).map((o, i) => (
+                    <li key={i} className="flex gap-2"><span className="text-[#C9871A]">•</span><span>{o}</span></li>
+                  ))}
+                </ul>
+                {d.body_language && (
+                  <p className="mt-2 rounded-lg bg-[#FBF7EC] px-3 py-2 text-[12.5px] leading-relaxed text-[#6B5832]">
+                    <span className="font-semibold">Body language:</span> {d.body_language}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Health at a glance — observations only, never a diagnosis */}
+            {hasHealth && (
+              <div className="mt-3 rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3">
+                <MicroLabel>🩺 Health at a glance</MicroLabel>
+                <p className="mt-1.5 rounded-lg bg-[#FFFBEB] px-3 py-2 text-[11.5px] italic text-[#8A5A0E] ring-1 ring-[#F3E5B6]">
+                  AI observations, not veterinary advice. Always confirm with a vet.
+                </p>
+                <div className="mt-2 flex items-center justify-between rounded-xl border px-3 py-2"
+                  style={{ background: condColors.bg, borderColor: condColors.dot, color: condColors.text }}>
+                  <span className="text-[11px] font-bold uppercase tracking-[0.12em] opacity-80">Visible condition</span>
+                  <span className="text-[13px] font-bold uppercase">{cond.visibleCondition}</span>
+                </div>
+                <dl className="mt-2 space-y-1 text-[13px] leading-relaxed text-foreground/85">
+                  {symptoms.length > 0 && <FieldRow label="Possible signs">{symptoms.join(", ")}</FieldRow>}
+                  {d.vet_notes?.bcs && <FieldRow label="Body condition">{d.vet_notes.bcs}</FieldRow>}
+                  {d.vet_notes?.posture && <FieldRow label="Posture &amp; tail">{d.vet_notes.posture}</FieldRow>}
+                  {d.vet_notes?.hydration && <FieldRow label="Hydration">{d.vet_notes.hydration}</FieldRow>}
+                </dl>
+              </div>
+            )}
+
+            {/* Where we found them — the environment a rescuer needs */}
+            {hasEnv && (
+              <div className="mt-3 rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3">
+                <MicroLabel>📍 Where we found them</MicroLabel>
+                <p className="mt-1.5 whitespace-pre-line text-[13px] leading-relaxed text-foreground/85">
+                  {d.environment_text || d.location_scene}
+                </p>
+                <dl className="mt-2 space-y-1 text-[13px] leading-relaxed text-foreground/85">
+                  {d.setting_type && <FieldRow label="Setting">{d.setting_type}</FieldRow>}
+                  {d.lighting_conditions && <FieldRow label="Lighting">{d.lighting_conditions}</FieldRow>}
+                  {d.weather && !/not visible/i.test(d.weather) && <FieldRow label="Weather">{d.weather}</FieldRow>}
+                </dl>
+                {objects.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {objects.slice(0, 8).map((o, i) => (
+                      <span key={i} className="rounded-full border border-[#EDE5D8] bg-[#FBF7EC] px-2.5 py-0.5 text-[11.5px] text-foreground/80">{o}</span>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
             {Array.isArray(d.next_steps) && d.next_steps.filter(Boolean).length > 0 && (
               <div className="mt-3">
-                <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">How this one gets saved</div>
+                <MicroLabel>How this one gets saved</MicroLabel>
                 <ul className="mt-1.5 space-y-1.5 text-[13.5px] leading-relaxed text-foreground/85">
                   {d.next_steps.filter(Boolean).slice(0, 4).map((n, i) => (
                     <li key={i} className="flex gap-2"><span className="text-[#C9871A]">→</span><span>{n}</span></li>
@@ -250,6 +363,15 @@ function SharePage() {
           &copy; 2026 Be the Voyce, Inc. &middot; Voyce for Paws&trade; is a trademark of Be the Voyce, Inc.
         </p>
       </div>
+    </div>
+  );
+}
+
+function FieldRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div>
+      <span className="text-muted-foreground">{label}: </span>
+      <span className="text-foreground/90">{children}</span>
     </div>
   );
 }
