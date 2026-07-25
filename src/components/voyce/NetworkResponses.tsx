@@ -12,6 +12,12 @@ import {
 // EVERYONE watching this animal sees the pack step up in real time — that's the
 // ripple. Persisted in Supabase (network_responses), keyed by animal.
 //
+// The six primary pills cover the common ways to step up. A seventh "➕ Other"
+// pill opens a "More ways to help" sheet with the less-common paths (shelter
+// transfer, transport, vet care, trainer, boarding) plus a free-text
+// "Something else" field — every one of them posts to the same live feed, and
+// the free-text answer is saved in the response's `detail` so it shows verbatim.
+//
 // It also EXPLAINS itself: a short "this is the pack, live" intro up top, and a
 // "Join the pack / Donate" footer so a newcomer understands what they're seeing
 // and can step in. The footer is link-based by default (works on every card);
@@ -27,15 +33,28 @@ const KINDS: Record<string, KindMeta> = {
   adopt:         { label: "wants to adopt", dot: "#993556", icon: "🤝", chip: "Adopt" },
   rescue:        { label: "will pull · rescue partner", dot: "#7C3AED", icon: "🐾", chip: "Rescue pull" },
   foster_rescue: { label: "can foster", dot: "#12805C", icon: "🏠", chip: "Foster" },
-  transport:     { label: "can transport", dot: "#2563EB", icon: "🚗", chip: "Transport" },
+  transport:     { label: "can transport · get them there", dot: "#2563EB", icon: "🚚", chip: "Transport" },
   pledge:        { label: "pledged funds toward the pull", dot: "#0F6E56", icon: "💵", chip: "Pledge" },
   share:         { label: "shared to the network", dot: "#8A8175", icon: "📣", chip: "Share" },
   foster_acs:    { label: "can foster · through ACS", dot: "#8A5A0E" },
-  transfer:      { label: "another shelter can take · transfer", dot: "#185FA5" },
+  transfer:      { label: "another shelter can take · transfer", dot: "#185FA5", icon: "🏢", chip: "Shelter transfer" },
+  vet:           { label: "can help with vet care", dot: "#0F766E", icon: "🩺", chip: "Vet care" },
+  trainer:       { label: "can help with training · behavior", dot: "#7C3AED", icon: "🎓", chip: "Trainer" },
+  boarding:      { label: "can offer boarding · temporary space", dot: "#B45309", icon: "🛏", chip: "Boarding" },
   other:         { label: "wants to help", dot: "#8A5A0E" },
 };
 // The tappable actions, in order.
 const ACTIONS = ["foster_rescue", "adopt", "rescue", "transport", "pledge", "share"] as const;
+
+// The less-common ways to step up, shown in the "More ways to help" sheet that
+// the ➕ Other pill opens. Each posts to the same live feed via respond().
+const MORE_WAYS: { kind: string; icon: string; label: string; tag: string }[] = [
+  { kind: "transfer",  icon: "🏢", label: "Shelter transfer", tag: "another shelter takes" },
+  { kind: "transport", icon: "🚚", label: "Transport",        tag: "get them there" },
+  { kind: "vet",       icon: "🩺", label: "Vet care",          tag: "medical" },
+  { kind: "trainer",   icon: "🎓", label: "Trainer",           tag: "behavior help" },
+  { kind: "boarding",  icon: "🛏", label: "Boarding",          tag: "temporary space" },
+];
 
 function initials(n: string): string {
   const p = n.trim().split(/\s+/);
@@ -83,6 +102,9 @@ export function NetworkResponses({
   const [draft, setDraft] = useState("");
   const [items, setItems] = useState<NetworkResponse[]>([]);
   const [busy, setBusy] = useState(false);
+  // "More ways to help" sheet (opened by the ➕ Other pill) + its free-text draft.
+  const [showMore, setShowMore] = useState(false);
+  const [customText, setCustomText] = useState("");
 
   const who = animalName || "this animal";
 
@@ -109,17 +131,28 @@ export function NetworkResponses({
     setName(v);
   };
 
-  const respond = async (kind: string) => {
+  // Post a response to the shared feed. `detail` carries the free-text answer
+  // for the "Something else" path so it shows verbatim in the feed.
+  const respond = async (kind: string, detail?: string) => {
     if (!name || busy) return;
     setBusy(true);
     try {
       await addNetworkResponse({
-        data: { subjectType, subjectId, animalName, responderName: name, kind },
+        data: { subjectType, subjectId, animalName, responderName: name, kind, detail: detail ?? null },
       });
       await refresh();
     } catch { /* ignore */ } finally {
       setBusy(false);
     }
+  };
+
+  const submitCustom = () => {
+    const t = customText.trim();
+    if (!t) return;
+    void respond("other", t);
+    onAction?.("other");
+    setCustomText("");
+    setShowMore(false);
   };
 
   return (
@@ -174,6 +207,12 @@ export function NetworkResponses({
                 </button>
               );
             })}
+            {/* ➕ Other — opens the "More ways to help" sheet */}
+            <button type="button" onClick={() => setShowMore(true)}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-dashed px-2 py-2.5 text-[12.5px] font-bold transition active:scale-[0.97]"
+              style={{ borderColor: "#C9871A", background: "#FFF9EC", color: "#8A5A0E" }}>
+              <span>➕</span><span>Other</span>
+            </button>
           </div>
         </div>
       )}
@@ -192,12 +231,14 @@ export function NetworkResponses({
         <ul className="mt-2 space-y-1.5">
           {items.map((r) => {
             const meta = KINDS[r.kind] ?? KINDS.other;
+            // A free-text "Something else" answer shows verbatim; presets show their label.
+            const sub = r.kind === "other" && r.detail ? r.detail : meta.label;
             return (
               <li key={r.id} className="flex items-center gap-2.5 rounded-xl border border-[#EDE5D8] bg-white px-3 py-2">
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: meta.dot }} />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[13px] font-semibold text-foreground/90">{r.responder_name}</div>
-                  <div className="truncate text-[12px] text-muted-foreground">{meta.label}</div>
+                  <div className="truncate text-[12px] text-muted-foreground">{sub}</div>
                 </div>
                 <span className="shrink-0 text-[11px] text-muted-foreground">{relTime(r.created_at)}</span>
               </li>
@@ -224,6 +265,44 @@ export function NetworkResponses({
           <p className="mt-2 text-[10.5px] italic text-muted-foreground">
             We're a 501(c)(3) · donations open at launch. Joining the pack is always free.
           </p>
+        </div>
+      )}
+
+      {/* More ways to help — opened by the ➕ Other pill. Every option posts to
+          the same live feed; the free-text answer is saved verbatim in `detail`. */}
+      {showMore && (
+        <div role="dialog" aria-modal="true"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 sm:items-center sm:pb-10"
+          onClick={() => setShowMore(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-3xl border border-border bg-card p-5 shadow-2xl">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="font-serif text-lg font-semibold leading-tight">More ways to help {who}</h3>
+              <button type="button" onClick={() => setShowMore(false)} aria-label="Close"
+                className="shrink-0 rounded-full border border-border bg-background px-2.5 py-1 text-sm">✕</button>
+            </div>
+            <div className="mt-3 space-y-2">
+              {MORE_WAYS.map((w) => (
+                <button key={w.kind} type="button" disabled={busy}
+                  onClick={() => { void respond(w.kind); onAction?.(w.kind); setShowMore(false); }}
+                  className="flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-[13.5px] font-semibold transition active:scale-[0.99] disabled:opacity-60"
+                  style={{ borderColor: "#E3DAC4", background: "#fff", color: "#6B5832" }}>
+                  <span className="flex items-center gap-2"><span>{w.icon}</span><span>{w.label}</span></span>
+                  <span className="shrink-0 rounded-full bg-[#EAF7EE] px-2 py-0.5 text-[10.5px] font-bold text-[#1F7A3A]">{w.tag}</span>
+                </button>
+              ))}
+              <div className="flex gap-1.5 pt-1">
+                <input value={customText} onChange={(e) => setCustomText(e.target.value)} maxLength={90}
+                  onKeyDown={(e) => { if (e.key === "Enter") submitCustom(); }}
+                  placeholder="Something else — how can you help?"
+                  className="min-w-0 flex-1 rounded-lg border border-[#E2DED6] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#C9871A]" />
+                <button type="button" disabled={busy || !customText.trim()} onClick={submitCustom}
+                  className="shrink-0 rounded-lg px-4 text-[13px] font-bold text-[#3A2A07] disabled:opacity-50"
+                  style={{ background: GOLD }}>Add</button>
+              </div>
+            </div>
+            <button type="button" onClick={() => setShowMore(false)}
+              className="mt-4 w-full rounded-xl bg-[#1A1611] py-2.5 text-[13.5px] font-bold text-white">Done</button>
+          </div>
         </div>
       )}
     </div>
