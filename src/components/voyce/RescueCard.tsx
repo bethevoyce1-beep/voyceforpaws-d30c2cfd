@@ -557,25 +557,9 @@ export function RescueCard({
             </div>
           )}
 
-          {/* Can you help? — TOP block. Tap a role to step up as the lead; each
-              opens the "what do you still need" choices (foster, adopter,
-              transport, funds, a vet). The live responding feed below is the
-              second, separate block. */}
-          <div className="mx-5 mt-5">
-            <div className="text-[13px] font-bold text-[#0B0B0C]">Can you help {shareName(data)}?</div>
-            <p className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">
-              Tap a way you can step up — you'll then pick what else is still needed (transport, a foster, funds, a vet…).
-            </p>
-            <div className="mt-2 grid grid-cols-3 gap-2">
-              {HELP_ROLES.map((r) => (
-                <button key={r.id} type="button" onClick={() => openHelp(r)}
-                  className="flex items-center justify-center gap-1.5 rounded-xl border px-2 py-2.5 text-[12.5px] font-bold transition active:scale-[0.97]"
-                  style={{ borderColor: "#E3DAC4", background: "#fff", color: "#6B5832" }}>
-                  <span>{r.icon}</span><span>{r.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* The "Can you help?" pills + commitment popup + live feed now live
+              together in the single NetworkResponses block below (one block does
+              both: commit AND post to the pack feed with what's still needed). */}
 
           {/* Closest-helpers ripple note, sitting just above the pack feed */}
           <div className="mx-5 mt-5 rounded-2xl border border-[#EDE5D8] px-4 py-3 text-[12.5px]" style={{ background: T.ring, color: T.title }}>
@@ -587,11 +571,7 @@ export function RescueCard({
           {reportId && (
             <div className="mt-5 border-t border-[#EDE5D8]">
               <NetworkResponses subjectType="report" subjectId={reportId} animalName={shareName(data)}
-                onAction={(kind) => {
-                  if (kind === "share") { setShowShare(true); return; }
-                  const role = HELP_ROLES.find((x) => x.id === (kind === "foster_rescue" ? "foster" : kind));
-                  if (role) openHelp(role);
-                }} />
+                onAction={(kind) => { if (kind === "share") setShowShare(true); }} />
             </div>
           )}
         </article>
