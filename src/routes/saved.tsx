@@ -7,13 +7,13 @@ import { listSharedReports, type SavedReport } from "@/lib/saved.functions";
 // /saved — the "Saved cards" gallery. Every rescue card auto-saves the moment
 // it's created, so this is the testing view: every card taken, newest first,
 // each tile showing the photo + honest status. Tap a tile to open the full
-// card at its permalink (/r/<id>). Cards made on THIS device are highlighted.
+// card at /r/<id>. Cards made on THIS device are highlighted "Yours".
+//
+// The card list (which includes photos) is fetched on the CLIENT after the page
+// renders, so opening Saved is instant instead of blocking on a heavy load.
 // =============================================================
 
-export const Route = createFileRoute("/saved")({
-  loader: async () => ({ reports: await listSharedReports({ data: { limit: 60 } }) }),
-  component: SavedPage,
-});
+export const Route = createFileRoute("/saved")({ component: SavedPage });
 
 function animalName(d: Assessment | null): string {
   if (!d) return "Animal";
@@ -37,7 +37,7 @@ function when(iso: string): string {
 }
 
 function SavedPage() {
-  const { reports } = Route.useLoaderData() as { reports: SavedReport[] };
+  const [reports, setReports] = useState<SavedReport[] | null>(null);
   const [mine, setMine] = useState<string[]>([]);
 
   useEffect(() => {
@@ -45,27 +45,48 @@ function SavedPage() {
       const j = typeof window !== "undefined" ? window.localStorage.getItem("voyce_my_reports") : null;
       if (j) setMine(JSON.parse(j) as string[]);
     } catch { /* ignore */ }
+    let alive = true;
+    listSharedReports({ data: { limit: 30 } })
+      .then((r) => { if (alive) setReports(Array.isArray(r) ? r : []); })
+      .catch(() => { if (alive) setReports([]); });
+    return () => { alive = false; };
   }, []);
+
+  const loading = reports === null;
+  const list = reports ?? [];
 
   return (
     <div className="min-h-[100dvh] bg-[#FBF7EC] pb-16">
-      {/* Brand bar */}
-      <div className="flex items-center gap-2.5 bg-[#0B0B0C] px-5 py-3.5">
+      {/* Brand bar — logo returns to the app home */}
+      <a href="/" className="flex items-center gap-2.5 bg-[#0B0B0C] px-5 py-3.5 no-underline">
         <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#141414] text-[15px]">🐾</span>
         <span className="text-[16px] font-black tracking-tight text-white">Voyce <span className="italic text-[#FFDF3B]">for</span> Paws&trade;</span>
         <span className="ml-auto text-[11px] font-semibold uppercase tracking-[0.14em] text-white/55">Saved cards</span>
-      </div>
+      </a>
 
       <div className="mx-auto w-full max-w-2xl px-4 pt-4">
-        <div className="flex items-end justify-between">
+        <div className="flex items-center gap-3">
+          <a href="/" className="inline-flex items-center gap-1 rounded-full border border-[#E3DAC4] bg-white px-3 py-1.5 text-[12.5px] font-bold text-[#6B5832] no-underline shadow-sm active:scale-95">‹ Home</a>
           <h1 className="font-serif text-[22px] font-bold text-[#0B0B0C]">Saved cards</h1>
-          <span className="text-[12px] font-semibold text-muted-foreground">{reports.length} saved</span>
+          <span className="ml-auto text-[12px] font-semibold text-muted-foreground">{loading ? "loading…" : `${list.length} saved`}</span>
         </div>
         <p className="mt-1 text-[12.5px] leading-relaxed text-[#6B5832]">
           Every card taken auto-saves here, newest first. Tap any card to open the full rescue card. Cards made on this device are marked <span className="font-bold text-[#8A5A0E]">Yours</span>.
         </p>
 
-        {reports.length === 0 ? (
+        {loading ? (
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="overflow-hidden rounded-2xl border border-[#EDE5D8] bg-white">
+                <div className="aspect-[4/3] w-full animate-pulse bg-[#efe7d7]" />
+                <div className="px-2.5 py-2">
+                  <div className="h-3 w-2/3 animate-pulse rounded bg-[#efe7d7]" />
+                  <div className="mt-1.5 h-2 w-1/2 animate-pulse rounded bg-[#f3ede1]" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : list.length === 0 ? (
           <div className="mt-8 rounded-2xl border border-dashed border-[#E3DAC4] bg-white px-6 py-12 text-center">
             <div className="text-4xl">📷</div>
             <p className="mt-2 text-[14px] font-bold text-[#8A5A0E]">No cards saved yet</p>
@@ -73,7 +94,7 @@ function SavedPage() {
           </div>
         ) : (
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {reports.map((r) => {
+            {list.map((r) => {
               const d = r.data;
               const name = animalName(d);
               const T = tone(d);
