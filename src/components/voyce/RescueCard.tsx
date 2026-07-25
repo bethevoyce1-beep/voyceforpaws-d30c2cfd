@@ -226,8 +226,14 @@ export function RescueCard({
   const takenStr = new Date(reportedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
   const gpsForMap = location ?? gps;
-  const mapsUrl = gpsForMap
-    ? `https://www.google.com/maps/search/?api=1&query=${gpsForMap.lat},${gpsForMap.lon}`
+  // View map works with coordinates when we have them, or a text search of the
+  // typed area / label when we don't — so the pill shows whenever there's ANY
+  // location to point at, not only when GPS coordinates exist.
+  const mapQuery = gpsForMap
+    ? `${gpsForMap.lat},${gpsForMap.lon}`
+    : (manualArea.trim() || location?.label || "").trim();
+  const mapsUrl = mapQuery
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`
     : null;
   const shownLoc = manualArea.trim() || (gps ? "Pinned (your GPS)" : location?.label) || locationLine(data);
 
@@ -551,14 +557,33 @@ export function RescueCard({
             </div>
           )}
 
+          {/* Can you help? — TOP block. Tap a role to step up as the lead; each
+              opens the "what do you still need" choices (foster, adopter,
+              transport, funds, a vet). The live responding feed below is the
+              second, separate block. */}
+          <div className="mx-5 mt-5">
+            <div className="text-[13px] font-bold text-[#0B0B0C]">Can you help {shareName(data)}?</div>
+            <p className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">
+              Tap a way you can step up — you'll then pick what else is still needed (transport, a foster, funds, a vet…).
+            </p>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              {HELP_ROLES.map((r) => (
+                <button key={r.id} type="button" onClick={() => openHelp(r)}
+                  className="flex items-center justify-center gap-1.5 rounded-xl border px-2 py-2.5 text-[12.5px] font-bold transition active:scale-[0.97]"
+                  style={{ borderColor: "#E3DAC4", background: "#fff", color: "#6B5832" }}>
+                  <span>{r.icon}</span><span>{r.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Closest-helpers ripple note, sitting just above the pack feed */}
           <div className="mx-5 mt-5 rounded-2xl border border-[#EDE5D8] px-4 py-3 text-[12.5px]" style={{ background: T.ring, color: T.title }}>
             <span className="font-semibold">👥 Closest helpers alerted first.</span> {m.nearbyHelpers}
           </div>
 
-          {/* Can you help? — the deeper-flow pills live in the pack feed below (single block). */}
-
-          {/* How the network is responding — rich action pills + shared ripple for this animal */}
+          {/* How the network is responding — BOTTOM block: rich action pills +
+              shared live ripple for this animal. */}
           {reportId && (
             <div className="mt-5 border-t border-[#EDE5D8]">
               <NetworkResponses subjectType="report" subjectId={reportId} animalName={shareName(data)}
