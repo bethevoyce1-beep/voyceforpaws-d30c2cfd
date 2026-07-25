@@ -174,6 +174,11 @@ export function RescueCard({
   onEditDetails?: () => void;
 }) {
   const [openPill, setOpenPill] = useState<string | null>(null);
+  // "Add what Voyce missed" — reporter's manual add for a second animal the AI
+  // didn't catch or any detail it got wrong. `missed` is the saved text.
+  const [showMissed, setShowMissed] = useState(false);
+  const [missedDraft, setMissedDraft] = useState("");
+  const [missed, setMissed] = useState("");
   const [shareConfirm, setShareConfirm] = useState<SharePlatform | null>(null);
   const [showShare, setShowShare] = useState(false);
   const [helpRole, setHelpRole] = useState<(typeof HELP_ROLES)[number] | null>(null);
@@ -333,7 +338,7 @@ export function RescueCard({
   }, []);
 
   const doShare = (p: SharePlatform, urlOverride?: string) => {
-    const text = buildShareText(data, mission);
+    const text = buildShareText(data, mission) + (missed.trim() ? `\n\n✏️ Reporter added: ${missed.trim()}` : "");
     const url = urlOverride ?? shareUrl ?? (typeof window !== "undefined" ? window.location.href : "");
     const enc = encodeURIComponent;
     const nm = shareName(data);
@@ -540,6 +545,26 @@ export function RescueCard({
                   {pills.find((p) => p.id === openPill)!.render()}
                 </div>
               )}
+
+              {/* Add what Voyce missed — a second animal it didn't catch, or any
+                  detail it got wrong. Shows on the card and travels with shares. */}
+              <div className="mt-2.5">
+                {missed ? (
+                  <div className="rounded-2xl border border-[#F0C88A] bg-[#FFF9EC] px-3.5 py-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#8A5A0E]">✏️ Reporter added</span>
+                      <button type="button" onClick={() => { setMissedDraft(missed); setShowMissed(true); }} className="text-[11px] font-semibold text-[#8A5A0E] underline underline-offset-2">edit</button>
+                    </div>
+                    <p className="mt-1 whitespace-pre-line text-[13px] leading-relaxed text-[#6B5832]">{missed}</p>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => { setMissedDraft(""); setShowMissed(true); }}
+                    className="inline-flex items-center gap-1 rounded-full border border-dashed px-3 py-1.5 text-[12.5px] font-semibold transition active:scale-95"
+                    style={{ borderColor: "#C9871A", background: "#FFF9EC", color: "#8A5A0E" }}>
+                    <span>✏️</span><span>Add what Voyce missed</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -586,6 +611,29 @@ export function RescueCard({
           ⚠️ Voyce shares AI observations, not veterinary advice. AI may misidentify breed, age, or condition and can't detect internal injuries or disease. Confirm with a licensed veterinarian before any medical, rescue, or transport decision.
         </p>
       </div>
+
+      {showMissed && (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 sm:items-center sm:pb-10" onClick={() => setShowMissed(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-3xl border border-border bg-card p-5 shadow-2xl">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="font-serif text-lg font-semibold leading-tight">Add what Voyce missed</h3>
+              <button type="button" onClick={() => setShowMissed(false)} aria-label="Close" className="shrink-0 rounded-full border border-border bg-background px-2.5 py-1 text-sm">✕</button>
+            </div>
+            <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+              Voyce's AI can miss things — a second animal it didn't spot, the real breed, or an injury. Add anything it missed or got wrong. It shows on the card and travels with any share.
+            </p>
+            <textarea value={missedDraft} onChange={(e) => setMissedDraft(e.target.value)} rows={4}
+              placeholder="e.g. There's a second black dog Voyce didn't catch. The white one seems to be limping on its back right leg."
+              className="mt-3 w-full resize-none rounded-xl border border-[#E2DED6] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#C9871A]" />
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button type="button" onClick={() => setShowMissed(false)} className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium">Cancel</button>
+              <button type="button" disabled={!missedDraft.trim()} onClick={() => { setMissed(missedDraft.trim()); setShowMissed(false); }}
+                className="rounded-full px-4 py-2 text-sm font-semibold text-[#3A2A07] shadow-sm disabled:opacity-50"
+                style={{ background: "linear-gradient(135deg,#FFDF3B,#C9871A)" }}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showLoc && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 sm:items-center sm:pb-10" onClick={() => setShowLoc(false)}>
