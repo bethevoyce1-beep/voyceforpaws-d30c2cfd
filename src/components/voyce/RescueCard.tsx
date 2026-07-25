@@ -72,13 +72,22 @@ function locationLine(data: Assessment): string {
   return "Location pinned nearby";
 }
 
+// Every fact as a pill, shown up top — nothing tucked away. Includes the report
+// facts (Case #, AI confidence, Reported by, Date) that used to hide behind the
+// "Case" pill, so the card reads at a glance like the flyer.
 function profileChips(data: Assessment): { label: string; value: string }[] {
+  const dateStr = data.reportedAt ? new Date(data.reportedAt).toLocaleDateString() : "";
   return [
     { label: "Species", value: data.species },
     { label: "Breed", value: data.breed },
     { label: "Age", value: data.age },
     { label: "Size", value: data.size },
+    { label: "Weight", value: data.weight },
     { label: "Color", value: data.color },
+    { label: "Case #", value: data.caseId ?? "" },
+    { label: "AI confidence", value: data.ai_confidence ? cap(data.ai_confidence) : "" },
+    { label: "Reported by", value: "Reporter" },
+    { label: "Date", value: dateStr },
   ].filter((c) => c.value && !/^unknown$/i.test(String(c.value))) as { label: string; value: string }[];
 }
 
@@ -361,7 +370,7 @@ export function RescueCard({
           <Row label="Visible condition" value={condition.visibleCondition} colors={CONDITION_COLORS[condition.visibleCondition]} />
           {(data.symptoms ?? []).length > 0 && <Field label="Possible symptoms">{(data.symptoms ?? []).join(", ")}</Field>}
           {data.vet_notes?.bcs && <Field label="Body condition">{data.vet_notes.bcs}</Field>}
-          {data.vet_notes?.posture && <Field label="Posture">{data.vet_notes.posture}</Field>}
+          {data.vet_notes?.posture && <Field label="Posture & tail">{data.vet_notes.posture}</Field>}
           {data.vet_notes?.hydration && <Field label="Hydration">{data.vet_notes.hydration}</Field>}
           {data.vet_notes?.clinical && <Field label="Summary (not a diagnosis)">{data.vet_notes.clinical}</Field>}
         </div>
@@ -396,17 +405,6 @@ export function RescueCard({
             <li key={i} className="flex gap-2"><span className="text-[oklch(0.65_0.18_70)]">→</span><span>{n}</span></li>
           ))}
         </ul>
-      ),
-    },
-    {
-      id: "details", icon: "📋", label: "Case",
-      render: () => (
-        <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12.5px]">
-          {data.caseId && <DRow label="Case #" value={data.caseId} />}
-          {data.reportedAt && <DRow label="Reported" value={new Date(data.reportedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} />}
-          {data.ai_confidence && <DRow label="AI confidence" value={cap(data.ai_confidence)} />}
-          <DRow label="Type" value={situation || cap(mission.replace(/-/g, " "))} />
-        </dl>
       ),
     },
   ];
@@ -788,15 +786,6 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
     <div>
       <span className="text-muted-foreground">{label}: </span>
       <span className="text-foreground/90">{children}</span>
-    </div>
-  );
-}
-
-function DRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between gap-2">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="text-right font-medium text-foreground/85">{value}</dd>
     </div>
   );
 }
