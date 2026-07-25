@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { signUpEmail } from "@/lib/auth";
+import { VoyceMark } from "@/components/voyce/VoyceMark";
 
 // Join the Pack — account sign-up. Optional to use the app, but required to
 // report an animal (keeps the network trusted). Guests can "just look" instead.
@@ -39,7 +40,7 @@ function Register() {
   return (
     <div className="flex min-h-[100dvh] flex-col items-center bg-[#FBF7EC] px-5 py-10">
       <div className="mb-6 flex flex-col items-center text-center">
-        <span className="mb-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0B0B0C] text-[28px]">🐾</span>
+        <VoyceMark size={56} className="mb-2" />
         <div className="text-[22px] font-black tracking-tight text-[#0B0B0C]">Voyce <span className="italic text-[#C9871A]">for</span> Paws&trade;</div>
         <h1 className="mt-4 font-serif text-[26px] font-bold text-[#0B0B0C]">Join the pack</h1>
         <p className="mt-1 text-[13.5px] text-[#6B5832]">Be part of something that saves lives.</p>
