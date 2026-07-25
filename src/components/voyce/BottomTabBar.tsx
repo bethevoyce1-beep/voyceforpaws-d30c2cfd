@@ -12,9 +12,10 @@
  *                sourced from the same notifications feed the inbox reads.
  *   - Join     → calls onSelect("join"); the parent opens the JoinNetworkModal.
  *
- * The bar is only rendered on the home screens (see index.tsx for visibility
- * rules — hidden during any active report flow and while the live camera /
- * photo preview is open). Safe-area aware via env(safe-area-inset-bottom).
+ * The bar is rendered on the home screens (see index.tsx for visibility rules —
+ * hidden during any active report flow and while the live camera / photo
+ * preview is open) AND on the Saved gallery route, so there's always a way out.
+ * Safe-area aware via env(safe-area-inset-bottom).
  */
 import { useEffect, useState } from "react";
 import { MessagesModal } from "@/components/voyce/MessagesModal";
@@ -45,8 +46,8 @@ export function BottomTabBar({
   active,
   onSelect,
 }: {
-  /** Which home tab is currently showing. `messages` and `join` never stay active. */
-  active: "report" | "atrisk";
+  /** Which tab is currently showing. `messages` / `join` never stay active. */
+  active: BottomTab;
   onSelect: (tab: BottomTab) => void;
 }) {
   // Messages is a self-contained overlay owned by the tab bar, so it works on
