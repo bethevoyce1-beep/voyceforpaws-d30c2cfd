@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import type { Assessment } from "@/lib/analyze.functions";
 import { getSharedReport, type SharedReport } from "@/lib/share.functions";
 import { NetworkResponses } from "@/components/voyce/NetworkResponses";
+import { getUrgency } from "@/lib/urgency";
 
 // =============================================================
 // Public shared rescue-card page (/r/<id>). This is what a recipient of a
@@ -47,11 +48,30 @@ function animalName(d: Assessment): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function toneOf(d: Assessment): { badge: string; bg: string; fg: string; title: string } {
-  const s = `${d.status ?? ""} ${d.visible_condition ?? ""} ${d.status_reason ?? ""}`.toLowerCase();
-  if (/critical|emergency|euthan/.test(s)) return { badge: "🚨 Critical", bg: "#7E1F1F", fg: "#FFF1EE", title: "#7E1F1F" };
-  if (/urgent|concern|injur|sick|distress|bleed|hit by/.test(s)) return { badge: "🟠 Urgent", bg: "#A8431F", fg: "#FFF6F0", title: "#A8431F" };
-  return { badge: "💛 Needs care", bg: "#8A5A0E", fg: "#FFF9E6", title: "#8A5A0E" };
+// Same urgency + tone mapping the rescue card and Saved tiles use, so the badge
+// here always agrees with them. Calm/healthy pets read a green "Stable".
+const TONE: Record<string, { badge: string; bg: string; fg: string; title: string }> = {
+  critical: { badge: "🚨 Critical", bg: "#7E1F1F", fg: "#FFF1EE", title: "#7E1F1F" },
+  urgent:   { badge: "🟠 Urgent",   bg: "#A8431F", fg: "#FFF6F0", title: "#A8431F" },
+  care:     { badge: "💛 Needs care", bg: "#8A5A0E", fg: "#FFF9E6", title: "#8A5A0E" },
+  calm:     { badge: "✓ Stable",   bg: "#1F6B3D", fg: "#E7F5EC", title: "#1F6B3D" },
+  wildlife: { badge: "🦝 Wildlife", bg: "#2C5C7C", fg: "#E4F0F8", title: "#2C5C7C" },
+};
+function toneKey(mission: string | undefined, level: string): keyof typeof TONE {
+  if (mission === "wildlife") return "wildlife";
+  if (mission === "at-risk-shelter") return level === "CRITICAL" ? "critical" : "urgent";
+  if (level === "CRITICAL") return "critical";
+  if (level === "HIGH") return "urgent";
+  if (level === "LOW") return "calm";
+  return "care";
+}
+function toneOf(d: Assessment, mission: string | undefined): { badge: string; bg: string; fg: string; title: string } {
+  try {
+    const u = getUrgency(d);
+    return TONE[toneKey(mission, u.level)] ?? TONE.care;
+  } catch {
+    return TONE.care;
+  }
 }
 
 function facts(d: Assessment): { label: string; value: string }[] {
@@ -112,7 +132,7 @@ function SharePage() {
 
   const d = report.data;
   const name = animalName(d);
-  const T = toneOf(d);
+  const T = toneOf(d, report.mission ?? undefined);
   const chips = facts(d);
   // The reporter's location-privacy choice governs what shows publicly:
   // exact = label + map pin; area = coarse label, no map; hidden = nothing.
