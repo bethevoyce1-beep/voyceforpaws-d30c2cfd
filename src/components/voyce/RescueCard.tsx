@@ -227,6 +227,9 @@ export function RescueCard({
   // If GPS was denied (no `location`), the reporter can add an area manually or
   // retry GPS here; "Send to rescuers" stays gated until we have one.
   const [showLoc, setShowLoc] = useState(false);
+  // Inline "map is off — add the exact address" field, revealed by a pill under
+  // the location so the reporter can correct a wrong GPS pin.
+  const [showAddr, setShowAddr] = useState(false);
   const [manualArea, setManualArea] = useState("");
   const [gps, setGps] = useState<{ lat: number; lon: number } | null>(null);
   const [locNote, setLocNote] = useState<string | null>(null);
@@ -291,12 +294,13 @@ export function RescueCard({
   const takenStr = new Date(reportedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
   const gpsForMap = location ?? gps;
-  // View map works with coordinates when we have them, or a text search of the
-  // typed area / label when we don't — so the pill shows whenever there's ANY
-  // location to point at, not only when GPS coordinates exist.
-  const mapQuery = gpsForMap
-    ? `${gpsForMap.lat},${gpsForMap.lon}`
-    : (manualArea.trim() || location?.label || "").trim();
+  // A typed address WINS over the GPS pin — so a "map is off" correction actually
+  // moves the map to the address the reporter entered.
+  const mapQuery = manualArea.trim()
+    ? manualArea.trim()
+    : gpsForMap
+      ? `${gpsForMap.lat},${gpsForMap.lon}`
+      : (location?.label || "").trim();
   const mapsUrl = mapQuery
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`
     : null;
@@ -568,12 +572,30 @@ export function RescueCard({
             <div className="mt-2 text-[12px] font-medium text-muted-foreground">📷 Photo taken {takenStr}</div>
 
             {hasPin && (
-              <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] font-medium text-muted-foreground">
-                <span className="flex items-center gap-1"><span>📍</span><span>{shownLoc}</span></span>
-                {mapsUrl && (
-                  <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold text-white no-underline shadow-sm transition active:scale-[0.97]"
-                    style={{ background: "#2563EB" }}>🗺 View map</a>
+              <div className="mt-2">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] font-medium text-muted-foreground">
+                  <span className="flex items-center gap-1"><span>📍</span><span>{shownLoc}</span></span>
+                  {mapsUrl && (
+                    <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold text-white no-underline shadow-sm transition active:scale-[0.97]"
+                      style={{ background: "#2563EB" }}>🗺 View map</a>
+                  )}
+                  {!showAddr && (
+                    <button type="button" onClick={() => setShowAddr(true)}
+                      className="inline-flex items-center gap-1 rounded-full border border-dashed px-2 py-0.5 text-[11px] font-bold transition active:scale-[0.97]"
+                      style={{ borderColor: "#C9871A", background: "#FFF9EC", color: "#8A5A0E" }}>
+                      📍 Map off? Add address
+                    </button>
+                  )}
+                </div>
+                {showAddr && (
+                  <div className="mt-2 rounded-xl border border-[#F0C88A] bg-[#FFF6E5] px-3 py-2.5">
+                    <label className="text-[11.5px] font-semibold text-[#8A5A0E]">If the map is off, type the exact address or nearest cross-streets</label>
+                    <input value={manualArea} onChange={(e) => setManualArea(e.target.value)}
+                      placeholder="e.g. Culebra Rd & Bandera Rd, or 4710 Main St"
+                      className="mt-1 w-full rounded-lg border border-[#E2DED6] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#C9871A]" />
+                    <p className="mt-1 text-[11px] leading-relaxed text-[#6B5832]">Your typed address updates the map above and travels with the report when you send or share it.</p>
+                  </div>
                 )}
               </div>
             )}
