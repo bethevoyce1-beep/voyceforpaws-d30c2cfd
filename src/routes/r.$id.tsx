@@ -396,6 +396,14 @@ function SharePage() {
               <p className="mt-3 text-[13.5px] italic leading-relaxed text-[oklch(0.45_0.03_70)]">{d.first_look}</p>
             )}
 
+            {/* Body language on the card face — same as the in-app card. */}
+            {d.body_language && (
+              <p className="mt-2 flex gap-1.5 text-[12.5px] leading-relaxed text-[#6B5832]">
+                <span aria-hidden>🐾</span>
+                <span><span className="font-semibold">Body language:</span> {d.body_language}</span>
+              </p>
+            )}
+
             {/* More on this animal — tap-to-open pills, same as the in-app card */}
             {pills.length > 0 && (
               <div className="mt-3">
