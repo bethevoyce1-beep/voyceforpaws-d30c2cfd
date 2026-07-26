@@ -233,7 +233,6 @@ function SharePage() {
     pills.push({ id: "obs", icon: "🔎", label: "AI read", render: () => (
       <ul className="space-y-1 text-[13.5px] leading-relaxed text-foreground/85">
         {obs.slice(0, 8).map((o, i) => (<li key={i} className="flex gap-2"><span className="text-[#C9871A]">•</span><span>{o}</span></li>))}
-        {d.body_language && <li className="mt-1 flex gap-2"><span className="text-[#C9871A]">•</span><span>{d.body_language}</span></li>}
       </ul>
     ) });
   }
@@ -256,6 +255,11 @@ function SharePage() {
   if (d.behavior) {
     pills.push({ id: "behavior", icon: "🐾", label: "Behavior", render: () => (
       <p className="text-[13.5px] leading-relaxed text-foreground/85">{d.behavior}</p>
+    ) });
+  }
+  if (d.body_language) {
+    pills.push({ id: "body", icon: "🐕", label: "Body language", render: () => (
+      <p className="text-[13.5px] leading-relaxed text-foreground/85">{d.body_language}</p>
     ) });
   }
   pills.push({ id: "env", icon: "🌤", label: "Environment", render: () => (
@@ -396,13 +400,6 @@ function SharePage() {
               <p className="mt-3 text-[13.5px] italic leading-relaxed text-[oklch(0.45_0.03_70)]">{d.first_look}</p>
             )}
 
-            {/* Body language on the card face — same as the in-app card. */}
-            {d.body_language && (
-              <p className="mt-2 flex gap-1.5 text-[12.5px] leading-relaxed text-[#6B5832]">
-                <span aria-hidden>🐾</span>
-                <span><span className="font-semibold">Body language:</span> {d.body_language}</span>
-              </p>
-            )}
 
             {/* More on this animal — tap-to-open pills, same as the in-app card */}
             {pills.length > 0 && (
