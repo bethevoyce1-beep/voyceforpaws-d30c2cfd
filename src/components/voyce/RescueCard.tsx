@@ -136,6 +136,16 @@ const STILL_NEEDS: { id: string; icon: string; label: string }[] = [
 // The need each role already covers (so we don't ask the lead for it again).
 const ROLE_COVERS: Record<string, string> = { foster: "foster", adopt: "adopter", transport: "transport", pledge: "funds", rescue: "" };
 
+// Choices for the "Add what Voyce missed" popup — mirror the old "Tell us about
+// them" details form (animal type, what's happening, and what the photo can't
+// show), so the reporter can correct/add these right on the card.
+const MISSED_ANIMALS = ["Dog", "Cat", "Puppy", "Kitten", "Other"];
+const MISSED_SITUATIONS = [
+  "Injured or hit by a car", "Sick or in distress", "Lost pet", "Found pet",
+  "Abandoned puppies or kittens", "Stray, needs care", "Needs spay or vaccine", "At-risk shelter",
+];
+const MISSED_WITNESSED = ["Hit by a car", "Trapped / in danger", "Abuse / cruelty witnessed"];
+
 function shareName(data: Assessment): string {
   const breed = data.breed && !/unknown|mixed/i.test(data.breed) ? data.breed : "";
   return cap((breed || data.species || "animal"));
@@ -177,8 +187,12 @@ export function RescueCard({
   // "Add what Voyce missed" — reporter's manual add for a second animal the AI
   // didn't catch or any detail it got wrong. `missed` is the saved text.
   const [showMissed, setShowMissed] = useState(false);
-  const [missedDraft, setMissedDraft] = useState("");
-  const [missed, setMissed] = useState("");
+  // Structured "what Voyce missed / got wrong" — animal type, what's happening,
+  // what the photo can't show (witnessed), plus a free-text note.
+  const [mAnimal, setMAnimal] = useState("");
+  const [mSituation, setMSituation] = useState("");
+  const [mWitnessed, setMWitnessed] = useState<string[]>([]);
+  const [mNote, setMNote] = useState("");
   const [shareConfirm, setShareConfirm] = useState<SharePlatform | null>(null);
   const [showShare, setShowShare] = useState(false);
   const [helpRole, setHelpRole] = useState<(typeof HELP_ROLES)[number] | null>(null);
@@ -210,6 +224,16 @@ export function RescueCard({
   const [gps, setGps] = useState<{ lat: number; lon: number } | null>(null);
   const [locNote, setLocNote] = useState<string | null>(null);
   const hasPin = !!(location || gps || manualArea.trim());
+
+  // A one-line summary of what the reporter added/corrected — shown on the card
+  // and appended to shares.
+  const missedSummary = [
+    mAnimal,
+    mSituation,
+    mWitnessed.length ? `saw: ${mWitnessed.join(", ")}` : "",
+    mNote.trim(),
+  ].filter(Boolean).join(" · ");
+  const hasMissed = missedSummary.length > 0;
 
   const urgency = useMemo(() => getUrgency(data, mission), [data, mission]);
   const condition = useMemo(() => getCondition(data), [data]);
@@ -338,7 +362,7 @@ export function RescueCard({
   }, []);
 
   const doShare = (p: SharePlatform, urlOverride?: string) => {
-    const text = buildShareText(data, mission) + (missed.trim() ? `\n\n✏️ Reporter added: ${missed.trim()}` : "");
+    const text = buildShareText(data, mission) + (missedSummary ? `\n\n✏️ Reporter added: ${missedSummary}` : "");
     const url = urlOverride ?? shareUrl ?? (typeof window !== "undefined" ? window.location.href : "");
     const enc = encodeURIComponent;
     const nm = shareName(data);
@@ -546,19 +570,20 @@ export function RescueCard({
                 </div>
               )}
 
-              {/* Add what Voyce missed — a second animal it didn't catch, or any
-                  detail it got wrong. Shows on the card and travels with shares. */}
+              {/* Add what Voyce missed — fix the animal type / situation, note a
+                  second animal it didn't catch, or add what the photo can't show.
+                  Shows on the card and travels with shares. */}
               <div className="mt-2.5">
-                {missed ? (
+                {hasMissed ? (
                   <div className="rounded-2xl border border-[#F0C88A] bg-[#FFF9EC] px-3.5 py-2.5">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#8A5A0E]">✏️ Reporter added</span>
-                      <button type="button" onClick={() => { setMissedDraft(missed); setShowMissed(true); }} className="text-[11px] font-semibold text-[#8A5A0E] underline underline-offset-2">edit</button>
+                      <button type="button" onClick={() => setShowMissed(true)} className="text-[11px] font-semibold text-[#8A5A0E] underline underline-offset-2">edit</button>
                     </div>
-                    <p className="mt-1 whitespace-pre-line text-[13px] leading-relaxed text-[#6B5832]">{missed}</p>
+                    <p className="mt-1 text-[13px] leading-relaxed text-[#6B5832]">{missedSummary}</p>
                   </div>
                 ) : (
-                  <button type="button" onClick={() => { setMissedDraft(""); setShowMissed(true); }}
+                  <button type="button" onClick={() => setShowMissed(true)}
                     className="inline-flex items-center gap-1 rounded-full border border-dashed px-3 py-1.5 text-[12.5px] font-semibold transition active:scale-95"
                     style={{ borderColor: "#C9871A", background: "#FFF9EC", color: "#8A5A0E" }}>
                     <span>✏️</span><span>Add what Voyce missed</span>
@@ -614,22 +639,59 @@ export function RescueCard({
 
       {showMissed && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 sm:items-center sm:pb-10" onClick={() => setShowMissed(false)}>
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-3xl border border-border bg-card p-5 shadow-2xl">
+          <div onClick={(e) => e.stopPropagation()} className="max-h-[85dvh] w-full max-w-sm overflow-y-auto rounded-3xl border border-border bg-card p-5 shadow-2xl">
             <div className="flex items-center justify-between gap-3">
               <h3 className="font-serif text-lg font-semibold leading-tight">Add what Voyce missed</h3>
               <button type="button" onClick={() => setShowMissed(false)} aria-label="Close" className="shrink-0 rounded-full border border-border bg-background px-2.5 py-1 text-sm">✕</button>
             </div>
             <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-              Voyce's AI can miss things — a second animal it didn't spot, the real breed, or an injury. Add anything it missed or got wrong. It shows on the card and travels with any share.
+              Voyce read the photo — fix anything it missed or got wrong. Some things a photo can't show, so you can add them here. It shows on the card and travels with any share.
             </p>
-            <textarea value={missedDraft} onChange={(e) => setMissedDraft(e.target.value)} rows={4}
-              placeholder="e.g. There's a second black dog Voyce didn't catch. The white one seems to be limping on its back right leg."
-              className="mt-3 w-full resize-none rounded-xl border border-[#E2DED6] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#C9871A]" />
+
+            <div className="mt-4">
+              <p className="mb-2 text-[11.5px] font-bold uppercase tracking-[0.1em] text-foreground/55">What kind of animal?</p>
+              <div className="flex flex-wrap gap-2">
+                {MISSED_ANIMALS.map((o) => (
+                  <Chip key={o} label={o} active={mAnimal === o} onClick={() => setMAnimal(mAnimal === o ? "" : o)} />
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <p className="mb-2 text-[11.5px] font-bold uppercase tracking-[0.1em] text-foreground/55">What's happening?</p>
+              <div className="flex flex-wrap gap-2">
+                {MISSED_SITUATIONS.map((o) => (
+                  <Chip key={o} label={o} active={mSituation === o} onClick={() => setMSituation(mSituation === o ? "" : o)} />
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <p className="mb-2 text-[11.5px] font-bold uppercase tracking-[0.1em] text-foreground/55">Did you see any of these? (the photo can't tell us)</p>
+              <div className="flex flex-wrap gap-2">
+                {MISSED_WITNESSED.map((o) => {
+                  const on = mWitnessed.includes(o);
+                  return (
+                    <Chip key={o} label={(on ? "✓ " : "") + o} active={on}
+                      onClick={() => setMWitnessed(on ? mWitnessed.filter((x) => x !== o) : [...mWitnessed, o])} />
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <p className="mb-2 text-[11.5px] font-bold uppercase tracking-[0.1em] text-foreground/55">Anything else?</p>
+              <textarea value={mNote} onChange={(e) => setMNote(e.target.value)} rows={3}
+                placeholder="e.g. There's a second black dog Voyce didn't catch. Color, size, behavior, how long it's been there…"
+                className="w-full resize-none rounded-xl border border-[#E2DED6] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#C9871A]" />
+            </div>
+
             <div className="mt-4 flex items-center justify-end gap-2">
-              <button type="button" onClick={() => setShowMissed(false)} className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium">Cancel</button>
-              <button type="button" disabled={!missedDraft.trim()} onClick={() => { setMissed(missedDraft.trim()); setShowMissed(false); }}
-                className="rounded-full px-4 py-2 text-sm font-semibold text-[#3A2A07] shadow-sm disabled:opacity-50"
-                style={{ background: "linear-gradient(135deg,#FFDF3B,#C9871A)" }}>Save</button>
+              <button type="button" onClick={() => { setMAnimal(""); setMSituation(""); setMWitnessed([]); setMNote(""); }}
+                className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium">Clear</button>
+              <button type="button" onClick={() => setShowMissed(false)}
+                className="rounded-full px-4 py-2 text-sm font-semibold text-[#3A2A07] shadow-sm"
+                style={{ background: "linear-gradient(135deg,#FFDF3B,#C9871A)" }}>Done</button>
             </div>
           </div>
         </div>
@@ -827,6 +889,16 @@ export function RescueCard({
         </div>
       )}
     </div>
+  );
+}
+
+function Chip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick}
+      className="rounded-full px-3 py-1.5 text-[12.5px] font-semibold transition active:scale-[0.97]"
+      style={active ? { background: "#FFDF3B", color: "#3A2A07" } : { border: "1px solid #E3DAC4", background: "#fff", color: "#6B5832" }}>
+      {label}
+    </button>
   );
 }
 
