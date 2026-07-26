@@ -90,6 +90,8 @@ SIZE, COLOR & CONFIDENCE. Always fill "size" with the animal's overall body size
 
 DISTANCE & OBSTRUCTIONS — CONFIDENCE HONESTY. If the animal is far away, small in the frame, seen through glass/a window/a screen/a fence/foliage, or otherwise not clearly and closely visible, you CANNOT judge its health with certainty. In that case: set "ai_confidence" to "medium" or "low" (NEVER "high"); make first_look and status_reason explicitly acknowledge the limit (for example "From this distance nothing looks obviously wrong, but a closer look is needed"); and do NOT present "no action needed" as a confident conclusion — prefer wording like "No visible distress from this photo — hard to tell from this distance." A confident "healthy / no action needed" with high confidence is only appropriate when the animal is clearly and closely visible.
 
+HEADING MUST FOLLOW WHAT YOU ACTUALLY SEE — READ BEFORE YOU LABEL. The status, title, and urgency must be based ONLY on concerns that are plainly VISIBLE in this photo. If the animal is photographed FROM BEHIND, at a distance, or in any way that hides its face, eyes, mouth, torso, and limbs, you CANNOT see most signs of injury or illness — so DO NOT invent one and DO NOT default to alarm. In that case: set health_signs sick/injured/lethargic/dehydrated to FALSE (unless a concern is unmistakably visible), set visible_condition to "Healthy", set status to "Monitoring" or "Safe" (NEVER "Urgent"), lower ai_confidence, and state plainly in first_look and status_reason that the view is limited — e.g. "Photographed from behind on a leashed walk — can't assess its condition, but it looks calm and is walking normally." A calm dog seen from the back is NOT an emergency. Never output an "Urgent" status, a "Critical" condition, or an injured/sick heading for an animal that simply can't be fully seen.
+
 Be cinematic and specific about what you actually see in the image (surfaces, lighting, posture, objects). NEVER contradict yourself: if status is "Healthy" or "Monitoring", next_steps must not say "seek medical attention" or treat it as urgent. If you see a collar, indoor scene, bedding, or grooming, set is_likely_pet=true and prefer status "Monitoring". If no real symptoms, noticed must be [].
 
 WILDLIFE VS PET — CRITICAL. Wild species (ducks, geese, swans, pigeons, gulls, herons, crows, hawks, owls, squirrels, raccoons, deer, foxes, turtles, and similar) observed in a natural or public setting (lake, river, pond, shoreline, park, woods, field, sky) are WILD ANIMALS: set is_likely_pet=false, choose the setting_type that matches the actual scene (e.g. "Wild/Undeveloped" or "Public Space (Park/Plaza)"), and NEVER claim "Home (Indoor)" or describe them as a pet at home. Only call such a species a pet with clear domestic evidence (cage, coop, leash, indoor room). status_reason for healthy wildlife should read like "Wild animal in its natural habitat — no action needed."
@@ -333,6 +335,37 @@ export function validateAssessment(
     if (!a.status_reason || /urgent|injur|distress|rescue/i.test(a.status_reason)) {
       a.status_reason =
         "No visible injury or sickness in the photo — not an emergency.";
+    }
+  }
+
+  // Rear / limited-view honesty backstop — the HEADING must follow the notes.
+  // If the AI's own read says it can't actually see the animal's condition
+  // (photographed from behind, face/body not visible, too far, "hard to tell")
+  // AND there is NO concrete injury/sickness word anywhere in what it wrote,
+  // it must not be flagged Urgent/Critical/Concerning on speculation. This only
+  // ever DOWNGRADES, only when the AI itself admits a limited view, and never
+  // fires for a witnessed emergency — so it can't hide a real, visible problem.
+  const _readText = [
+    a.first_look, a.status_reason, a.behavior,
+    Array.isArray(a.observations) ? a.observations.join(" ") : "",
+    Array.isArray(a.symptoms) ? a.symptoms.join(" ") : "",
+  ].filter(Boolean).join(" ").toLowerCase();
+  const _limitedView =
+    /(from behind|rear view|back of the|only .*(back|rear|tail)|can'?t (tell|assess|see|make out)|cannot (tell|assess|see|make out)|hard to tell|not fully visible|face (is )?not visible|obscured|from (this |a )?distance|too far)/.test(_readText);
+  const _hardConcern =
+    /(wound|laceration|abrasion|cut|bleed|blood|limp|lame|fracture|swelling|gash|broken|discharge|cough|sneez|vomit|diarrh|emaciat|injur|open sore|maggot|prolapse|distress|seizure|unconsc)/.test(_readText);
+  if (
+    _limitedView && !_hardConcern && !opts.witnessedEmergency &&
+    (a.status === "Urgent" || a.status === "Stable" ||
+      a.visible_condition === "Critical" || a.visible_condition === "Concerning")
+  ) {
+    a.status = "Monitoring";
+    a.visible_condition = "Healthy";
+    a.health_signs = { sick: false, injured: false, lethargic: false, dehydrated: false };
+    a.noticed = [];
+    if (!a.status_reason || /urgent|injur|distress|critical|rescue/i.test(a.status_reason)) {
+      a.status_reason =
+        "Can't fully see the animal in this photo — nothing visibly wrong, not an emergency.";
     }
   }
 
