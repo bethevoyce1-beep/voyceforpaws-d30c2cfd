@@ -651,6 +651,17 @@ export function RescueCard({
               together in the single NetworkResponses block below (one block does
               both: commit AND post to the pack feed with what's still needed). */}
 
+          {/* Pre-launch safety notice — Voyce can't dispatch responders yet, so a
+              tester who's actually on a REAL animal in trouble is told how to get
+              real help right now (and how to reach us). Remove at launch. */}
+          <div className="mx-5 mt-4 rounded-2xl border border-[#F0C88A] bg-[#FFF6E5] px-4 py-3">
+            <div className="text-[12.5px] font-bold text-[#8A5A0E]">🐾 Is this a real animal that needs help right now?</div>
+            <p className="mt-1 text-[12px] leading-relaxed text-[#6B5832]">
+              Voyce isn't live yet — we can't alert responders until the pack grows in your area. For a real animal, contact your local <span className="font-semibold">animal control</span>, an <span className="font-semibold">emergency vet</span>, or <span className="font-semibold">911</span> if there's a safety risk. You can also text or call <a href="tel:+13306214361" className="font-semibold text-[#8A5A0E] underline">(330) 621-4361</a> or email <a href="mailto:info@bethevoyce.org" className="font-semibold text-[#8A5A0E] underline">info@bethevoyce.org</a>.
+            </p>
+            <p className="mt-1 text-[10.5px] italic text-[#8A5A0E]">Pre-launch testing contact.</p>
+          </div>
+
           {/* Closest-helpers ripple note, sitting just above the pack feed */}
           <div className="mx-5 mt-5 rounded-2xl border border-[#EDE5D8] px-4 py-3 text-[12.5px]" style={{ background: T.ring, color: T.title }}>
             <span className="font-semibold">👥 Closest helpers alerted first.</span> {m.nearbyHelpers}
