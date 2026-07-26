@@ -662,6 +662,15 @@ export function RescueCard({
             <p className="mt-1 text-[10.5px] italic text-[#8A5A0E]">Pre-launch testing contact.</p>
           </div>
 
+          {/* Stay-safe / anti-scam warning — PERMANENT (keep at launch). A platform
+              that connects strangers around a location and animals needs this. */}
+          <div className="mx-5 mt-4 rounded-2xl border border-[#D8CEB8] bg-[#FBF7EC] px-4 py-3">
+            <div className="text-[12.5px] font-bold text-[#5A3E12]">🛡️ Stay safe</div>
+            <p className="mt-1 text-[12px] leading-relaxed text-[#6B5832]">
+              Voyce connects people who don't know each other. Before you act: meet in a <span className="font-semibold">public place</span>, bring someone if you can, and <span className="font-semibold">never send money or pledges</span> to anyone you haven't verified. Confirm the animal and the person are real before you travel or hand anything over — scams and unsafe meetups do happen, so trust your gut.
+            </p>
+          </div>
+
           {/* Closest-helpers ripple note, sitting just above the pack feed */}
           <div className="mx-5 mt-5 rounded-2xl border border-[#EDE5D8] px-4 py-3 text-[12.5px]" style={{ background: T.ring, color: T.title }}>
             <span className="font-semibold">👥 Closest helpers alerted first.</span> {m.nearbyHelpers}
