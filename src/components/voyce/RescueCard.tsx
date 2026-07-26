@@ -600,6 +600,16 @@ export function RescueCard({
               <p className="mt-2 text-[13.5px] italic leading-relaxed text-[oklch(0.45_0.03_70)]">{data.first_look}</p>
             )}
 
+            {/* Body language on the card face — tail + ears + stance, so the
+                reporter sees what Voyce read about the tail without opening a
+                pill. Hedged mood signal only, never a diagnosis. */}
+            {data.body_language && (
+              <p className="mt-2 flex gap-1.5 text-[12.5px] leading-relaxed text-[#6B5832]">
+                <span aria-hidden>🐾</span>
+                <span><span className="font-semibold">Body language:</span> {data.body_language}</span>
+              </p>
+            )}
+
             {/* Detail pills — tap to expand, right under Voyce's read */}
             <div className="mt-3">
               <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">More on this animal</div>
