@@ -25,7 +25,7 @@ const TONES: Record<Tone, { badge: string; bg: string; fg: string; ring: string;
   critical: { badge: "🚨 Critical", bg: "#7E1F1F", fg: "#FFF1EE", ring: "#F8D7D7", title: "#7E1F1F" },
   urgent:   { badge: "🟠 Urgent",   bg: "#A8431F", fg: "#FFF6F0", ring: "#FFE4D6", title: "#A8431F" },
   care:     { badge: "💛 Needs care", bg: "#8A5A0E", fg: "#FFF9E6", ring: "#FCEFC9", title: "#8A5A0E" },
-  calm:     { badge: "✓ Stable",   bg: "#1F6B3D", fg: "#E7F5EC", ring: "#E7F5EC", title: "#1F6B3D" },
+  calm:     { badge: "✓ Safe",     bg: "#1F6B3D", fg: "#E7F5EC", ring: "#E7F5EC", title: "#1F6B3D" },
   wildlife: { badge: "🦝 Wildlife", bg: "#2C5C7C", fg: "#E4F0F8", ring: "#E4F0F8", title: "#2C5C7C" },
 };
 
@@ -59,8 +59,8 @@ function headline(
   if (mission === "wildlife") return `Wildlife · ${Who}`;
   // Honest calm title — never "Found"/"Lost"/a condition word for a settled, safe animal.
   if (tone === "calm") {
-    const atHome = data.is_likely_pet && /home|indoor/i.test(data.setting_type || "");
-    return cap(atHome ? `${who} · safe at home` : `${who} · stable, no action needed`);
+    const atHome = data.is_likely_pet && /home|indoor|domestic|backyard/i.test(data.setting_type || "");
+    return cap(atHome ? `${who} · safe at home` : `${who} · safe, no action needed`);
   }
   if (mission === "at-risk-shelter") return `At-risk shelter ${who}`;
   const sit = (situation || "").trim();
