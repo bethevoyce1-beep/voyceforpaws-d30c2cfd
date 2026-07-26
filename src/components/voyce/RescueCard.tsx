@@ -657,7 +657,7 @@ export function RescueCard({
           <div className="mx-5 mt-4 rounded-2xl border border-[#F0C88A] bg-[#FFF6E5] px-4 py-3">
             <div className="text-[12.5px] font-bold text-[#8A5A0E]">🐾 Is this a real animal that needs help right now?</div>
             <p className="mt-1 text-[12px] leading-relaxed text-[#6B5832]">
-              Voyce isn't live yet — we can't alert responders until the pack grows in your area. For a real animal, contact your local <span className="font-semibold">animal control</span>, an <span className="font-semibold">emergency vet</span>, or <span className="font-semibold">911</span> if there's a safety risk. You can also text or call <a href="tel:+13306214361" className="font-semibold text-[#8A5A0E] underline">(330) 621-4361</a> or email <a href="mailto:info@bethevoyce.org" className="font-semibold text-[#8A5A0E] underline">info@bethevoyce.org</a>.
+              Voyce isn't live yet — we can't alert responders until the pack grows in your area. For a real animal, contact your local <span className="font-semibold">animal control</span>, an <span className="font-semibold">emergency vet</span>, or a nearby <span className="font-semibold">animal shelter or rescue</span> — and a <span className="font-semibold">wildlife rehabber</span> for wildlife. You can also text or call <a href="tel:+13306214361" className="font-semibold text-[#8A5A0E] underline">(330) 621-4361</a> or email <a href="mailto:info@bethevoyce.org" className="font-semibold text-[#8A5A0E] underline">info@bethevoyce.org</a>.
             </p>
             <p className="mt-1 text-[10.5px] italic text-[#8A5A0E]">Pre-launch testing contact.</p>
           </div>
