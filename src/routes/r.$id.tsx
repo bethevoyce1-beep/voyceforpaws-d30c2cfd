@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
-import { getSharedReport, type SharedReport } from "@/lib/share.functions";
+import { getSharedReport, mergeReporterAdded, reporterAddedSummary, type SharedReport, type ReporterAdded } from "@/lib/share.functions";
 import { NetworkResponses } from "@/components/voyce/NetworkResponses";
 import { getUrgency } from "@/lib/urgency";
 import { getCondition, CONDITION_COLORS } from "@/lib/condition";
@@ -16,6 +16,10 @@ import { useLiveAgo, formatTimer } from "@/lib/useLiveAgo";
 // Environment, Next steps, Case). The only difference from the in-app card is
 // the reporter-only "Send to rescuers" is replaced with the public "Join the
 // pack" CTA.
+//
+// Reporter corrections (saved AFTER the link was shared) are folded in here too,
+// so the public card updates for everyone: species/age/situation via
+// mergeReporterAdded, plus a "Reporter added" summary line.
 // =============================================================
 
 const LANDING = "https://voyceforpaws.org";
@@ -154,7 +158,12 @@ function SharePage() {
   const top = report?.data ?? null;
   const animalsList = top && top.animals && top.animals.length > 1 ? top.animals : top ? [top] : [];
   const safeIdx = Math.min(idx, Math.max(0, animalsList.length - 1));
-  const d = animalsList[safeIdx] ?? null;
+  const rawD = animalsList[safeIdx] ?? null;
+  // Fold the reporter's corrections (saved after the link was shared) into the
+  // card so the public view updates for everyone — species/age/situation here,
+  // plus a "Reporter added" summary line below.
+  const reporterAdded = (report?.reporter_added ?? null) as ReporterAdded;
+  const d = rawD ? mergeReporterAdded(rawD, reporterAdded) : null;
 
   // Count-up timer from the photo's own capture time (reportedAt = EXIF taken).
   const reportedAt = (d?.reportedAt) || (report?.created_at ?? new Date().toISOString());
@@ -189,6 +198,7 @@ function SharePage() {
   const cond = getCondition(d);
   const condColors = CONDITION_COLORS[cond.visibleCondition];
   const chips = facts(d);
+  const raSummary = reporterAddedSummary(reporterAdded);
   const obs = Array.isArray(d.observations) ? d.observations.filter(Boolean) : [];
   const symptoms = Array.isArray(d.symptoms) ? d.symptoms.filter(Boolean) : [];
   const objects = Array.isArray(d.surrounding_objects) ? d.surrounding_objects.filter(Boolean) : [];
@@ -337,6 +347,13 @@ function SharePage() {
               <div className="mt-3 rounded-2xl border border-[#F0C88A] bg-[#FFF6E5] px-4 py-3">
                 <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8A5A0E]">✍️ From the person who found them</div>
                 <p className="mt-1 whitespace-pre-line text-[13.5px] leading-relaxed text-[#5A3E12]">{report.note}</p>
+              </div>
+            )}
+
+            {raSummary && (
+              <div className="mt-3 rounded-2xl border border-[#F0C88A] bg-[#FFF9EC] px-4 py-3">
+                <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8A5A0E]">✏️ Reporter added</div>
+                <p className="mt-1 text-[13.5px] leading-relaxed text-[#5A3E12]">{raSummary}</p>
               </div>
             )}
 
