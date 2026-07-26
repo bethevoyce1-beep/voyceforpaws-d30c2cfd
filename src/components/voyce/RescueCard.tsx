@@ -495,6 +495,15 @@ export function RescueCard({
       ),
     },
   ];
+  // Body-language read as its own tap pill inside "More on this animal"
+  // (tail + ears + stance mood signal, hedged — never a diagnosis).
+  if (data.body_language) {
+    const bi = pills.findIndex((p) => p.id === "behavior");
+    pills.splice(bi >= 0 ? bi + 1 : pills.length, 0, {
+      id: "body", icon: "🐕", label: "Body language",
+      render: () => <p className="text-[13.5px] leading-relaxed text-foreground/85">{data.body_language}</p>,
+    });
+  }
   if (Array.isArray(data.observations) && data.observations.filter(Boolean).length > 0) {
     pills.unshift({
       id: "obs", icon: "🔎", label: "AI read",
@@ -624,16 +633,6 @@ export function RescueCard({
 
             {data.first_look && (
               <p className="mt-2 text-[13.5px] italic leading-relaxed text-[oklch(0.45_0.03_70)]">{data.first_look}</p>
-            )}
-
-            {/* Body language on the card face — tail + ears + stance, so the
-                reporter sees what Voyce read about the tail without opening a
-                pill. Hedged mood signal only, never a diagnosis. */}
-            {data.body_language && (
-              <p className="mt-2 flex gap-1.5 text-[12.5px] leading-relaxed text-[#6B5832]">
-                <span aria-hidden>🐾</span>
-                <span><span className="font-semibold">Body language:</span> {data.body_language}</span>
-              </p>
             )}
 
             {/* Detail pills — tap to expand, right under Voyce's read */}
