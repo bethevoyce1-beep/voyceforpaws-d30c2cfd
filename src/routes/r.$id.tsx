@@ -290,12 +290,13 @@ function SharePage() {
       <TopNav />
 
       {/* Pre-launch honesty banner — a stranger opening a shared link must know
-          this is a test, not a real animal awaiting rescue right now. */}
+          this is a test, not a real animal awaiting rescue right now, and how to
+          get real help if they ARE on a live animal. */}
       <div className="mx-auto w-full max-w-xl px-5 pt-4">
         <div className="rounded-2xl border border-[#F0C88A] bg-[#FFF6E5] px-4 py-3 text-center">
           <div className="text-[12.5px] font-bold text-[#8A5A0E]">🧪 Pre-launch test — not a live rescue</div>
           <p className="mt-1 text-[11.5px] leading-relaxed text-[#6B5832]">
-            Voyce for Paws hasn't launched yet. This is a demo card made during testing — the animal and details may not be real, and no rescuers are being alerted.
+            Voyce for Paws hasn't launched yet. This is a demo card made during testing — the animal and details may not be real, and no rescuers are being alerted. <span className="font-semibold">Is this a real animal that needs help right now?</span> Contact your local animal control, an emergency vet, or 911 if there's a safety risk — or text/call <a href="tel:+13306214361" className="font-semibold text-[#8A5A0E] underline">(330) 621-4361</a> or email <a href="mailto:info@bethevoyce.org" className="font-semibold text-[#8A5A0E] underline">info@bethevoyce.org</a>.
           </p>
         </div>
       </div>
