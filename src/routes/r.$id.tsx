@@ -67,7 +67,7 @@ const TONE: Record<string, { badge: string; bg: string; fg: string; title: strin
   critical: { badge: "🚨 Critical", bg: "#7E1F1F", fg: "#FFF1EE", title: "#7E1F1F", ring: "#F8D7D7" },
   urgent:   { badge: "🟠 Urgent",   bg: "#A8431F", fg: "#FFF6F0", title: "#A8431F", ring: "#FFE4D6" },
   care:     { badge: "💛 Needs care", bg: "#8A5A0E", fg: "#FFF9E6", title: "#8A5A0E", ring: "#FCEFC9" },
-  calm:     { badge: "✓ Stable",   bg: "#1F6B3D", fg: "#E7F5EC", title: "#1F6B3D", ring: "#E7F5EC" },
+  calm:     { badge: "✓ Safe",     bg: "#1F6B3D", fg: "#E7F5EC", title: "#1F6B3D", ring: "#E7F5EC" },
   wildlife: { badge: "🦝 Wildlife", bg: "#2C5C7C", fg: "#E4F0F8", title: "#2C5C7C", ring: "#E4F0F8" },
 };
 function toneKey(mission: string | undefined, level: string): keyof typeof TONE {
@@ -90,8 +90,8 @@ function toneKeyOf(d: Assessment, mission: string | undefined): keyof typeof TON
 function headline(d: Assessment, mission: string | undefined, tk: keyof typeof TONE, name: string): string {
   if (tk === "wildlife") return `Wildlife · ${name}`;
   if (tk === "calm") {
-    const atHome = d.is_likely_pet && /home|indoor/i.test(d.setting_type || "");
-    return atHome ? `${name} · safe at home` : `${name} · stable, no action needed`;
+    const atHome = d.is_likely_pet && /home|indoor|domestic|backyard/i.test(d.setting_type || "");
+    return atHome ? `${name} · safe at home` : `${name} · safe, no action needed`;
   }
   if (mission === "at-risk-shelter") return `At-risk shelter · ${name}`;
   const sit = (d.suggested_situation || "").trim();
