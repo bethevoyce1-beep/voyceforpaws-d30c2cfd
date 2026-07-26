@@ -211,9 +211,21 @@ function SharePage() {
   const loc = report.location?.label ?? "";
   const lat = report.location?.lat;
   const lon = report.location?.lon;
-  const mapsUrl = priv === "exact" && typeof lat === "number" && typeof lon === "number"
-    ? `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
-    : null;
+  // View map is consistent: a pin for exact-privacy cards with coordinates, a
+  // general-AREA map (search of the area label) for everything else that has a
+  // location, and nothing only when the finder chose Hidden or there's no
+  // location at all. So the button appears reliably without exposing the exact
+  // spot unless the reporter chose to.
+  const mapsUrl =
+    priv === "hidden"
+      ? null
+      : priv === "exact" && typeof lat === "number" && typeof lon === "number"
+        ? `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
+        : loc
+          ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`
+          : typeof lat === "number" && typeof lon === "number"
+            ? `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
+            : null;
 
   // Tap-to-open detail pills — same set as the in-app card.
   const pills: { id: string; icon: string; label: string; render: () => ReactNode }[] = [];
