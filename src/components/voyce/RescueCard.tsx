@@ -448,7 +448,9 @@ export function RescueCard({
             AI observations, not veterinary advice. Confirm with a vet.
           </p>
           <Row label="Visible condition" value={condition.visibleCondition} colors={CONDITION_COLORS[condition.visibleCondition]} />
-          {(data.symptoms ?? []).length > 0 && <Field label="Possible symptoms">{(data.symptoms ?? []).join(", ")}</Field>}
+          {(data.symptoms ?? []).length > 0
+            ? <Field label="Possible symptoms">{(data.symptoms ?? []).join(", ")}</Field>
+            : <Field label="Possible symptoms">No visible symptoms in this image.</Field>}
           {data.vet_notes?.bcs && <Field label="Body condition">{data.vet_notes.bcs}</Field>}
           {data.vet_notes?.posture && <Field label="Posture & tail">{data.vet_notes.posture}</Field>}
           {data.vet_notes?.hydration && <Field label="Hydration">{data.vet_notes.hydration}</Field>}
@@ -544,6 +546,15 @@ export function RescueCard({
               title={ago.frozen ? "Time to rescue" : "Time since the photo was taken"}>
               {ago.frozen ? "✅" : "⏱"} {formatTimer(ago.totalSeconds)}
             </span>
+            {/* Authenticity warning ON the image — when the AI reads the photo as
+                likely stock / a screenshot / AI-generated (not a fresh capture),
+                it says so right on the photo so no one acts on a fake. */}
+            {data.capture_authenticity === "likely_stock" && (
+              <div className="absolute inset-x-0 bottom-0 flex items-start gap-1.5 bg-[#7E1F1F]/92 px-3 py-2 text-[11px] font-bold leading-snug text-white">
+                <span aria-hidden className="mt-[1px]">⚠</span>
+                <span>This photo may not be real (it could be AI-generated, stock, or a screenshot). Verify a live animal really needs help before acting.{data.authenticity_reason ? ` — ${data.authenticity_reason}` : ""}</span>
+              </div>
+            )}
           </div>
 
           {/* Title + situation */}
@@ -874,6 +885,13 @@ export function RescueCard({
               )}
             </div>
 
+            {/* Confirm-before-acting reminder — travels on every share so the
+                recipient is told to verify the animal and the person are real
+                before they drive out or hand anything over. */}
+            <div className="mt-3 rounded-xl border border-[#F0C88A] bg-[#FFF6E5] px-3 py-2 text-[11.5px] leading-relaxed text-[#6B5832]">
+              <span className="font-bold text-[#8A5A0E]">Before anyone acts:</span> confirm the animal and the person are real, meet in a public place, and never send money to someone unverified.
+            </div>
+
             <div className="mt-3 grid grid-cols-3 gap-2.5">
               {SHARE_PLATFORMS.map((p) => (
                 <button key={p.id} type="button" onClick={() => setShareConfirm(p.id)}
@@ -959,7 +977,7 @@ export function RescueCard({
           <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-3xl border border-border bg-card p-5 shadow-2xl">
             <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#A8431F]">⚠️ Confirm share</div>
             <h3 className="mt-2 font-serif text-lg font-semibold leading-tight">You're about to share this AI-generated rescue card.</h3>
-            <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">AI assessments may be inaccurate. Share anyway?</p>
+            <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">AI assessments may be inaccurate, and please confirm the animal and person are real before acting. Share anyway?</p>
             <div className="mt-5 flex items-center justify-end gap-2">
               <button type="button" onClick={() => setShareConfirm(null)} className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium">Cancel</button>
               <button type="button" onClick={async () => { const p = shareConfirm; setShareConfirm(null); if (p) { const u = await ensureShareUrl(); doShare(p, u ?? undefined); } }}
