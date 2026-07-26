@@ -590,7 +590,11 @@ export function RescueCard({
                 </div>
                 {showAddr && (
                   <div className="mt-2 rounded-xl border border-[#F0C88A] bg-[#FFF6E5] px-3 py-2.5">
-                    <label className="text-[11.5px] font-semibold text-[#8A5A0E]">If the map is off, type the exact address or nearest cross-streets</label>
+                    <div className="flex items-start justify-between gap-2">
+                      <label className="text-[11.5px] font-semibold text-[#8A5A0E]">If the map is off, type the exact address or nearest cross-streets</label>
+                      <button type="button" onClick={() => setShowAddr(false)} aria-label="Close address field"
+                        className="-mr-1 -mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[14px] leading-none text-[#8A5A0E]/70 transition hover:bg-[#F1E7CE] hover:text-[#8A5A0E]">✕</button>
+                    </div>
                     <input value={manualArea} onChange={(e) => setManualArea(e.target.value)}
                       placeholder="e.g. Culebra Rd & Bandera Rd, or 4710 Main St"
                       className="mt-1 w-full rounded-lg border border-[#E2DED6] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#C9871A]" />
