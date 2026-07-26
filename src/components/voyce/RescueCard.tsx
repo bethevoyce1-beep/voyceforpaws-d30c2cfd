@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
-import { createSharedReport } from "@/lib/share.functions";
+import { createSharedReport, updateSharedReport, mergeReporterAdded, type ReporterAdded } from "@/lib/share.functions";
 import { MISSIONS, animalWord, type MissionId } from "@/lib/missions";
 import { getUrgency } from "@/lib/urgency";
 import { getCondition, CONDITION_COLORS, type ConditionInfo } from "@/lib/condition";
@@ -160,7 +160,7 @@ function buildShareText(data: Assessment, mission: MissionId): string {
 
 export function RescueCard({
   image,
-  data,
+  data: rawData,
   mission,
   location,
   situation,
@@ -210,6 +210,13 @@ export function RescueCard({
   // share the same live ripple (and this card is saved for the record).
   const [reportId, setReportId] = useState<string | null>(null);
   const ensuredRef = useRef(false);
+  // Secret token generated once so the reporter can update THIS shared card
+  // later — their corrections then reach everyone who opens the link.
+  const editTokenRef = useRef<string>(
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2) + Date.now().toString(36),
+  );
   // Privacy on the PUBLIC share link: show exact spot, coarse area only, or
   // hide it entirely (default to area so a home address is never exposed). Plus
   // an optional note from the finder — "what you saw" — which they can keep
@@ -234,6 +241,35 @@ export function RescueCard({
     mNote.trim(),
   ].filter(Boolean).join(" · ");
   const hasMissed = missedSummary.length > 0;
+
+  // Fold the reporter's corrections into the assessment so the card's FACTS
+  // update (species/age/situation), not just the summary line. The same
+  // `reporterAdded` is saved to the shared card so the public /r/<id> matches.
+  const reporterAdded: ReporterAdded = hasMissed
+    ? {
+        animal: mAnimal || undefined,
+        situation: mSituation || undefined,
+        witnessed: mWitnessed.length ? mWitnessed : undefined,
+        note: mNote.trim() || undefined,
+      }
+    : null;
+  const data = mergeReporterAdded(rawData, reporterAdded);
+
+  // Save the reporter's corrections to the shared card (so the public /r/<id>
+  // reflects them for everyone) and close the popup. Fire-and-forget — the
+  // on-card summary already updated live.
+  const saveMissedAndClose = () => {
+    setShowMissed(false);
+    if (reportId) {
+      void updateSharedReport({
+        data: {
+          id: reportId,
+          editToken: editTokenRef.current,
+          reporterAdded: reporterAdded as Record<string, unknown> | null,
+        },
+      });
+    }
+  };
 
   const urgency = useMemo(() => getUrgency(data, mission), [data, mission]);
   const condition = useMemo(() => getCondition(data), [data]);
@@ -318,6 +354,7 @@ export function RescueCard({
           location: loc,
           note: note.trim() || undefined,
           locPrivacy,
+          editToken: editTokenRef.current,
         },
       });
       const id = res?.id;
@@ -354,6 +391,9 @@ export function RescueCard({
             const cur = JSON.parse(window.localStorage.getItem(key) || "[]") as string[];
             if (!cur.includes(mm[1])) window.localStorage.setItem(key, JSON.stringify([mm[1], ...cur].slice(0, 200)));
           } catch { /* ignore */ }
+          // Keep the edit token so the reporter can keep correcting this card
+          // in a later session too.
+          try { window.localStorage.setItem(`voyce_edit_${mm[1]}`, editTokenRef.current); } catch { /* ignore */ }
         }
       }
     })();
@@ -638,11 +678,11 @@ export function RescueCard({
       </div>
 
       {showMissed && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 sm:items-center sm:pb-10" onClick={() => setShowMissed(false)}>
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 sm:items-center sm:pb-10" onClick={saveMissedAndClose}>
           <div onClick={(e) => e.stopPropagation()} className="max-h-[85dvh] w-full max-w-sm overflow-y-auto rounded-3xl border border-border bg-card p-5 shadow-2xl">
             <div className="flex items-center justify-between gap-3">
               <h3 className="font-serif text-lg font-semibold leading-tight">Add what Voyce missed</h3>
-              <button type="button" onClick={() => setShowMissed(false)} aria-label="Close" className="shrink-0 rounded-full border border-border bg-background px-2.5 py-1 text-sm">✕</button>
+              <button type="button" onClick={saveMissedAndClose} aria-label="Close" className="shrink-0 rounded-full border border-border bg-background px-2.5 py-1 text-sm">✕</button>
             </div>
             <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
               Voyce read the photo — fix anything it missed or got wrong. Some things a photo can't show, so you can add them here. It shows on the card and travels with any share.
@@ -689,7 +729,7 @@ export function RescueCard({
             <div className="mt-4 flex items-center justify-end gap-2">
               <button type="button" onClick={() => { setMAnimal(""); setMSituation(""); setMWitnessed([]); setMNote(""); }}
                 className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium">Clear</button>
-              <button type="button" onClick={() => setShowMissed(false)}
+              <button type="button" onClick={saveMissedAndClose}
                 className="rounded-full px-4 py-2 text-sm font-semibold text-[#3A2A07] shadow-sm"
                 style={{ background: "linear-gradient(135deg,#FFDF3B,#C9871A)" }}>Done</button>
             </div>
