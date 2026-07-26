@@ -17,6 +17,16 @@ function serverClient() {
   });
 }
 
+// Reporter's after-the-fact corrections/additions — what the AI missed or got
+// wrong. Saved on the shared report so the PUBLIC card reflects them for
+// everyone, even after the link was already shared.
+export type ReporterAdded = {
+  animal?: string;      // "Dog" | "Cat" | "Puppy" | "Kitten" | "Other"
+  situation?: string;   // one of the "what's happening" options
+  witnessed?: string[]; // things a photo can't show (hit by car, trapped, abuse)
+  note?: string;        // free text
+} | null;
+
 export type SharedReport = {
   id: string;
   created_at: string;
@@ -28,10 +38,39 @@ export type SharedReport = {
   note: string | null;
   loc_privacy: "exact" | "area" | "hidden" | string | null;
   views: number;
+  reporter_added?: ReporterAdded;
 };
+
+// Fold the reporter's corrections into the AI assessment so the card's FACTS
+// update (not just an annotation): animal type overrides species/age, and the
+// chosen situation drives the honest headline.
+export function mergeReporterAdded(data: Assessment, ra: ReporterAdded): Assessment {
+  if (!ra) return data;
+  const d = { ...data } as Assessment;
+  const a = (ra.animal || "").trim().toLowerCase();
+  if (a === "dog") d.species = "dog";
+  else if (a === "cat") d.species = "cat";
+  else if (a === "puppy") { d.species = "dog"; d.age = "puppy"; }
+  else if (a === "kitten") { d.species = "cat"; d.age = "kitten"; }
+  if (ra.situation) d.suggested_situation = ra.situation;
+  return d;
+}
+
+// A single readable line summarizing the reporter's corrections.
+export function reporterAddedSummary(ra: ReporterAdded): string {
+  if (!ra) return "";
+  return [
+    ra.animal,
+    ra.situation,
+    ra.witnessed && ra.witnessed.length ? `saw: ${ra.witnessed.join(", ")}` : "",
+    (ra.note || "").trim(),
+  ].filter(Boolean).join(" · ");
+}
 
 // Persist a rescue card the reporter chose to share, returning a short slug so
 // the app can build a public permalink (/r/<id>) that shows the exact animal.
+// A client-supplied `editToken` is stored (secret) so the reporter can later
+// update this same card with corrections that reach everyone.
 export const createSharedReport = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => {
     const o = (input ?? {}) as {
@@ -42,6 +81,7 @@ export const createSharedReport = createServerFn({ method: "POST" })
       location?: unknown;
       note?: string;
       locPrivacy?: string;
+      editToken?: string;
     };
     const priv = o.locPrivacy === "exact" || o.locPrivacy === "hidden" ? o.locPrivacy : "area";
     return {
@@ -52,6 +92,7 @@ export const createSharedReport = createServerFn({ method: "POST" })
       location: (o.location ?? null) as Record<string, unknown> | null,
       note: o.note ? String(o.note).slice(0, 600) : null,
       locPrivacy: priv,
+      editToken: o.editToken ? String(o.editToken).slice(0, 64) : null,
     };
   })
   .handler(async ({ data }): Promise<{ id: string | null; error?: string }> => {
@@ -65,10 +106,33 @@ export const createSharedReport = createServerFn({ method: "POST" })
         location: data.location,
         note: data.note,
         loc_privacy: data.locPrivacy,
+        edit_token: data.editToken,
       },
     });
     if (error) return { id: null, error: error.message };
     return { id: (id as string) ?? null };
+  });
+
+// Save the reporter's corrections onto an already-shared card. Gated by the
+// secret editToken the creator holds — so only they can change their card, and
+// the public /r/<id> page then reflects it for everyone.
+export const updateSharedReport = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => {
+    const o = (input ?? {}) as { id?: string; editToken?: string; reporterAdded?: unknown };
+    return {
+      id: String(o.id ?? "").trim(),
+      editToken: String(o.editToken ?? "").trim(),
+      reporterAdded: (o.reporterAdded ?? null) as Record<string, unknown> | null,
+    };
+  })
+  .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {
+    if (!data.id || !data.editToken) return { ok: false, error: "missing" };
+    const sb = serverClient();
+    const { data: res, error } = await sb.rpc("update_shared_report", {
+      p: { id: data.id, edit_token: data.editToken, reporter_added: data.reporterAdded },
+    });
+    if (error) return { ok: false, error: error.message };
+    return (res ?? { ok: true }) as { ok: boolean; error?: string };
   });
 
 // Analytics: log every real (non-sample) test the app runs — the small image
