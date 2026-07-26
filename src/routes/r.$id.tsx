@@ -244,7 +244,9 @@ function SharePage() {
         <span className="text-[11px] font-bold uppercase tracking-[0.12em] opacity-80">Visible condition</span>
         <span className="text-[13px] font-bold uppercase">{cond.visibleCondition}</span>
       </div>
-      {symptoms.length > 0 && <Field label="Possible signs">{symptoms.join(", ")}</Field>}
+      {symptoms.length > 0
+        ? <Field label="Possible signs">{symptoms.join(", ")}</Field>
+        : <Field label="Possible signs">No visible symptoms in this image.</Field>}
       {d.vet_notes?.bcs && <Field label="Body condition">{d.vet_notes.bcs}</Field>}
       {d.vet_notes?.posture && <Field label="Posture &amp; tail">{d.vet_notes.posture}</Field>}
       {d.vet_notes?.hydration && <Field label="Hydration">{d.vet_notes.hydration}</Field>}
@@ -314,6 +316,15 @@ function SharePage() {
                 title={ago.frozen ? "Time to rescue" : "Time since the photo was taken"}>
                 {ago.frozen ? "✅" : "⏱"} {formatTimer(ago.totalSeconds)}
               </span>
+              {/* Authenticity warning ON the image — same as the in-app card, so
+                  a stranger opening a shared link is warned if the photo reads as
+                  likely stock / a screenshot / AI-generated. */}
+              {d.capture_authenticity === "likely_stock" && (
+                <div className="absolute inset-x-0 bottom-0 flex items-start gap-1.5 bg-[#7E1F1F]/92 px-3 py-2 text-[11px] font-bold leading-snug text-white">
+                  <span aria-hidden className="mt-[1px]">⚠</span>
+                  <span>This photo may not be real (it could be AI-generated, stock, or a screenshot). Verify a live animal really needs help before acting.{d.authenticity_reason ? ` — ${d.authenticity_reason}` : ""}</span>
+                </div>
+              )}
             </div>
           )}
 
