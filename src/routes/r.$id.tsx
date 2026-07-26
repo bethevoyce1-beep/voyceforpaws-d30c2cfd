@@ -289,6 +289,17 @@ function SharePage() {
     <div className="min-h-[100dvh] bg-[#FBF7EC] pb-16">
       <TopNav />
 
+      {/* Pre-launch honesty banner — a stranger opening a shared link must know
+          this is a test, not a real animal awaiting rescue right now. */}
+      <div className="mx-auto w-full max-w-xl px-5 pt-4">
+        <div className="rounded-2xl border border-[#F0C88A] bg-[#FFF6E5] px-4 py-3 text-center">
+          <div className="text-[12.5px] font-bold text-[#8A5A0E]">🧪 Pre-launch test — not a live rescue</div>
+          <p className="mt-1 text-[11.5px] leading-relaxed text-[#6B5832]">
+            Voyce for Paws hasn't launched yet. This is a demo card made during testing — the animal and details may not be real, and no rescuers are being alerted.
+          </p>
+        </div>
+      </div>
+
       <div className="mx-auto w-full max-w-xl px-5 pt-5">
         <article className="overflow-hidden rounded-3xl border border-[#EDE5D8] bg-white shadow-[0_8px_30px_-12px_rgba(60,40,10,0.15)]">
           {report.image && (
