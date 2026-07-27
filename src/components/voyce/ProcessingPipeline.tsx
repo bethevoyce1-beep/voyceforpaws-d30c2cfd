@@ -180,6 +180,15 @@ export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment
       <AIDisclosureBanner />
       <div className="mx-auto w-full max-w-md flex-1 flex flex-col px-5 pt-5">
 
+        {/* Pre-launch pill — same as the capture/intake screens, so the "Live
+            Demo · Pre-launch" note is visible on every path after a photo is
+            taken (mobile native camera, desktop webcam, upload, or sample). */}
+        <div className="mb-3 flex justify-center">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#E8C97A] bg-gradient-to-b from-[#FBF1C8] to-[#F5E3A0] px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[#7A5A0A] shadow-sm">
+            <span aria-hidden>📷</span>
+            <span>Live Demo · Pre-launch</span>
+          </span>
+        </div>
 
         {/* Header row */}
         <div className="flex items-start justify-between gap-4">
