@@ -24,9 +24,13 @@ function Register() {
     }
     setBusy(true);
     try {
-      const { error } = await signUpEmail(name.trim(), email.trim(), pw);
+      const { data, error } = await signUpEmail(name.trim(), email.trim(), pw);
       if (error) { setErr(error.message); return; }
-      nav({ to: "/auth/verify-email" });
+      // Zero-friction signup (like Final Fetch): if email confirmation is OFF,
+      // sign-up returns a live session — drop them straight into the app. If
+      // confirmation is ON there's no session yet, so send them to the
+      // "check your email" page instead.
+      if (data.session) { nav({ to: "/" }); } else { nav({ to: "/auth/verify-email" }); }
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Something went wrong — please try again.");
     } finally {
