@@ -33,6 +33,20 @@ function cap(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
 
+// Show weight in both kilograms and pounds, e.g. "10-15 kg (22-33 lb)". Parses
+// the kg value(s) the AI returns; leaves anything without a kg figure as-is.
+function formatWeight(w: string): string {
+  if (!w) return w;
+  const m = w.match(/([\d.]+)\s*(?:-|–|to)?\s*([\d.]+)?\s*kg/i);
+  if (!m) return w;
+  const toLb = (kg: number) => Math.round(kg * 2.20462);
+  const lo = parseFloat(m[1]);
+  const hi = m[2] ? parseFloat(m[2]) : null;
+  if (!Number.isFinite(lo)) return w;
+  const lb = hi != null && Number.isFinite(hi) ? `${toLb(lo)}-${toLb(hi)} lb` : `${toLb(lo)} lb`;
+  return `${w} (${lb})`;
+}
+
 function toneFor(mission: MissionId, level: string): Tone {
   if (mission === "wildlife") return "wildlife";
   if (mission === "at-risk-shelter") return level === "CRITICAL" ? "critical" : "urgent";
@@ -86,7 +100,7 @@ function profileChips(data: Assessment): { label: string; value: string }[] {
     { label: "Breed", value: data.breed },
     { label: "Age", value: data.age },
     { label: "Size", value: data.size },
-    { label: "Weight", value: data.weight },
+    { label: "Weight", value: formatWeight(data.weight) },
     { label: "Color", value: data.color },
     { label: "Case #", value: data.caseId ?? "" },
     { label: "AI confidence", value: data.ai_confidence ? cap(data.ai_confidence) : "" },
