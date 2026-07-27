@@ -18,7 +18,7 @@ function Login() {
   const [note, setNote] = useState<string | null>(null);
 
   // If we arrived here already authenticated (e.g. straight after confirming
-  // email, or returning from a Google / Apple sign-in), go into the app.
+  // email, or returning from a Google / Apple / Facebook sign-in), go into the app.
   useEffect(() => {
     void (async () => {
       try {
@@ -50,9 +50,9 @@ function Login() {
     }
   };
 
-  // One-tap Google / Apple. On success the browser redirects to the provider,
-  // so there's nothing more to do here; we only clear busy on an error.
-  const oauth = async (provider: "google" | "apple") => {
+  // One-tap Google / Apple / Facebook. On success the browser redirects to the
+  // provider, so there's nothing more to do here; we only clear busy on an error.
+  const oauth = async (provider: "google" | "apple" | "facebook") => {
     setErr(null);
     setBusy(true);
     try {
@@ -122,8 +122,8 @@ function Login() {
   );
 }
 
-// Shared "Continue with Google / Apple" buttons.
-function SocialButtons({ busy, onPick }: { busy: boolean; onPick: (p: "google" | "apple") => void }) {
+// Shared "Continue with Google / Apple / Facebook" buttons.
+function SocialButtons({ busy, onPick }: { busy: boolean; onPick: (p: "google" | "apple" | "facebook") => void }) {
   return (
     <div className="flex flex-col gap-2">
       <button type="button" onClick={() => onPick("google")} disabled={busy}
@@ -142,6 +142,14 @@ function SocialButtons({ busy, onPick }: { busy: boolean; onPick: (p: "google" |
           <path d="M16.365 1.43c0 1.14-.42 2.2-1.12 2.99-.76.86-2 1.52-3.02 1.44-.13-1.1.44-2.28 1.1-3.02.74-.84 2.02-1.46 3.04-1.41zM20.5 17.06c-.55 1.27-.82 1.84-1.53 2.96-.99 1.57-2.38 3.53-4.1 3.54-1.53.01-1.92-.99-4-.98-2.08.01-2.51.99-4.04.98-1.72-.01-3.04-1.77-4.03-3.34C.02 16.6-.35 12.4 1.3 9.98c1.1-1.63 2.86-2.58 4.5-2.58 1.68 0 2.73 1 4.12 1 1.35 0 2.17-1 4.11-1 1.47 0 3.03.8 4.14 2.18-3.64 1.99-3.05 7.18.23 8.48z" />
         </svg>
         <span>Continue with Apple</span>
+      </button>
+      <button type="button" onClick={() => onPick("facebook")} disabled={busy}
+        className="flex w-full items-center justify-center gap-2.5 rounded-2xl px-5 py-3 text-[14.5px] font-semibold text-white shadow-sm transition active:scale-[0.99] disabled:opacity-60"
+        style={{ background: "#1877F2" }}>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff" aria-hidden>
+          <path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.95.93-1.95 1.88v2.26h3.32l-.53 3.49h-2.79V24C19.61 23.1 24 18.1 24 12.07z" />
+        </svg>
+        <span>Continue with Facebook</span>
       </button>
     </div>
   );
