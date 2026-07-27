@@ -47,6 +47,14 @@ export async function signInEmail(email: string, password: string) {
   return authClient().auth.signInWithPassword({ email, password });
 }
 
+// One-tap social sign-in (Google / Apple). Redirects to the provider and comes
+// back to /auth/login, where detectSessionInUrl + PKCE capture the session and
+// the page sends the user into the app. Enable each provider in Supabase first.
+export async function signInWithProvider(provider: "google" | "apple") {
+  const redirectTo = `${window.location.origin}/auth/login`;
+  return authClient().auth.signInWithOAuth({ provider, options: { redirectTo } });
+}
+
 export async function signOut() {
   return authClient().auth.signOut();
 }
