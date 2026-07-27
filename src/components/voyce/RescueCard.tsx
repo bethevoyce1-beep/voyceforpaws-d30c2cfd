@@ -633,7 +633,7 @@ export function RescueCard({
                     the exact house, a general area, or hidden. The same choice
                     carries to any share link (handy while testing). */}
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9CA3AF]">Address:</span>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9CA3AF]">Address <span className="font-medium normal-case italic tracking-normal opacity-90">(option for testing only)</span>:</span>
                   {([
                     { id: "exact", label: "Show exact" },
                     { id: "area", label: "Area only" },
