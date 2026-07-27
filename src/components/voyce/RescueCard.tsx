@@ -104,7 +104,6 @@ function profileChips(data: Assessment): { label: string; value: string }[] {
     { label: "Color", value: data.color },
     { label: "Case #", value: data.caseId ?? "" },
     { label: "AI confidence", value: data.ai_confidence ? cap(data.ai_confidence) : "" },
-    { label: "Reported by", value: "Reporter" },
     { label: "Date", value: dateStr },
   ].filter((c) => c.value && !/^unknown$/i.test(String(c.value))) as { label: string; value: string }[];
 }
@@ -243,6 +242,8 @@ export function RescueCard({
   // Inline "map is off — add the exact address" field, revealed by a pill under
   // the location so the reporter can correct a wrong GPS pin.
   const [showAddr, setShowAddr] = useState(false);
+  // Optional reporter name shown as "Reported by" and carried onto shares.
+  const [reporterName, setReporterName] = useState("");
   const [manualArea, setManualArea] = useState("");
   const [gps, setGps] = useState<{ lat: number; lon: number } | null>(null);
   const [locNote, setLocNote] = useState<string | null>(null);
@@ -370,7 +371,7 @@ export function RescueCard({
       const res = await createSharedReport({
         data: {
           image,
-          data,
+          data: { ...data, reporterName: reporterName.trim() || undefined },
           mission,
           situation: situation ?? undefined,
           location: loc,
@@ -391,7 +392,7 @@ export function RescueCard({
       setShareSaving(false);
     }
     return null;
-  }, [shareUrl, shareSaving, image, data, mission, situation, location, gps, manualArea, note, locPrivacy]);
+  }, [shareUrl, shareSaving, image, data, mission, situation, location, gps, manualArea, note, locPrivacy, reporterName]);
 
   // Changing privacy or the note invalidates any link already minted.
   const resetShareLink = () => setShareUrl(null);
@@ -678,6 +679,15 @@ export function RescueCard({
                 ))}
               </div>
             )}
+
+            {/* Reporter's own name (optional) — shows as "Reported by" and
+                travels with any share. No account needed. */}
+            <div className="mt-2 flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+              <span className="shrink-0">🧑 Reported by:</span>
+              <input value={reporterName} onChange={(e) => { setReporterName(e.target.value); resetShareLink(); }}
+                placeholder="Add your name (optional)"
+                className="min-w-0 flex-1 rounded-md border border-[#E3DAC4] bg-white px-2 py-1 text-[12px] text-foreground/90 outline-none focus:border-[#C9871A]" />
+            </div>
 
             {data.first_look && <div className="mt-3 border-t border-[#EDE5D8]" />}
 
