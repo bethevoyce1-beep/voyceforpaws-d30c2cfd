@@ -56,6 +56,21 @@ function cap(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
 
+// Show weight in both kilograms and pounds, e.g. "10-15 kg (22-33 lb)". Parses
+// the kg value(s) the AI returns; leaves anything without a kg figure as-is.
+function formatWeight(w: string): string {
+  if (!w) return w;
+  const m = w.match(/([\d.]+)\s*(?:-|–|to)?\s*([\d.]+)?\s*kg/i);
+  if (!m) return w;
+  const toLb = (kg: number) => Math.round(kg * 2.20462);
+  const lo = parseFloat(m[1]);
+  const hi = m[2] ? parseFloat(m[2]) : null;
+  if (!Number.isFinite(lo)) return w;
+  const lb = hi != null && Number.isFinite(hi) ? `${toLb(lo)}-${toLb(hi)} lb` : `${toLb(lo)} lb`;
+  return `${w} (${lb})`;
+}
+
+
 function animalName(d: Assessment): string {
   const breed = d.breed && !/unknown|mixed/i.test(d.breed) ? d.breed : "";
   const s = (breed || d.species || "animal").trim();
@@ -106,7 +121,7 @@ function facts(d: Assessment): { label: string; value: string }[] {
     { label: "Breed", value: d.breed },
     { label: "Age", value: d.age },
     { label: "Size", value: d.size },
-    { label: "Weight", value: d.weight },
+    { label: "Weight", value: formatWeight(d.weight) },
     { label: "Color", value: d.color },
     { label: "Case #", value: d.caseId ?? "" },
     { label: "AI confidence", value: d.ai_confidence ? cap(d.ai_confidence) : "" },
