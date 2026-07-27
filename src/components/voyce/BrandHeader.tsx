@@ -16,6 +16,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { listAcsAnimals, normalizeStatusKey, type AcsAnimal } from "@/lib/acs.functions";
 import { getNotifications, markNotificationsRead, getAlertPrefs, setAlertPrefs, type AcsNotification } from "@/lib/notifications.functions";
+import { currentUser, signOut, type VoyceUser } from "@/lib/auth";
 
 export const BackNavContext = createContext<(() => void) | null>(null);
 export const DonateContext = createContext<(() => void) | null>(null);
@@ -55,6 +56,73 @@ function fmtWhen(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+// Account chip — "Sign in" when logged out; initials + a "Log out" menu when
+// logged in. Keeps sign-in reachable on every screen with the header, and makes
+// the signed-in state visible (instead of the fleeting redirect on /auth/login).
+function AuthChip() {
+  const [user, setUser] = useState<VoyceUser | null>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    currentUser().then((u) => { if (alive) setUser(u); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  const initials = (n: string) => {
+    const p = n.trim().split(/\s+/);
+    return ((p[0]?.[0] || "?") + (p[1]?.[0] || "")).toUpperCase();
+  };
+
+  const logout = async () => {
+    try { await signOut(); } catch { /* ignore */ }
+    if (typeof window !== "undefined") window.location.assign("/");
+  };
+
+  if (!user) {
+    return (
+      <a
+        href="/auth/login"
+        className="flex items-center rounded-full border border-[#E3DAC4] bg-white px-3 py-1.5 text-[12.5px] font-bold text-[#8A5A0E] no-underline shadow-sm transition hover:bg-[#FFF9EC] active:scale-95"
+      >
+        Sign in
+      </a>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Account"
+        aria-expanded={open}
+        className="flex h-9 w-9 items-center justify-center rounded-full text-[12px] font-bold text-[#3A2A07] shadow-sm transition active:scale-95"
+        style={{ background: "#FFDF3B" }}
+      >
+        {initials(user.name)}
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden />
+          <div className="absolute right-0 top-11 z-50 w-[220px] rounded-2xl border border-[#EAE6DE] bg-white p-3 shadow-2xl">
+            <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9CA3AF]">Signed in as</div>
+            <div className="mt-0.5 truncate font-serif text-[15px] font-bold text-[#1A1611]">{user.name}</div>
+            {user.email && <div className="truncate text-[12px] text-muted-foreground">{user.email}</div>}
+            <button
+              type="button"
+              onClick={logout}
+              className="mt-3 w-full rounded-xl border border-[#E3DAC4] bg-white px-3 py-2 text-[13px] font-semibold text-[#7E1F1F] transition hover:bg-[#FBECEC] active:scale-[0.99]"
+            >
+              Log out
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 function NotifyBell() {
@@ -329,6 +397,7 @@ export function BrandHeader() {
       </div>
       <div className="flex items-center gap-1.5">
         <NotifyBell />
+        <AuthChip />
         {onDonate ? (
           <button
             type="button"
