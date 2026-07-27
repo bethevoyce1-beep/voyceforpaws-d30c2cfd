@@ -6,7 +6,7 @@ import {
 } from "@/lib/network.functions";
 
 // =============================================================
-// NetworkResponses — the shared "Can you help? + How the network is responding"
+// NetworkResponses — the shared "Can you help? + How the network responds"
 // block. It does BOTH jobs in one place:
 //   1) Commitment — a viewer enters their name once, taps how they can help
 //      (Foster, Adopt, Rescue pull, Transport, Pledge), then a popup asks what
@@ -195,8 +195,46 @@ export function NetworkResponses({
 
   return (
     <div className="mx-5 mt-2 mb-5">
+      {/* How the network responds — live feed, moved to the top so viewers see
+          the pack in action before the explainer. */}
+      <div className="flex items-center justify-between">
+        <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">How the network responds</div>
+        <div className="text-[11px] font-semibold text-muted-foreground">{items.length} {items.length === 1 ? "response" : "responses"}</div>
+      </div>
+
+      {items.length === 0 ? (
+        <p className="mt-2 rounded-2xl border border-dashed border-[#E3DAC4] bg-[#FBF7EC] px-4 py-3 text-center text-[12.5px] text-[#8A5A0E]">
+          Be the first to step up for {who}.
+        </p>
+      ) : (
+        <ul className="mt-2 space-y-1.5">
+          {items.map((r) => {
+            const meta = KINDS[r.kind] ?? KINDS.other;
+            // Free-text "Something else" shows verbatim; a role commitment shows
+            // its label plus any "still needs …" detail the responder added.
+            const sub = r.kind === "other"
+              ? (r.detail || meta.label)
+              : (meta.label + (r.detail ? ` · ${r.detail}` : ""));
+            return (
+              <li key={r.id} className="flex items-center gap-2.5 rounded-xl border border-[#EDE5D8] bg-white px-3 py-2">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: meta.dot }} />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[13px] font-semibold text-foreground/90">{r.responder_name}</div>
+                  <div className="truncate text-[12px] text-muted-foreground">{sub}</div>
+                </div>
+                <span className="shrink-0 text-[11px] text-muted-foreground">{relTime(r.created_at)}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <p className="mt-2 text-center text-[10.5px] italic text-muted-foreground">
+        Responses are shared with the pack. Pre-launch preview · always confirm status with the shelter.
+      </p>
+
       {/* What is this? — a plain-language explainer so a newcomer gets it */}
-      <div className="rounded-2xl border border-[#F0C88A] bg-[#FFF9EC] px-4 py-3">
+      <div className="mt-3 rounded-2xl border border-[#F0C88A] bg-[#FFF9EC] px-4 py-3">
         <div className="text-[12.5px] font-bold text-[#8A5A0E]">🐾 This is the pack — responding live</div>
         <p className="mt-1 text-[12px] leading-relaxed text-[#6B5832]">
           When you tap what you can do, everyone watching {who} sees it right here. Voyce alerts the
@@ -257,43 +295,6 @@ export function NetworkResponses({
           </div>
         </div>
       )}
-
-      {/* How the network is responding */}
-      <div className="mt-4 flex items-center justify-between">
-        <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">How the network is responding</div>
-        <div className="text-[11px] font-semibold text-muted-foreground">{items.length} {items.length === 1 ? "response" : "responses"}</div>
-      </div>
-
-      {items.length === 0 ? (
-        <p className="mt-2 rounded-2xl border border-dashed border-[#E3DAC4] bg-[#FBF7EC] px-4 py-3 text-center text-[12.5px] text-[#8A5A0E]">
-          Be the first to step up for {who}.
-        </p>
-      ) : (
-        <ul className="mt-2 space-y-1.5">
-          {items.map((r) => {
-            const meta = KINDS[r.kind] ?? KINDS.other;
-            // Free-text "Something else" shows verbatim; a role commitment shows
-            // its label plus any "still needs …" detail the responder added.
-            const sub = r.kind === "other"
-              ? (r.detail || meta.label)
-              : (meta.label + (r.detail ? ` · ${r.detail}` : ""));
-            return (
-              <li key={r.id} className="flex items-center gap-2.5 rounded-xl border border-[#EDE5D8] bg-white px-3 py-2">
-                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: meta.dot }} />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-[13px] font-semibold text-foreground/90">{r.responder_name}</div>
-                  <div className="truncate text-[12px] text-muted-foreground">{sub}</div>
-                </div>
-                <span className="shrink-0 text-[11px] text-muted-foreground">{relTime(r.created_at)}</span>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-
-      <p className="mt-2 text-center text-[10.5px] italic text-muted-foreground">
-        Responses are shared with the pack. Pre-launch preview · always confirm status with the shelter.
-      </p>
 
       {/* Join the pack + Donate — so a newcomer can step in for real */}
       {showJoinCta && (
