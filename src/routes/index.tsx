@@ -540,8 +540,6 @@ function Home() {
               setStage("share");
             }}
           />
-          {/* Home screen — tab bar is the primary nav (no BackFab/RestartFab). */}
-          <BottomTabBar active="atrisk" onSelect={handleTab} />
         </>
       );
     }
@@ -680,6 +678,16 @@ function Home() {
     <DonateContext.Provider value={() => setShowDonate(true)}>
       {renderStage()}
 
+      {/* Persistent bottom nav on every screen — like Instagram. The capture
+          screen renders its own copy (hidden only while the live camera or the
+          photo preview is open), so skip it here to avoid a double bar. */}
+      {stage !== "capture" && (
+        <BottomTabBar
+          active={mission === "at-risk-shelter" ? "atrisk" : "report"}
+          onSelect={handleTab}
+        />
+      )}
+
       {/* Global overlays — reachable from the tab bar (Join) and header (Donate)
           on any screen; they sit on top of the current tab without navigating. */}
       <JoinNetworkModal open={showJoin} onClose={() => setShowJoin(false)} />
@@ -702,7 +710,7 @@ function BackFab({ onClick }: { onClick: () => void }) {
       type="button"
       onClick={onClick}
       aria-label="Go back"
-      className="fixed bottom-4 left-4 z-40 flex items-center gap-1.5 rounded-full border border-border bg-card/95 px-4 py-2 text-[13px] font-semibold text-foreground shadow-lg backdrop-blur transition active:scale-95"
+      className="fixed bottom-20 left-4 z-40 flex items-center gap-1.5 rounded-full border border-border bg-card/95 px-4 py-2 text-[13px] font-semibold text-foreground shadow-lg backdrop-blur transition active:scale-95"
       style={{ marginBottom: "env(safe-area-inset-bottom)" }}
     >
       <span aria-hidden>←</span> Back
@@ -716,7 +724,7 @@ function RestartFab({ onClick }: { onClick: () => void }) {
       type="button"
       onClick={onClick}
       aria-label="Test another animal"
-      className="fixed bottom-4 left-[8.5rem] z-40 flex items-center gap-1.5 rounded-full border border-border bg-card/95 px-4 py-2 text-[13px] font-semibold text-[#8A5A0E] shadow-lg backdrop-blur transition active:scale-95"
+      className="fixed bottom-20 left-[8.5rem] z-40 flex items-center gap-1.5 rounded-full border border-border bg-card/95 px-4 py-2 text-[13px] font-semibold text-[#8A5A0E] shadow-lg backdrop-blur transition active:scale-95"
       style={{ marginBottom: "env(safe-area-inset-bottom)" }}
     >
       <span aria-hidden>🔄</span> Test another
@@ -730,7 +738,7 @@ function NextBatchFab({ index, total, onClick }: { index: number; total: number;
       type="button"
       onClick={onClick}
       aria-label="Next photo in batch"
-      className="fixed bottom-4 left-[8.5rem] z-40 flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-bold shadow-lg transition active:scale-95"
+      className="fixed bottom-20 left-[8.5rem] z-40 flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-bold shadow-lg transition active:scale-95"
       style={{ background: "#FFDF3B", color: "#3A2A07" }}
     >
       Next ({Math.min(index + 1, total)} of {total}) →
