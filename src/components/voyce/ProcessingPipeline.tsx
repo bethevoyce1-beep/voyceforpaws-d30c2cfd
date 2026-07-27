@@ -108,7 +108,10 @@ export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment
         });
       },
       () => setGeo({ lat: 0, lon: 0, label: "Your area", accuracy: "Approx" }),
-      { enableHighAccuracy: true, timeout: 4000, maximumAge: 60000 },
+      // Force a FRESH, high-accuracy fix — never a cached/coarse position.
+      // A stale or low-accuracy reading reverse-geocodes to the wrong house
+      // number (a few houses off), so we wait longer for a precise GPS lock.
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
   }, [meta]);
 
