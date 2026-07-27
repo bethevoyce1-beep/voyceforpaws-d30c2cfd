@@ -621,6 +621,8 @@ export function RescueCard({
               </button>
             )}
 
+            {chips.length > 0 && <div className="mt-3 border-t border-[#EDE5D8]" />}
+
             {chips.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {chips.map((c) => (
@@ -631,9 +633,13 @@ export function RescueCard({
               </div>
             )}
 
+            {data.first_look && <div className="mt-3 border-t border-[#EDE5D8]" />}
+
             {data.first_look && (
               <p className="mt-2 text-[13.5px] italic leading-relaxed text-[oklch(0.45_0.03_70)]">{data.first_look}</p>
             )}
+
+            <div className="mt-3 border-t border-[#EDE5D8]" />
 
             {/* Detail pills — tap to expand, right under Voyce's read */}
             <div className="mt-3">
@@ -770,7 +776,7 @@ export function RescueCard({
               <h3 className="font-serif text-lg font-semibold leading-tight">Add what Voyce missed</h3>
               <button type="button" onClick={saveMissedAndClose} aria-label="Close" className="shrink-0 rounded-full border border-border bg-background px-2.5 py-1 text-sm">✕</button>
             </div>
-            <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+            <p class‌Name="mt-2 text-[13px] leading-relaxed text-muted-foreground">
               Voyce read the photo — fix anything it missed or got wrong. Some things a photo can't show, so you can add them here. It shows on the card and travels with any share.
             </p>
 
