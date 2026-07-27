@@ -1194,6 +1194,14 @@ function CaptureScreen({
             {/* Polish-list fix (June 30, 2026): warm helper text + brand viewfinder.
                 Viewfinder uses brand gold border + soft black scrim for focus. */}
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+              {/* Pre-launch pill — shown on the camera too, so the "Live Demo ·
+                  Pre-launch" note appears consistently no matter whether you
+                  reached the camera via the intake screen or straight from the
+                  welcome prompt. */}
+              <div className="mb-2.5 inline-flex items-center gap-1.5 rounded-full border border-[#E8C97A] bg-gradient-to-b from-[#FBF1C8] to-[#F5E3A0] px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[#7A5A0A] shadow-sm">
+                <span aria-hidden>📷</span>
+                <span>Live Demo · Pre-launch</span>
+              </div>
               <div className="mb-5 inline-flex items-center gap-1.5 rounded-full bg-black/55 px-3.5 py-1.5 text-[11.5px] font-semibold tracking-tight text-white shadow-md backdrop-blur-md">
                 <span aria-hidden>🐾</span>
                 <span>Center the animal in the frame</span>
