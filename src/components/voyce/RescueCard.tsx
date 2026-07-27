@@ -217,11 +217,10 @@ export function RescueCard({
       ? crypto.randomUUID()
       : Math.random().toString(36).slice(2) + Date.now().toString(36),
   );
-  // Privacy on the PUBLIC share link: show exact spot, coarse area only, or
-  // hide it entirely (default to area so a home address is never exposed). Plus
-  // an optional note from the finder — "what you saw" — which they can keep
-  // free of anything private.
-  const [locPrivacy, setLocPrivacy] = useState<"exact" | "area" | "hidden">("area");
+  // Privacy on the location: show exact spot, coarse area only, or hide it.
+  // Drives both the on-card display and any public share link. Plus an optional
+  // note from the finder — "what you saw" — kept free of anything private.
+  const [locPrivacy, setLocPrivacy] = useState<"exact" | "area" | "hidden">("exact");
   const [note, setNote] = useState("");
   // Responder-safety: a report shouldn't go to rescuers without a location.
   // If GPS was denied (no `location`), the reporter can add an area manually or
@@ -305,6 +304,11 @@ export function RescueCard({
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`
     : null;
   const shownLoc = manualArea.trim() || (gps ? "Pinned (your GPS)" : location?.label) || locationLine(data);
+  // Coarser label for "Area only" — drops the leading house-number/street part.
+  const coarseLoc = (() => {
+    const parts = shownLoc.split(",").map((x) => x.trim()).filter(Boolean);
+    return parts.length > 1 ? parts.slice(1).join(", ") : shownLoc;
+  })();
 
   const useMyLocation = () => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -582,22 +586,50 @@ export function RescueCard({
 
             {hasPin && (
               <div className="mt-2">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] font-medium text-muted-foreground">
-                  <span className="flex items-center gap-1"><span>📍</span><span>{shownLoc}</span></span>
-                  {mapsUrl && (
-                    <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold text-white no-underline shadow-sm transition active:scale-[0.97]"
-                      style={{ background: "#2563EB" }}>🗺 View map</a>
-                  )}
-                  {!showAddr && (
-                    <button type="button" onClick={() => setShowAddr(true)}
-                      className="inline-flex items-center gap-1 rounded-full border border-dashed px-2 py-0.5 text-[11px] font-bold transition active:scale-[0.97]"
-                      style={{ borderColor: "#C9871A", background: "#FFF9EC", color: "#8A5A0E" }}>
-                      📍 Map off? Add address
-                    </button>
-                  )}
+                {locPrivacy === "hidden" ? (
+                  <div className="flex items-center gap-1 text-[12px] font-medium text-[#8A5A0E]">
+                    <span>🙈</span><span>Address hidden — shared privately with rescuers only.</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] font-medium text-muted-foreground">
+                    <span className="flex items-center gap-1"><span>📍</span><span>{locPrivacy === "area" ? coarseLoc : shownLoc}</span></span>
+                    {mapsUrl && locPrivacy === "exact" && (
+                      <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold text-white no-underline shadow-sm transition active:scale-[0.97]"
+                        style={{ background: "#2563EB" }}>🗺 View map</a>
+                    )}
+                    {!showAddr && locPrivacy === "exact" && (
+                      <button type="button" onClick={() => setShowAddr(true)}
+                        className="inline-flex items-center gap-1 rounded-full border border-dashed px-2 py-0.5 text-[11px] font-bold transition active:scale-[0.97]"
+                        style={{ borderColor: "#C9871A", background: "#FFF9EC", color: "#8A5A0E" }}>
+                        📍 Map off? Add address
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Address visibility — the reporter chooses how much shows:
+                    the exact house, a general area, or hidden. The same choice
+                    carries to any share link (handy while testing). */}
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9CA3AF]">Address:</span>
+                  {([
+                    { id: "exact", label: "Show exact" },
+                    { id: "area", label: "Area only" },
+                    { id: "hidden", label: "🙈 Hide" },
+                  ] as const).map((o) => {
+                    const on = locPrivacy === o.id;
+                    return (
+                      <button key={o.id} type="button" onClick={() => { setLocPrivacy(o.id); resetShareLink(); }}
+                        className="rounded-full border px-2 py-0.5 text-[11px] font-bold transition active:scale-[0.97]"
+                        style={on ? { borderColor: "#C9871A", background: "#FFF6E5", color: "#8A5A0E" } : { borderColor: "#E3DAC4", background: "#fff", color: "#6B5832" }}>
+                        {on ? "✓ " : ""}{o.label}
+                      </button>
+                    );
+                  })}
                 </div>
-                {showAddr && (
+
+                {showAddr && locPrivacy === "exact" && (
                   <div className="mt-2 rounded-xl border border-[#F0C88A] bg-[#FFF6E5] px-3 py-2.5">
                     <div className="flex items-start justify-between gap-2">
                       <label className="text-[11.5px] font-semibold text-[#8A5A0E]">If the map is off, type the exact address or nearest cross-streets</label>
