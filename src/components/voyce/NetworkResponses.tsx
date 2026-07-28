@@ -201,19 +201,34 @@ export function NetworkResponses({
 
   return (
     <div className="mx-5 mt-2 mb-5">
-      {/* How the network responds — live feed, moved to the top so viewers see
-          the pack in action before the explainer. */}
+      {/* Section heading + live response count */}
       <div className="flex items-center justify-between">
         <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">How the pack responds</div>
         <div className="text-[11px] font-semibold text-muted-foreground">{items.length} {items.length === 1 ? "response" : "responses"}</div>
       </div>
 
+      {/* The call to action — moved up under the heading and highlighted */}
+      <div className="mt-2 rounded-2xl border border-[#F0C88A] bg-[#FFF6E5] px-4 py-2.5">
+        <div className="text-[14.5px] font-bold text-[#8A5A0E]">Can you help {who}?</div>
+      </div>
+
+      {/* What is this? — a plain-language explainer so a newcomer gets it */}
+      <div className="mt-3 rounded-2xl border border-[#F0C88A] bg-[#FFF9EC] px-4 py-3">
+        <div className="text-[12.5px] font-bold text-[#8A5A0E]">🐾 This is the pack — responding live</div>
+        <p className="mt-1 text-[12px] leading-relaxed text-[#6B5832]">
+          When you tap what you can do, everyone watching {who} sees it right here. Voyce alerts the
+          closest fosters, rescues, and adopters first, then ripples outward — friend to friend, group
+          to group — until {who} is safe. Every response widens the circle.
+        </p>
+      </div>
+
+      {/* Live feed */}
       {items.length === 0 ? (
-        <p className="mt-2 rounded-2xl border border-dashed border-[#E3DAC4] bg-[#FBF7EC] px-4 py-3 text-center text-[12.5px] text-[#8A5A0E]">
+        <p className="mt-3 rounded-2xl border border-dashed border-[#E3DAC4] bg-[#FBF7EC] px-4 py-3 text-center text-[12.5px] text-[#8A5A0E]">
           Be the first to step up for {who}.
         </p>
       ) : (
-        <ul className="mt-2 space-y-1.5">
+        <ul className="mt-3 space-y-1.5">
           {items.map((r) => {
             const meta = KINDS[r.kind] ?? KINDS.other;
             // Free-text "Something else" shows verbatim; a role commitment shows
@@ -238,16 +253,6 @@ export function NetworkResponses({
       <p className="mt-2 text-center text-[10.5px] italic text-muted-foreground">
         Responses are shared with the pack. Pre-launch preview · always confirm status with the shelter.
       </p>
-
-      {/* What is this? — a plain-language explainer so a newcomer gets it */}
-      <div className="mt-3 rounded-2xl border border-[#F0C88A] bg-[#FFF9EC] px-4 py-3">
-        <div className="text-[12.5px] font-bold text-[#8A5A0E]">🐾 This is the pack — responding live</div>
-        <p className="mt-1 text-[12px] leading-relaxed text-[#6B5832]">
-          When you tap what you can do, everyone watching {who} sees it right here. Voyce alerts the
-          closest fosters, rescues, and adopters first, then ripples outward — friend to friend, group
-          to group — until {who} is safe. Every response widens the circle.
-        </p>
-      </div>
 
       {/* Who's responding — name gate */}
       {!name ? (
@@ -274,11 +279,11 @@ export function NetworkResponses({
         </div>
       )}
 
-      {/* Can you help? — tap a role to commit; a popup asks what else is still
-          needed, then it posts to the live feed below. */}
+      {/* Tap how you can help — role pills (gated by name). Each opens the
+          commitment popup, then it posts to the live feed above. */}
       {name && (
         <div className="mt-3">
-          <div className="text-[13px] font-bold text-[#0B0B0C]">Can you help {who}?</div>
+          <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">Tap how you can help</div>
           {!canRespond && (
             <p className="mt-1 text-[11.5px] font-semibold text-[#8A5A0E]">✓ Tick the safety box above to respond.</p>
           )}
