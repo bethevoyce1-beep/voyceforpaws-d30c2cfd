@@ -532,7 +532,7 @@ function LocationReveal({ geo }: { geo: Geo | null }) {
     ? (() => {
         const d = 0.004; // ~400m box
         const bbox = `${geo!.lon - d},${geo!.lat - d},${geo!.lon + d},${geo!.lat + d}`;
-        return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${geo!.lat},${geo!.lon}`;
+        return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik`;
       })()
     : null;
   // Free Google Maps deep-links (no API key). On a phone these open the native
@@ -565,12 +565,22 @@ function LocationReveal({ geo }: { geo: Geo | null }) {
             show.map ? "opacity-100" : "opacity-0"
           }`}
         >
-          <iframe
-            title="Animal location map"
-            src={mapEmbed}
-            loading="lazy"
-            className="block h-[190px] w-full border-0"
-          />
+          <div className="relative">
+            <iframe
+              title="Animal location map"
+              src={mapEmbed}
+              loading="lazy"
+              className="block h-[190px] w-full border-0"
+            />
+            {/* Custom red location pin at map centre (bbox is centred on the point,
+                so screen-centre = the animal). OSM's own marker is dropped above. */}
+            <span aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full">
+              <svg width="26" height="26" viewBox="0 0 24 24" style={{ filter: "drop-shadow(0 1px 1.5px rgba(0,0,0,0.35))" }}>
+                <path fill="#DC2626" stroke="#ffffff" strokeWidth="1.5" d="M12 2c-3.9 0-7 3.1-7 7 0 5 7 13 7 13s7-8 7-13c0-3.9-3.1-7-7-7z" />
+                <circle cx="12" cy="9" r="2.5" fill="#ffffff" />
+              </svg>
+            </span>
+          </div>
           <div className="grid grid-cols-3 divide-x divide-border border-t border-border bg-card text-center text-[12px] font-semibold text-[color:oklch(0.45_0.13_150)]">
             <a href={directionsLink ?? "#"} target="_blank" rel="noopener noreferrer" className="py-2.5 transition hover:bg-muted">
               🧭 Directions
