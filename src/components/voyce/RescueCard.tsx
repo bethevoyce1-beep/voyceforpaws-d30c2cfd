@@ -267,6 +267,8 @@ export function RescueCard({
   // One-tap "mark resolved" for pre-launch testing (anyone can close a test
   // card). At launch this becomes the 2-photo Verify Resolution flow.
   const [resolved, setResolved] = useState(false);
+  // Save reliability — surfaced so a failed save can't silently lose the card.
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [manualArea, setManualArea] = useState("");
   const [gps, setGps] = useState<{ lat: number; lon: number } | null>(null);
   const [locNote, setLocNote] = useState<string | null>(null);
@@ -383,6 +385,7 @@ export function RescueCard({
     if (shareUrl) return shareUrl;
     if (shareSaving) return null;
     setShareSaving(true);
+    setSaveState("saving");
     try {
       const rawLabel = (manualArea.trim() || location?.label || "").trim();
       // Coarsen a full address to city/region for "area only" (drop the first
@@ -403,26 +406,38 @@ export function RescueCard({
                 : rawLabel
                   ? { label: rawLabel }
                   : null;
-      const res = await createSharedReport({
-        data: {
-          image,
-          data: { ...data, reporterName: reporterName.trim() || undefined },
-          mission,
-          situation: situation ?? undefined,
-          location: loc,
-          note: note.trim() || undefined,
-          locPrivacy,
-          editToken: editTokenRef.current,
-        },
-      });
-      const id = res?.id;
+      const payload = {
+        image,
+        data: { ...data, reporterName: reporterName.trim() || undefined },
+        mission,
+        situation: situation ?? undefined,
+        location: loc,
+        note: note.trim() || undefined,
+        locPrivacy,
+        editToken: editTokenRef.current,
+      };
+      // Retry the save on a transient failure (network blip) so a card is never
+      // silently lost. Up to 3 attempts with a short backoff.
+      let id: string | null = null;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const res = await createSharedReport({ data: payload });
+          id = res?.id ?? null;
+          if (id) break;
+        } catch {
+          /* transient — fall through to backoff + retry */
+        }
+        if (attempt < 3) await new Promise((r) => setTimeout(r, 700 * attempt));
+      }
       if (id && typeof window !== "undefined") {
         const u = `${window.location.origin}/r/${id}`;
         setShareUrl(u);
+        setSaveState("saved");
         return u;
       }
+      setSaveState("error");
     } catch {
-      /* leave shareUrl null — shares fall back to the app root */
+      setSaveState("error");
     } finally {
       setShareSaving(false);
     }
@@ -642,6 +657,16 @@ export function RescueCard({
             {resolved && (
               <div className="mt-2 rounded-lg border border-[#BFE3CC] bg-[#EAF5EC] px-3 py-1.5 text-[11.5px] font-semibold text-[#1F6B3D]">
                 ✅ Case marked resolved (testing). At launch, this will ask for 2 clear photos to verify before closing.
+              </div>
+            )}
+
+            {saveState !== "idle" && (
+              <div className="mt-2 text-[11px] font-semibold">
+                {saveState === "saving" && <span className="text-[#8A5A0E]">💾 Saving card to your gallery…</span>}
+                {saveState === "saved" && <span className="text-[#1F6B3D]">✓ Saved to your gallery</span>}
+                {saveState === "error" && (
+                  <span className="text-[#A8431F]">⚠ Couldn't save this card yet — <button type="button" onClick={() => { void ensureShareUrl(); }} className="font-bold underline underline-offset-2">retry</button></span>
+                )}
               </div>
             )}
 
