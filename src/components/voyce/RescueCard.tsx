@@ -831,7 +831,7 @@ export function RescueCard({
             <p className="mt-1 text-[12px] leading-relaxed text-[#6B5832]">
               Voyce isn't live yet — we can't alert responders until the pack grows in your area. For a real animal, contact your local <span className="font-semibold">animal control</span>, an <span className="font-semibold">emergency vet</span>, or a nearby <span className="font-semibold">animal shelter or rescue</span> — and a <span className="font-semibold">wildlife rehabber</span> for wildlife. You can also text or call <a href="tel:+13306214361" className="font-semibold text-[#8A5A0E] underline">(330) 621-4361</a> or email <a href="mailto:info@bethevoyce.org" className="font-semibold text-[#8A5A0E] underline">info@bethevoyce.org</a>.
             </p>
-            <p class Name="mt-1 text-[10.5px] italic text-[#8A5A0E]">Pre-launch testing contact.</p>
+            <p className="mt-1 text-[10.5px] italic text-[#8A5A0E]">Pre-launch testing contact.</p>
             <button type="button" onClick={() => setAckReal((v) => !v)} aria-pressed={ackReal}
               className="mt-2.5 flex w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition active:scale-[0.99]"
               style={ackReal ? { borderColor: "#C9871A", background: "#FFF1CE" } : { borderColor: "#E6D3A3", background: "#FFFBF0" }}>
