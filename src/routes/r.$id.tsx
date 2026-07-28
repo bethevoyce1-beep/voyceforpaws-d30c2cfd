@@ -3,7 +3,7 @@ import { useState, type ReactNode } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
 import { getSharedReport, mergeReporterAdded, reporterAddedSummary, type SharedReport, type ReporterAdded } from "@/lib/share.functions";
 import { NetworkResponses } from "@/components/voyce/NetworkResponses";
-import { caseTypeLabel, seenChipsFrom, SafetyNotes, ConfirmGate } from "@/components/voyce/cardShared";
+import { caseTypeLabel, seenChipsFrom, SafetyNotes, ConfirmGate, openDirections } from "@/components/voyce/cardShared";
 import { getUrgency } from "@/lib/urgency";
 import { getCondition, CONDITION_COLORS } from "@/lib/condition";
 import { VoyceMark } from "@/components/voyce/VoyceMark";
@@ -120,6 +120,9 @@ function headline(d: Assessment, mission: string | undefined, tk: keyof typeof T
   if (sit) return cap(sit);
   return `${name} needs help`;
 }
+
+// A short, honest "Type" label for the top facts row — mirrors the in-app card.
+// (Imported from cardShared so it stays identical to the in-app card.)
 
 function facts(d: Assessment): { label: string; value: string }[] {
   const dateStr = d.reportedAt ? new Date(d.reportedAt).toLocaleDateString() : "";
@@ -390,8 +393,8 @@ function SharePage() {
                 )}
                 {hasExactCoords && (
                   <>
-                    <a href={`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`} target="_blank" rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 rounded-full border border-[#E3DAC4] bg-white px-2.5 py-1 text-[11px] font-bold text-[#6B5832] no-underline transition active:scale-[0.97]">🧭 Directions</a>
+                    <button type="button" onClick={() => openDirections(lat as number, lon as number)}
+                      className="inline-flex items-center gap-1 rounded-full border border-[#E3DAC4] bg-white px-2.5 py-1 text-[11px] font-bold text-[#6B5832] transition active:scale-[0.97]">🧭 Directions</button>
                     <a href={`https://www.google.com/maps/@${lat},${lon},19z/data=!3m1!1e3`} target="_blank" rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 rounded-full border border-[#E3DAC4] bg-white px-2.5 py-1 text-[11px] font-bold text-[#6B5832] no-underline transition active:scale-[0.97]">🛰 Satellite</a>
                     <a href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`} target="_blank" rel="noopener noreferrer"
