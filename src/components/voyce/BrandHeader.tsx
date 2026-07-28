@@ -106,9 +106,19 @@ function AuthChip() {
       </button>
       {open && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden />
-          <div className="absolute right-0 top-11 z-50 w-[220px] rounded-2xl border border-[#EAE6DE] bg-white p-3 shadow-2xl">
-            <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9CA3AF]">Signed in as</div>
+          <div className="fixed inset-0 z-50" onClick={() => setOpen(false)} aria-hidden />
+          <div className="absolute right-0 top-11 z-[55] w-[220px] rounded-2xl border border-[#EAE6DE] bg-white p-3 shadow-2xl">
+            <div className="flex items-start justify-between gap-2">
+              <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9CA3AF]">Signed in as</div>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                aria-label="Close"
+                className="-mr-1 -mt-1 shrink-0 rounded-full px-2 py-0.5 text-[15px] leading-none text-[#9CA3AF] transition hover:bg-[#F3EFE7] hover:text-[#6B5832]"
+              >
+                ✕
+              </button>
+            </div>
             <div className="mt-0.5 truncate font-serif text-[15px] font-bold text-[#1A1611]">{user.name}</div>
             {user.email && <div className="truncate text-[12px] text-muted-foreground">{user.email}</div>}
             <button
