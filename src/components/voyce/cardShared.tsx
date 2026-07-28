@@ -102,3 +102,29 @@ export function ConfirmGate({ ok, onToggle, className = "" }: { ok: boolean; onT
     </button>
   );
 }
+
+// Open Google Maps directions TO the animal, pre-filling the viewer's CURRENT
+// location as the starting point so they never have to type an address. We
+// open a blank tab synchronously on the click (so the popup isn't blocked),
+// then redirect it once we have coords. If location is denied/unavailable,
+// Maps still opens and uses the device's own current location as the origin.
+export function openDirections(lat: number, lon: number) {
+  const dest = `${lat},${lon}`;
+  const w = typeof window !== "undefined" ? window.open("about:blank", "_blank") : null;
+  const go = (origin: string | null) => {
+    const u = origin
+      ? `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&travelmode=driving`
+      : `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=driving`;
+    if (w) w.location.href = u;
+    else if (typeof window !== "undefined") window.location.href = u;
+  };
+  if (typeof navigator !== "undefined" && navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (p) => go(`${p.coords.latitude},${p.coords.longitude}`),
+      () => go(null),
+      { enableHighAccuracy: true, timeout: 8000 },
+    );
+  } else {
+    go(null);
+  }
+}
