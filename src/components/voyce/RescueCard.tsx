@@ -168,7 +168,11 @@ function buildShareText(data: Assessment, mission: MissionId): string {
   const m = MISSIONS[mission];
   const name = shareName(data);
   const where = locationLine(data);
-  return `🐾 ${name} needs help\n📍 ${where}\n\n${data.first_look}\n\n${m.callout.body}\n\nvia Voyce for Paws™ · © 2026 Be the Voyce, Inc.`;
+  // Use the animal's OWN honest read (status_reason) rather than the picked
+  // mission's generic line — so a safe/fixed pet never shows "prevent litter"
+  // etc. The card and the share text then say the same thing.
+  const readLine = (data.status_reason || m.callout.body || "").trim();
+  return `🐾 ${name}\n📍 ${where}\n\n${data.first_look}${readLine ? `\n\n${readLine}` : ""}\n\n💛 You can help: foster, adopt, transport, or just share this so the right person sees it.\n\nvia Voyce for Paws™ · © 2026 Be the Voyce, Inc.`;
 }
 
 export function RescueCard({
@@ -562,7 +566,7 @@ export function RescueCard({
     badgeGradient: T.bg,
     title,
     titleColor: T.title,
-    subhead: m.titleSub || "",
+    subhead: (data.status_reason || m.titleSub || "").trim(),
   };
 
   return (
@@ -827,7 +831,7 @@ export function RescueCard({
             <p className="mt-1 text-[12px] leading-relaxed text-[#6B5832]">
               Voyce isn't live yet — we can't alert responders until the pack grows in your area. For a real animal, contact your local <span className="font-semibold">animal control</span>, an <span className="font-semibold">emergency vet</span>, or a nearby <span className="font-semibold">animal shelter or rescue</span> — and a <span className="font-semibold">wildlife rehabber</span> for wildlife. You can also text or call <a href="tel:+13306214361" className="font-semibold text-[#8A5A0E] underline">(330) 621-4361</a> or email <a href="mailto:info@bethevoyce.org" className="font-semibold text-[#8A5A0E] underline">info@bethevoyce.org</a>.
             </p>
-            <p className="mt-1 text-[10.5px] italic text-[#8A5A0E]">Pre-launch testing contact.</p>
+            <p class Name="mt-1 text-[10.5px] italic text-[#8A5A0E]">Pre-launch testing contact.</p>
             <button type="button" onClick={() => setAckReal((v) => !v)} aria-pressed={ackReal}
               className="mt-2.5 flex w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition active:scale-[0.99]"
               style={ackReal ? { borderColor: "#C9871A", background: "#FFF1CE" } : { borderColor: "#E6D3A3", background: "#FFFBF0" }}>
