@@ -870,7 +870,7 @@ export function RescueCard({
               <h3 className="font-serif text-lg font-semibold leading-tight">Add what Voyce missed</h3>
               <button type="button" onClick={saveMissedAndClose} aria-label="Close" className="shrink-0 rounded-full border border-border bg-background px-2.5 py-1 text-sm">✕</button>
             </div>
-            <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+            <p class Name="mt-2 text-[13px] leading-relaxed text-muted-foreground">
               Voyce read the photo — fix anything it missed or got wrong. Some things a photo can't show, so you can add them here. It shows on the card and travels with any share.
             </p>
 
@@ -1049,7 +1049,7 @@ export function RescueCard({
 
             <div className="mt-4 border-t border-[#EDE5D8] pt-3">
               <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">Or save a poster to post anywhere</p>
-              <SaveCardControls image={image} data={data} name={shareName(data)} city={location?.label} v={flyerVariant} />
+              <SaveCardControls image={image} data={data} name={shareName(data)} city={location?.label} v={flyerVariant} shareUrl={shareUrl ?? undefined} />
             </div>
           </div>
         </div>
