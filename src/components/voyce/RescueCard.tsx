@@ -570,7 +570,7 @@ export function RescueCard({
   };
 
   return (
-    <div className="min-h-[100dvh] bg-background pb-28">
+    <div className="min-h-[100dvh] bg-background pb-40">
       <BrandHeader />
       <AIDisclosureBanner />
 
@@ -971,7 +971,7 @@ export function RescueCard({
       )}
 
       {showShare && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-40 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 sm:items-center sm:pb-10" onClick={() => setShowShare(false)}>
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 sm:items-center sm:pb-10" onClick={() => setShowShare(false)}>
           <div onClick={(e) => e.stopPropagation()} className="max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-3xl border border-border bg-card p-5 shadow-2xl">
             <div className="flex items-start justify-between gap-3">
               <div>
