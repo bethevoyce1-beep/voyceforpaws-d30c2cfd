@@ -233,7 +233,16 @@ export function RescueCard({
   // Privacy on the location: show exact spot, coarse area only, or hide it.
   // Drives both the on-card display and any public share link. Plus an optional
   // note from the finder — "what you saw" — kept free of anything private.
-  const [locPrivacy, setLocPrivacy] = useState<"exact" | "area" | "hidden">("exact");
+  // Address visibility. Default to the safe "area"; picks up the reporter's
+  // choice made on the analyzing screen (ProcessingPipeline writes the same key).
+  const [locPrivacy, setLocPrivacy] = useState<"exact" | "area" | "hidden">(() => {
+    try {
+      const v = typeof window !== "undefined" ? window.localStorage.getItem("voyce_loc_privacy") : null;
+      return v === "exact" || v === "area" || v === "hidden" ? v : "area";
+    } catch {
+      return "area";
+    }
+  });
   const [note, setNote] = useState("");
   // Responder-safety: a report shouldn't go to rescuers without a location.
   // If GPS was denied (no `location`), the reporter can add an area manually or
@@ -641,7 +650,7 @@ export function RescueCard({
                   ] as const).map((o) => {
                     const on = locPrivacy === o.id;
                     return (
-                      <button key={o.id} type="button" onClick={() => { setLocPrivacy(o.id); resetShareLink(); }}
+                      <button key={o.id} type="button" onClick={() => { setLocPrivacy(o.id); try { window.localStorage.setItem("voyce_loc_privacy", o.id); } catch { /* ignore */ } resetShareLink(); }}
                         className="rounded-full border px-2 py-0.5 text-[11px] font-bold transition active:scale-[0.97]"
                         style={on ? { borderColor: "#C9871A", background: "#FFF6E5", color: "#8A5A0E" } : { borderColor: "#E3DAC4", background: "#fff", color: "#6B5832" }}>
                         {on ? "✓ " : ""}{o.label}
@@ -969,7 +978,7 @@ export function RescueCard({
                 ] as const).map((o) => {
                   const on = locPrivacy === o.id;
                   return (
-                    <button key={o.id} type="button" onClick={() => { setLocPrivacy(o.id); resetShareLink(); }}
+                    <button key={o.id} type="button" onClick={() => { setLocPrivacy(o.id); try { window.localStorage.setItem("voyce_loc_privacy", o.id); } catch { /* ignore */ } resetShareLink(); }}
                       className="rounded-xl border px-2 py-2 text-center transition active:scale-[0.97]"
                       style={on ? { borderColor: "#C9871A", background: "#FFF6E5", color: "#8A5A0E" } : { borderColor: "#E3DAC4", background: "#fff", color: "#6B5832" }}>
                       <div className="text-[12.5px] font-bold">{on ? "✓ " : ""}{o.label}</div>
