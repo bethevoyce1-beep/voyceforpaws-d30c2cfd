@@ -278,6 +278,9 @@ export function RescueCard({
   // One combined confirm that the reader saw the AI limits + safety notes.
   // Soft-gates the "how the pack responds" actions below.
   const [respondOk, setRespondOk] = useState(false);
+  // One-tap "mark resolved" for pre-launch testing (anyone can close a test
+  // card). At launch this becomes the 2-photo Verify Resolution flow.
+  const [resolved, setResolved] = useState(false);
   const [manualArea, setManualArea] = useState("");
   const [gps, setGps] = useState<{ lat: number; lon: number } | null>(null);
   const [locNote, setLocNote] = useState<string | null>(null);
@@ -648,10 +651,23 @@ export function RescueCard({
           {/* Title + situation */}
           <div className="px-5 pt-4">
             <h1 className="font-serif text-[24px] font-bold leading-[1.1]" style={{ color: T.title }}>{title}</h1>
-            <div className="mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-bold uppercase tracking-[0.1em]"
-              style={{ background: urgency.soft, color: urgency.deep }}>
-              <span className="text-muted-foreground/70">Urgency:</span><span>{urgency.emoji} {urgency.label}</span>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-bold uppercase tracking-[0.1em]"
+                style={{ background: urgency.soft, color: urgency.deep }}>
+                <span className="text-muted-foreground/70">Urgency:</span><span>{urgency.emoji} {urgency.label}</span>
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#E8C97A] bg-[#FBF1C8] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#7A5A0A]">🧪 Testing</span>
+              <button type="button" onClick={() => setResolved((v) => !v)}
+                className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] transition active:scale-[0.97]"
+                style={resolved ? { borderColor: "#1F6B3D", background: "#E7F5EC", color: "#1F6B3D" } : { borderColor: "#C9871A", background: "#fff", color: "#8A5A0E" }}>
+                {resolved ? "✅ Resolved · reopen" : "✓ Mark as resolved"}
+              </button>
             </div>
+            {resolved && (
+              <div className="mt-2 rounded-lg border border-[#BFE3CC] bg-[#EAF5EC] px-3 py-1.5 text-[11.5px] font-semibold text-[#1F6B3D]">
+                ✅ Case marked resolved (testing). At launch, this will ask for 2 clear photos to verify before closing.
+              </div>
+            )}
 
             <div className="mt-2 text-[12px] font-medium text-muted-foreground">📷 Photo taken {takenStr}</div>
             {isOldPhoto && (
