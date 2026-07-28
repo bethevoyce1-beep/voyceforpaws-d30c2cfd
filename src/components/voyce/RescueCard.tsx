@@ -354,7 +354,14 @@ export function RescueCard({
   );
   const repStatus = (data as { status?: string }).status;
   const ago = useLiveAgo(reportedAt, repStatus);
-  const takenStr = new Date(reportedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  // Full taken date WITH year — an uploaded OLD photo (e.g. from 2021) must not
+  // read as if it were taken this week.
+  const takenStr = new Date(reportedAt).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+  // Flag a clearly-old photo and show when the card was actually shared, so no
+  // one mistakes an old upload for a live situation.
+  const takenMs = new Date(reportedAt).getTime();
+  const isOldPhoto = Number.isFinite(takenMs) && Date.now() - takenMs > 2 * 24 * 60 * 60 * 1000;
+  const sharedStr = new Date().toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 
   const gpsForMap = location ?? gps;
   // A typed address WINS over the GPS pin — so a "map is off" correction actually
@@ -647,6 +654,11 @@ export function RescueCard({
             </div>
 
             <div className="mt-2 text-[12px] font-medium text-muted-foreground">📷 Photo taken {takenStr}</div>
+            {isOldPhoto && (
+              <div className="mt-1 rounded-lg border border-[#F0C88A] bg-[#FFF6E5] px-2.5 py-1.5 text-[11px] font-semibold text-[#A8431F]">
+                ⚠ Older photo — shared {sharedStr}. It may not reflect the animal's situation right now.
+              </div>
+            )}
 
             {hasPin && (
               <div className="mt-2">
@@ -661,6 +673,16 @@ export function RescueCard({
                       <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold text-white no-underline shadow-sm transition active:scale-[0.97]"
                         style={{ background: "#2563EB" }}>🗺 View map</a>
+                    )}
+                    {gpsForMap && locPrivacy === "exact" && (
+                      <>
+                        <a href={`https://www.google.com/maps/dir/?api=1&destination=${gpsForMap.lat},${gpsForMap.lon}`} target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded-full border border-[#E3DAC4] bg-white px-2 py-0.5 text-[11px] font-bold text-[#6B5832] no-underline transition active:scale-[0.97]">🧭 Directions</a>
+                        <a href={`https://www.google.com/maps/@${gpsForMap.lat},${gpsForMap.lon},19z/data=!3m1!1e3`} target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded-full border border-[#E3DAC4] bg-white px-2 py-0.5 text-[11px] font-bold text-[#6B5832] no-underline transition active:scale-[0.97]">🛰 Satellite</a>
+                        <a href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${gpsForMap.lat},${gpsForMap.lon}`} target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded-full border border-[#E3DAC4] bg-white px-2 py-0.5 text-[11px] font-bold text-[#6B5832] no-underline transition active:scale-[0.97]">🏠 Street View</a>
+                      </>
                     )}
                     {!showAddr && locPrivacy === "exact" && (
                       <button type="button" onClick={() => setShowAddr(true)}
