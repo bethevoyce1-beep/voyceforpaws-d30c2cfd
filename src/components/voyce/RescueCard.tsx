@@ -206,6 +206,9 @@ export function RescueCard({
   const [mSituation, setMSituation] = useState("");
   const [mWitnessed, setMWitnessed] = useState<string[]>([]);
   const [mNote, setMNote] = useState("");
+  // Reporter breed correction — AI breed is only a guess (small fluffy mixes
+  // look alike), so the reporter can set it right here.
+  const [mBreed, setMBreed] = useState("");
   const [shareConfirm, setShareConfirm] = useState<SharePlatform | null>(null);
   const [showShare, setShowShare] = useState(false);
   const [helpRole, setHelpRole] = useState<(typeof HELP_ROLES)[number] | null>(null);
@@ -268,6 +271,7 @@ export function RescueCard({
   // and appended to shares.
   const missedSummary = [
     mAnimal,
+    mBreed.trim() ? `breed: ${mBreed.trim()}` : "",
     mSituation,
     mWitnessed.length ? `saw: ${mWitnessed.join(", ")}` : "",
     mNote.trim(),
@@ -280,6 +284,7 @@ export function RescueCard({
   const reporterAdded: ReporterAdded = hasMissed
     ? {
         animal: mAnimal || undefined,
+        breed: mBreed.trim() || undefined,
         situation: mSituation || undefined,
         witnessed: mWitnessed.length ? mWitnessed : undefined,
         note: mNote.trim() || undefined,
@@ -881,6 +886,14 @@ export function RescueCard({
             </div>
 
             <div className="mt-4">
+              <p className="mb-2 text-[11.5px] font-bold uppercase tracking-[0.1em] text-foreground/55">Breed (if you know it)</p>
+              <input value={mBreed} onChange={(e) => setMBreed(e.target.value)}
+                placeholder="e.g. Poodle, Lab mix, domestic shorthair"
+                className="w-full rounded-xl border border-[#E2DED6] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#C9871A]" />
+              <p className="mt-1 text-[11px] text-muted-foreground">Voyce guesses breed from the photo and can be wrong — set it right here and it shows on the card and every share.</p>
+            </div>
+
+            <div className="mt-4">
               <p className="mb-2 text-[11.5px] font-bold uppercase tracking-[0.1em] text-foreground/55">What's happening?</p>
               <div className="flex flex-wrap gap-2">
                 {MISSED_SITUATIONS.map((o) => (
@@ -910,7 +923,7 @@ export function RescueCard({
             </div>
 
             <div className="mt-4 flex items-center justify-end gap-2">
-              <button type="button" onClick={() => { setMAnimal(""); setMSituation(""); setMWitnessed([]); setMNote(""); }}
+              <button type="button" onClick={() => { setMAnimal(""); setMBreed(""); setMSituation(""); setMWitnessed([]); setMNote(""); }}
                 className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium">Clear</button>
               <button type="button" onClick={saveMissedAndClose}
                 className="rounded-full px-4 py-2 text-sm font-semibold text-[#3A2A07] shadow-sm"
