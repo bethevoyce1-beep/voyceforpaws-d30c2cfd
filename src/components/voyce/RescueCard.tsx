@@ -108,6 +108,21 @@ function profileChips(data: Assessment): { label: string; value: string }[] {
   ].filter((c) => c.value && !/^unknown$/i.test(String(c.value))) as { label: string; value: string }[];
 }
 
+// A short, honest "Type" label for the top facts row — derived from what the AI
+// already read (mission + status + whether it's a pet + where it is).
+function caseTypeLabel(d: Assessment, mission: MissionId): string {
+  const pet = !!d.is_likely_pet;
+  const urgent = (d.status || "") === "Urgent";
+  const home = /home|indoor|backyard|domestic/i.test(d.setting_type || "");
+  if (mission === "wildlife") return "Wildlife";
+  if (mission === "at-risk-shelter") return "At-risk shelter";
+  if (mission === "lost-found") return pet ? "Found pet" : "Lost pet";
+  if (urgent) return pet ? "Injured pet" : "Injured stray";
+  if (pet && home) return "Pet at home";
+  if (pet) return "Lost / found pet";
+  return "Stray — needs care";
+}
+
 type SharePlatform =
   | "nextdoor" | "facebook" | "whatsapp" | "x" | "instagram" | "email"
   | "sms" | "linkedin" | "snapchat" | "telegram" | "reddit" | "messenger"
@@ -260,12 +275,9 @@ export function RescueCard({
   const [showAddr, setShowAddr] = useState(false);
   // Optional reporter name shown as "Reported by" and carried onto shares.
   const [reporterName, setReporterName] = useState("");
-  // Acknowledgment that the reader saw Voyce's First Look limits (records a
-  // ✓ only — does not gate sending or sharing).
-  const [ackLimits, setAckLimits] = useState(false);
-  // Same read-confirm ✓ for the two safety blocks now at the bottom.
-  const [ackReal, setAckReal] = useState(false);
-  const [ackSafe, setAckSafe] = useState(false);
+  // One combined confirm that the reader saw the AI limits + safety notes.
+  // Soft-gates the "how the pack responds" actions below.
+  const [respondOk, setRespondOk] = useState(false);
   const [manualArea, setManualArea] = useState("");
   const [gps, setGps] = useState<{ lat: number; lon: number } | null>(null);
   const [locNote, setLocNote] = useState<string | null>(null);
@@ -317,7 +329,20 @@ export function RescueCard({
   const tone = toneFor(mission, urgency.level);
   const T = TONES[tone];
   const title = headline(data, mission, situation, condition, tone);
-  const chips = profileChips(data);
+  const chips = [{ label: "Type", value: caseTypeLabel(data, mission) }, ...profileChips(data)];
+  // Quick "what Voyce saw" chips — short scannable lines pulled from the read:
+  // the AI's own observations, plus the setting and the top next-step, deduped.
+  const seenChips = (() => {
+    const out: string[] = [];
+    const add = (v?: string) => {
+      const t = (v || "").trim();
+      if (t && t.length <= 42 && !out.some((x) => x.toLowerCase() === t.toLowerCase())) out.push(t);
+    };
+    (Array.isArray(data.observations) ? data.observations : []).forEach(add);
+    add(data.setting_type);
+    if (Array.isArray(data.next_steps) && data.next_steps[0]) add(data.next_steps[0]);
+    return out.slice(0, 7);
+  })();
   const m = MISSIONS[mission];
 
   // Mission timer — counts up from the moment the report went out and keeps
@@ -719,6 +744,17 @@ export function RescueCard({
               <p className="mt-2 text-[13.5px] italic leading-relaxed text-[oklch(0.45_0.03_70)]">{data.first_look}</p>
             )}
 
+            {seenChips.length > 0 && (
+              <div className="mt-3">
+                <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">What Voyce saw</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {seenChips.map((c, i) => (
+                    <span key={i} className="rounded-full border border-[#F3E5B6] bg-[#FFF6D6] px-2.5 py-1 text-[12px] text-[#3A2A07]">{c}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="mt-3 border-t border-[#EDE5D8]" />
 
             {/* Detail pills — tap to expand, right under Voyce's read */}
@@ -786,18 +822,9 @@ export function RescueCard({
             <span className="font-semibold">👥 Closest helpers alerted first.</span> {m.nearbyHelpers}
           </div>
 
-          {/* How the network is responding — BOTTOM block: rich action pills +
-              shared live ripple for this animal. */}
-          {reportId && (
-            <div className="mt-5 border-t border-[#EDE5D8]">
-              <NetworkResponses subjectType="report" subjectId={reportId} animalName={shareName(data)}
-                onAction={(kind) => { if (kind === "share") setShowShare(true); }} />
-            </div>
-          )}
-
-          {/* Voyce's First Look — Honest Limits. The prominent liability shield,
-              placed at the very bottom of the card. A tap-to-confirm checkbox
-              records that the reader saw it (acknowledgment only — not a gate). */}
+          {/* SAFETY — read BEFORE responding. Info only; one combined confirm
+              below soft-unlocks the pack actions. Pre-launch "real animal" note
+              drops at launch, leaving AI-limits + Stay safe as the gate. */}
           <div className="mx-5 mt-5 rounded-2xl bg-[#1A1611] px-4 py-4">
             <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#FFDF3B]">⚠️ Voyce's First Look — Honest Limits</div>
             <p className="mt-2 text-[12.5px] leading-relaxed text-[#F4E7C6]">
@@ -813,49 +840,42 @@ export function RescueCard({
             <p className="mt-2 text-[12px] italic leading-relaxed text-[#E9C55A]">
               Always verify with a licensed veterinarian before any medical, rescue, or transport decision. Voyce is not liable for outcomes from acting on this AI assessment.
             </p>
-            <button type="button" onClick={() => setAckLimits((v) => !v)} aria-pressed={ackLimits}
-              className="mt-3 flex w-full items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition active:scale-[0.99]"
-              style={ackLimits ? { borderColor: "#FFDF3B", background: "rgba(255,223,59,0.12)" } : { borderColor: "#4A4030", background: "rgba(255,255,255,0.04)" }}>
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-[12px] font-bold"
-                style={ackLimits ? { background: "#FFDF3B", borderColor: "#FFDF3B", color: "#1A1611" } : { borderColor: "#6B5F45", color: "transparent" }}>✓</span>
-              <span className="text-[12.5px] font-semibold" style={{ color: ackLimits ? "#FFDF3B" : "#F4E7C6" }}>
-                {ackLimits ? "Thanks — you've confirmed you read Voyce's limits." : "I've read and understand these limits."}
-              </span>
-            </button>
           </div>
 
-          {/* Pre-launch "real animal?" help — moved to the very bottom with a
-              read-confirm ✓ (acknowledgment only). Remove at launch. */}
           <div className="mx-5 mt-4 rounded-2xl border border-[#F0C88A] bg-[#FFF6E5] px-4 py-3">
             <div className="text-[12.5px] font-bold text-[#8A5A0E]">🐾 Is this a real animal that needs help right now?</div>
             <p className="mt-1 text-[12px] leading-relaxed text-[#6B5832]">
               Voyce isn't live yet — we can't alert responders until the pack grows in your area. For a real animal, contact your local <span className="font-semibold">animal control</span>, an <span className="font-semibold">emergency vet</span>, or a nearby <span className="font-semibold">animal shelter or rescue</span> — and a <span className="font-semibold">wildlife rehabber</span> for wildlife. You can also text or call <a href="tel:+13306214361" className="font-semibold text-[#8A5A0E] underline">(330) 621-4361</a> or email <a href="mailto:info@bethevoyce.org" className="font-semibold text-[#8A5A0E] underline">info@bethevoyce.org</a>.
             </p>
             <p className="mt-1 text-[10.5px] italic text-[#8A5A0E]">Pre-launch testing contact.</p>
-            <button type="button" onClick={() => setAckReal((v) => !v)} aria-pressed={ackReal}
-              className="mt-2.5 flex w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition active:scale-[0.99]"
-              style={ackReal ? { borderColor: "#C9871A", background: "#FFF1CE" } : { borderColor: "#E6D3A3", background: "#FFFBF0" }}>
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-[12px] font-bold"
-                style={ackReal ? { background: "#C9871A", borderColor: "#C9871A", color: "#fff" } : { borderColor: "#C9A24A", color: "transparent" }}>✓</span>
-              <span className="text-[12px] font-semibold text-[#8A5A0E]">{ackReal ? "Got it — I understand Voyce isn't live yet." : "I've read this"}</span>
-            </button>
           </div>
 
-          {/* Stay-safe / anti-scam — PERMANENT. Moved to the very bottom with a
-              read-confirm ✓ (acknowledgment only). */}
-          <div className="mx-5 mt-4 mb-5 rounded-2xl border border-[#D8CEB8] bg-[#FBF7EC] px-4 py-3">
+          <div className="mx-5 mt-4 rounded-2xl border border-[#D8CEB8] bg-[#FBF7EC] px-4 py-3">
             <div className="text-[12.5px] font-bold text-[#5A3E12]">🛡️ Stay safe</div>
             <p className="mt-1 text-[12px] leading-relaxed text-[#6B5832]">
               Voyce connects people who don't know each other. Before you act: meet in a <span className="font-semibold">public place</span>, bring someone if you can, and <span className="font-semibold">never send money or pledges</span> to anyone you haven't verified. Confirm the animal and the person are real before you travel or hand anything over — scams and unsafe meetups do happen, so trust your gut.
             </p>
-            <button type="button" onClick={() => setAckSafe((v) => !v)} aria-pressed={ackSafe}
-              className="mt-2.5 flex w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition active:scale-[0.99]"
-              style={ackSafe ? { borderColor: "#9A8757", background: "#F3ECD9" } : { borderColor: "#D8CEB8", background: "#FBF7EC" }}>
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-[12px] font-bold"
-                style={ackSafe ? { background: "#5A3E12", borderColor: "#5A3E12", color: "#fff" } : { borderColor: "#9A8757", color: "transparent" }}>✓</span>
-              <span className="text-[12px] font-semibold text-[#5A3E12]">{ackSafe ? "Got it — I'll stay safe and verify before acting." : "I've read this"}</span>
-            </button>
           </div>
+
+          <button type="button" onClick={() => setRespondOk((v) => !v)} aria-pressed={respondOk}
+            className="mx-5 mt-4 flex w-[calc(100%-2.5rem)] items-center gap-2.5 rounded-2xl border px-4 py-3 text-left transition active:scale-[0.99]"
+            style={respondOk ? { borderColor: "#1F6B3D", background: "#EAF5EC" } : { borderColor: "#C9871A", background: "#FFF9EC" }}>
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-[13px] font-bold"
+              style={respondOk ? { background: "#1F6B3D", borderColor: "#1F6B3D", color: "#fff" } : { borderColor: "#C9A24A", color: "transparent" }}>✓</span>
+            <span className="text-[12.5px] font-semibold" style={{ color: respondOk ? "#1F6B3D" : "#8A5A0E" }}>
+              {respondOk ? "Thanks — you can respond below." : "I understand Voyce's AI can be wrong, and I'll follow the safety tips before acting."}
+            </span>
+          </button>
+
+          {/* How the pack responds — soft-gated by the confirm above. */}
+          {reportId && (
+            <div className="mt-5 border-t border-[#EDE5D8]">
+              <NetworkResponses subjectType="report" subjectId={reportId} animalName={shareName(data)}
+                canRespond={respondOk}
+                onAction={(kind) => { if (kind === "share") setShowShare(true); }} />
+            </div>
+          )}
+
         </article>
 
         <div className="mt-4 flex items-center justify-center gap-3">
