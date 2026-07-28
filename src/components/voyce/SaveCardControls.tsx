@@ -10,6 +10,10 @@ import type { Assessment } from "@/lib/analyze.functions";
 // The rendering libraries load on demand from a CDN, so the app build is
 // untouched. We snapshot the off-screen flyer so the saved file is a poster with
 // none of the app's buttons in it.
+//
+// The poster + caption print THIS card's own share link (the /r/<id> permalink)
+// so anyone who sees the post lands on this exact animal — falling back to the
+// brand link (voyceforpaws.org) only when the permalink isn't ready yet.
 // =============================================================
 
 type FlyerVariant = {
@@ -27,6 +31,8 @@ type Props = {
   name: string;
   city?: string | null;
   v: FlyerVariant;
+  /** This card's public permalink (/r/<id>). Printed on the poster + caption so the link actually works. */
+  shareUrl?: string;
 };
 
 function fmtDate(iso?: string): string {
@@ -42,7 +48,7 @@ function fmtDate(iso?: string): string {
 // shown (scaled) in the preview. Kept as a function returning JSX so both the
 // hidden snapshot node and the visible preview use identical layout.
 function FlyerBody({
-  image, name, city, v, facts, story, obs,
+  image, name, city, v, facts, story, obs, link,
 }: {
   image: string;
   name: string;
@@ -51,6 +57,7 @@ function FlyerBody({
   facts: string;
   story: string;
   obs: string[];
+  link: string;
   caseId?: string | null;
   reportedAt?: string;
 }) {
@@ -87,11 +94,11 @@ function FlyerBody({
           </div>
         )}
 
-        {/* HOW YOU CAN HELP call-to-action */}
+        {/* HOW YOU CAN HELP call-to-action — prints THIS card's link so it works */}
         <div style={{ marginTop: "16px", background: "#FFF6E5", border: "1.5px solid #F0C88A", borderRadius: "12px", padding: "12px 14px" }}>
           <div style={{ fontSize: "11px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em", color: "#8A5A0E" }}>💛 How you can help</div>
           <div style={{ marginTop: "5px", fontSize: "13px", fontWeight: 600, color: "#5A3E12" }}>Foster · Adopt · Rescue · or Share this post</div>
-          <div style={{ marginTop: "6px", fontSize: "14px", fontWeight: 900, color: "#0B0B0C" }}>voyceforpaws.org</div>
+          <div style={{ marginTop: "6px", fontSize: "13.5px", fontWeight: 900, color: "#0B0B0C", wordBreak: "break-all" }}>{link}</div>
         </div>
 
         {/* Footer */}
@@ -105,7 +112,7 @@ function FlyerBody({
   );
 }
 
-export function SaveCardControls({ image, data, name, city, v }: Props) {
+export function SaveCardControls({ image, data, name, city, v, shareUrl }: Props) {
   const flyerRef = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState<null | "img" | "pdf">(null);
   const [note, setNote] = useState<string | null>(null);
@@ -118,13 +125,19 @@ export function SaveCardControls({ image, data, name, city, v }: Props) {
   const story = useMemo(() => (data.first_look || data.status_reason || "").trim(), [data]);
   const obs = useMemo(() => (Array.isArray(data.observations) ? data.observations.slice(0, 4) : []), [data]);
 
+  // This card's own link. Prefer the real /r/<id> permalink (works, and lands on
+  // THIS animal); fall back to the brand link only if it isn't ready yet.
+  const shareLink = (shareUrl || "").trim();
+  const linkFull = shareLink || "https://voyceforpaws.org";
+  const linkDisplay = shareLink ? shareLink.replace(/^https?:\/\//, "") : "voyceforpaws.org";
+
   // A ready-to-post caption — the words that go with the poster on social.
   const caption = useMemo(() => {
     const where = city ? ` in ${city}` : "";
     const factLine = facts ? `\n${facts}` : "";
     const tags = "#AdoptDontShop #FosterSaves #Rescue #Voyce";
-    return `${v.badgeIcon} ${v.badgeText.toUpperCase()}: ${name} needs help${where}.${factLine}\n\n${story}\n\n💛 Foster · Adopt · Rescue · or share this post. Every share widens the circle.\nVoyce for Paws™ · voyceforpaws.org\n© 2026 Be the Voyce, Inc.\n${tags}`;
-  }, [v, name, city, facts, story]);
+    return `${v.badgeIcon} ${v.badgeText.toUpperCase()}: ${name} needs help${where}.${factLine}\n\n${story}\n\n💛 Foster · Adopt · Rescue · or share this post. Every share widens the circle.\n\n👉 See ${name}'s rescue card: ${linkFull}\n\nVoyce for Paws™\n© 2026 Be the Voyce, Inc.\n${tags}`;
+  }, [v, name, city, facts, story, linkFull]);
 
   const fileBase = useMemo(() => {
     const slug = (name || "animal").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -231,9 +244,17 @@ export function SaveCardControls({ image, data, name, city, v }: Props) {
           scaled poster with no empty space below it. */}
       <div style={{ width: "100%", overflow: "hidden", borderRadius: "14px", border: "1px solid #EDE5D8" }}>
         <div style={{ zoom: 0.6, width: 480, background: "#fff", fontFamily: "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif", color: "#1A1611" } as React.CSSProperties}>
-          <FlyerBody image={image} name={name} city={city} v={v} facts={facts} story={story} obs={obs} />
+          <FlyerBody image={image} name={name} city={city} v={v} facts={facts} story={story} obs={obs} link={linkDisplay} />
         </div>
       </div>
+      {shareLink && (
+        <div className="mt-2 flex items-center gap-2 rounded-xl border border-[#EDE5D8] bg-[#FBF7EC] px-3 py-2">
+          <span className="min-w-0 flex-1 truncate text-[11.5px] font-semibold text-[#8A5A0E]">{linkDisplay}</span>
+          <button type="button"
+            onClick={() => { if (typeof navigator !== "undefined" && navigator.clipboard) void navigator.clipboard.writeText(linkFull); }}
+            className="shrink-0 rounded-full border border-[#E3DAC4] bg-white px-2.5 py-0.5 text-[11px] font-bold text-[#6B5832]">Copy link</button>
+        </div>
+      )}
       <div className="mt-2 grid grid-cols-3 gap-2">
         <button type="button" onClick={() => void copyCaption()} aria-label="Copy the caption"
           style={{ ...btn, background: "#F1EAD6", color: "#5A3E12", border: "1.5px solid #E3DAC4" }}>
@@ -253,7 +274,7 @@ export function SaveCardControls({ image, data, name, city, v }: Props) {
       {/* Off-screen flyer that the image/PDF renderer snapshots */}
       <div ref={flyerRef} aria-hidden="true"
         style={{ position: "fixed", left: "-100000px", top: 0, width: "480px", background: "#ffffff", fontFamily: "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif", color: "#1A1611" }}>
-        <FlyerBody image={image} name={name} city={city} v={v} facts={facts} story={story} obs={obs} />
+        <FlyerBody image={image} name={name} city={city} v={v} facts={facts} story={story} obs={obs} link={linkDisplay} />
       </div>
     </div>
   );
