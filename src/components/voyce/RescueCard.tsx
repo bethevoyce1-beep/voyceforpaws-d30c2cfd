@@ -1121,8 +1121,8 @@ export function RescueCard({
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 sm:items-center sm:pb-10" onClick={() => setShareConfirm(null)}>
           <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-3xl border border-border bg-card p-5 shadow-2xl">
             <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#A8431F]">⚠️ Confirm share</div>
-            <h3 className="mt-2 font-serif text-lg font-semibold leading-tight">You're about to share this AI-generated rescue card.</h3>
-            <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">AI assessments may be inaccurate, and please confirm the animal and person are real before acting. Share anyway?</p>
+            <h3 className="mt-2 font-serif text-lg font-semibold leading-tight">You're about to share this rescue card.</h3>
+            <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">Voyce's AI <span className="font-semibold text-foreground/80">read this photo</span> to build the card — the photo is real, but the AI's read can be off. Please confirm the animal and the person are real before acting. Share anyway?</p>
             <div className="mt-5 flex items-center justify-end gap-2">
               <button type="button" onClick={() => setShareConfirm(null)} className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium">Cancel</button>
               <button type="button" onClick={async () => { const p = shareConfirm; setShareConfirm(null); if (p) { const u = await ensureShareUrl(); doShare(p, u ?? undefined); } }}
