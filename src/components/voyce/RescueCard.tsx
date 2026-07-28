@@ -9,7 +9,7 @@ import { BrandHeader } from "@/components/voyce/BrandHeader";
 import { SaveCardControls } from "@/components/voyce/SaveCardControls";
 import { useLiveAgo, formatTimer } from "@/lib/useLiveAgo";
 import { NetworkResponses } from "@/components/voyce/NetworkResponses";
-import { caseTypeLabel, seenChipsFrom, SafetyNotes, ConfirmGate } from "@/components/voyce/cardShared";
+import { caseTypeLabel, seenChipsFrom, SafetyNotes, ConfirmGate, openDirections } from "@/components/voyce/cardShared";
 
 // =============================================================
 // RescueCard — the SINGLE merged rescue card (replaces the old two-card flow of
@@ -668,8 +668,8 @@ export function RescueCard({
                     )}
                     {gpsForMap && locPrivacy === "exact" && (
                       <>
-                        <a href={`https://www.google.com/maps/dir/?api=1&destination=${gpsForMap.lat},${gpsForMap.lon}`} target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 rounded-full border border-[#E3DAC4] bg-white px-2 py-0.5 text-[11px] font-bold text-[#6B5832] no-underline transition active:scale-[0.97]">🧭 Directions</a>
+                        <button type="button" onClick={() => openDirections(gpsForMap.lat, gpsForMap.lon)}
+                          className="inline-flex items-center gap-1 rounded-full border border-[#E3DAC4] bg-white px-2 py-0.5 text-[11px] font-bold text-[#6B5832] transition active:scale-[0.97]">🧭 Directions</button>
                         <a href={`https://www.google.com/maps/@${gpsForMap.lat},${gpsForMap.lon},19z/data=!3m1!1e3`} target="_blank" rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 rounded-full border border-[#E3DAC4] bg-white px-2 py-0.5 text-[11px] font-bold text-[#6B5832] no-underline transition active:scale-[0.97]">🛰 Satellite</a>
                         <a href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${gpsForMap.lat},${gpsForMap.lon}`} target="_blank" rel="noopener noreferrer"
