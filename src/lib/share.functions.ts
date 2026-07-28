@@ -22,6 +22,7 @@ function serverClient() {
 // everyone, even after the link was already shared.
 export type ReporterAdded = {
   animal?: string;      // "Dog" | "Cat" | "Puppy" | "Kitten" | "Other"
+  breed?: string;       // reporter's breed correction (AI breed is a guess)
   situation?: string;   // one of the "what's happening" options
   witnessed?: string[]; // things a photo can't show (hit by car, trapped, abuse)
   note?: string;        // free text
@@ -52,6 +53,7 @@ export function mergeReporterAdded(data: Assessment, ra: ReporterAdded): Assessm
   else if (a === "cat") d.species = "cat";
   else if (a === "puppy") { d.species = "dog"; d.age = "puppy"; }
   else if (a === "kitten") { d.species = "cat"; d.age = "kitten"; }
+  if (ra.breed && ra.breed.trim()) d.breed = ra.breed.trim();
   if (ra.situation) d.suggested_situation = ra.situation;
   return d;
 }
@@ -61,6 +63,7 @@ export function reporterAddedSummary(ra: ReporterAdded): string {
   if (!ra) return "";
   return [
     ra.animal,
+    ra.breed && ra.breed.trim() ? `breed: ${ra.breed.trim()}` : "",
     ra.situation,
     ra.witnessed && ra.witnessed.length ? `saw: ${ra.witnessed.join(", ")}` : "",
     (ra.note || "").trim(),
