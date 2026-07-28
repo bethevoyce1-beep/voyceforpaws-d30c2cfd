@@ -82,7 +82,7 @@ const MORE_WAYS: { kind: string; icon: string; label: string; tag: string }[] = 
   { kind: "transport", icon: "🚚", label: "Transport",        tag: "get them there" },
   { kind: "vet",       icon: "🩺", label: "Vet care",          tag: "medical" },
   { kind: "trainer",   icon: "🎓", label: "Trainer",           tag: "behavior help" },
-  { kind: "boarding",  icon: "🛏", label: "Boarding",          tag: "temporary space" },
+  { kind: "boarding",  icon: "🛏", label: "Boarding",           tag: "temporary space" },
 ];
 
 function initials(n: string): string {
@@ -110,6 +110,8 @@ export function NetworkResponses({
   onJoin,
   onDonate,
   onAction,
+  canRespond = true,
+  onNeedConfirm,
 }: {
   subjectType?: string;
   subjectId: string;
@@ -126,6 +128,10 @@ export function NetworkResponses({
   onDonate?: () => void;
   /** If provided, tapping an action ALSO calls this so the host can open its own UI (e.g. the share sheet). */
   onAction?: (kind: string) => void;
+  /** When false, the "Can you help?" actions are soft-blocked until the host's safety confirm is ticked. */
+  canRespond?: boolean;
+  /** Called when a response is attempted while canRespond is false. */
+  onNeedConfirm?: () => void;
 }) {
   const [name, setName] = useState<string>("");
   const [draft, setDraft] = useState("");
@@ -198,7 +204,7 @@ export function NetworkResponses({
       {/* How the network responds — live feed, moved to the top so viewers see
           the pack in action before the explainer. */}
       <div className="flex items-center justify-between">
-        <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">How the network responds</div>
+        <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">How the pack responds</div>
         <div className="text-[11px] font-semibold text-muted-foreground">{items.length} {items.length === 1 ? "response" : "responses"}</div>
       </div>
 
@@ -273,13 +279,16 @@ export function NetworkResponses({
       {name && (
         <div className="mt-3">
           <div className="text-[13px] font-bold text-[#0B0B0C]">Can you help {who}?</div>
+          {!canRespond && (
+            <p className="mt-1 text-[11.5px] font-semibold text-[#8A5A0E]">✓ Tick the safety box above to respond.</p>
+          )}
           <div className="mt-2 grid grid-cols-3 gap-2">
             {ACTIONS.map((k) => {
               const meta = KINDS[k];
               const isShare = k === "share";
               return (
                 <button key={k} type="button" disabled={busy}
-                  onClick={() => { if (isShare) { void respond(k); onAction?.(k); return; } openCommit(k); }}
+                  onClick={() => { if (!canRespond) { onNeedConfirm?.(); return; } if (isShare) { void respond(k); onAction?.(k); return; } openCommit(k); }}
                   className="flex items-center justify-center gap-1.5 rounded-xl border px-2 py-2.5 text-[12.5px] font-bold transition active:scale-[0.97] disabled:opacity-60"
                   style={{ borderColor: "#E3DAC4", background: "#fff", color: "#6B5832" }}>
                   <span>{meta.icon}</span><span>{meta.chip}</span>
@@ -287,7 +296,7 @@ export function NetworkResponses({
               );
             })}
             {/* ➕ Other — opens the "More ways to help" sheet */}
-            <button type="button" onClick={() => setShowMore(true)}
+            <button type="button" onClick={() => { if (!canRespond) { onNeedConfirm?.(); return; } setShowMore(true); }}
               className="flex items-center justify-center gap-1.5 rounded-xl border border-dashed px-2 py-2.5 text-[12.5px] font-bold transition active:scale-[0.97]"
               style={{ borderColor: "#C9871A", background: "#FFF9EC", color: "#8A5A0E" }}>
               <span>➕</span><span>Other</span>
