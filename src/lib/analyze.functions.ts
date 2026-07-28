@@ -447,6 +447,7 @@ export const analyzeImage = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => {
     const o = input as {
       imageDataUrl?: string;
+      imageDataUrls?: string[];
       mission?: string;
       // Anti-scam Tier 2 (July 5, 2026): ms since the app loaded (bot signal
       // when tiny) and a 64-bit perceptual hash of the photo (dedup). Both
@@ -460,9 +461,16 @@ export const analyzeImage = createServerFn({ method: "POST" })
         notes?: string;
       };
     };
-    if (!o?.imageDataUrl || !o.imageDataUrl.startsWith("data:image/")) {
+    const rawList = Array.isArray(o.imageDataUrls)
+      ? o.imageDataUrls.filter((u): u is string => typeof u === "string" && u.startsWith("data:image/"))
+      : [];
+    const primary =
+      o.imageDataUrl && o.imageDataUrl.startsWith("data:image/") ? o.imageDataUrl : rawList[0];
+    if (!primary) {
       throw new Error("imageDataUrl required");
     }
+    // Read the whole set together (cap at 4). Primary is always first.
+    const images = (rawList.length ? rawList : [primary]).slice(0, 4);
     const mission = typeof o.mission === "string" ? o.mission : "injured";
     const c = o.context ?? {};
     const context = {
@@ -484,7 +492,7 @@ export const analyzeImage = createServerFn({ method: "POST" })
       typeof o.photoHash === "string" && /^[0-9a-f]{16}$/.test(o.photoHash)
         ? o.photoHash
         : undefined;
-    return { imageDataUrl: o.imageDataUrl, mission, context, elapsedMs, photoHash };
+    return { imageDataUrl: primary, imageDataUrls: images, mission, context, elapsedMs, photoHash };
   })
   .handler(async ({ data }): Promise<Assessment> => {
     // Time-on-page gate removed (July 2026): it rejected legitimate fast reports
@@ -538,10 +546,15 @@ export const analyzeImage = createServerFn({ method: "POST" })
       MISSION_GUIDANCE[data.mission] ?? MISSION_GUIDANCE.injured;
 
     // Gemini expects images as base64 without the data-URL prefix, and a mime type.
-    const match = data.imageDataUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
-    if (!match) throw new Error("Invalid image data URL for Gemini");
-    const mimeType = match[1];
-    const base64Data = match[2];
+    // Parse every photo (up to 4) so the model reads the whole set together —
+    // the same animal/scene from different angles/close-ups.
+    const parsedImages = (data.imageDataUrls.length ? data.imageDataUrls : [data.imageDataUrl])
+      .map((u) => {
+        const mm = u.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
+        return mm ? { mimeType: mm[1], base64Data: mm[2] } : null;
+      })
+      .filter((x): x is { mimeType: string; base64Data: string } => x !== null);
+    if (parsedImages.length === 0) throw new Error("Invalid image data URL for Gemini");
 
     const systemInstruction = SYSTEM + "\n\n" + missionLine + "\n\nSchema:\n" + SCHEMA_HINT;
 
@@ -564,7 +577,11 @@ export const analyzeImage = createServerFn({ method: "POST" })
       reporterLines.length > 0
         ? `\n\nCONTEXT FROM THE PERSON ON THE SCENE (helpful hints only — use to guide breed/species and what to look for, but judge health ONLY from what you actually see in the photo; never invent injuries or symptoms that aren't visible):\n${reporterLines.join("\n")}`
         : "";
-    const userText = `Analyze this animal photo for mission "${data.mission}". Return ONLY the JSON object, no markdown.${reporterBlock}`;
+    const multiPhotoLine =
+      parsedImages.length > 1
+        ? ` There are ${parsedImages.length} photos of the SAME animal and scene from different angles/close-ups — read them together as ONE case (do NOT treat them as multiple animals unless you clearly see different individuals). Use whichever photo best shows each detail: injuries, tags/collar, and surroundings.`
+        : "";
+    const userText = `Analyze ${parsedImages.length > 1 ? "these animal photos" : "this animal photo"} for mission "${data.mission}".${multiPhotoLine} Return ONLY the JSON object, no markdown.${reporterBlock}`;
 
     let content = "";
 
@@ -581,7 +598,7 @@ export const analyzeImage = createServerFn({ method: "POST" })
             role: "user",
             parts: [
               { text: userText },
-              { inlineData: { mimeType, data: base64Data } },
+              ...parsedImages.map((p) => ({ inlineData: { mimeType: p.mimeType, data: p.base64Data } })),
             ],
           },
         ],
@@ -693,7 +710,7 @@ export const analyzeImage = createServerFn({ method: "POST" })
               role: "user",
               content: [
                 { type: "text", text: userText },
-                { type: "image_url", image_url: { url: data.imageDataUrl } },
+                ...(data.imageDataUrls.length ? data.imageDataUrls : [data.imageDataUrl]).map((u) => ({ type: "image_url", image_url: { url: u } })),
               ],
             },
           ],
