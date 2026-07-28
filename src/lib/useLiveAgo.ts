@@ -39,11 +39,16 @@ export function useLiveAgo(reportedAt: string, status?: string): LiveAgo {
   return value;
 }
 
+// Compact elapsed timer with UNIT LABELS so it can't be mistaken for a clock
+// time: under an hour shows "20m 56s", an hour+ shows "1h 05m", a day+ shows
+// "2d 03h". (Plain "20:56" read ambiguously as hours:minutes.)
 export function formatTimer(totalSeconds: number): string {
-  const h = Math.floor(totalSeconds / 3600);
+  const d = Math.floor(totalSeconds / 86400);
+  const h = Math.floor((totalSeconds % 86400) / 3600);
   const m = Math.floor((totalSeconds % 3600) / 60);
   const s = totalSeconds % 60;
   const pad = (n: number) => n.toString().padStart(2, "0");
-  if (h > 0) return `${pad(h)}:${pad(m)}:${pad(s)}`;
-  return `${pad(m)}:${pad(s)}`;
+  if (d > 0) return `${d}d ${pad(h)}h`;
+  if (h > 0) return `${h}h ${pad(m)}m`;
+  return `${m}m ${pad(s)}s`;
 }
