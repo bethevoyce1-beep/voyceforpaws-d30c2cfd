@@ -870,7 +870,7 @@ export function RescueCard({
               <h3 className="font-serif text-lg font-semibold leading-tight">Add what Voyce missed</h3>
               <button type="button" onClick={saveMissedAndClose} aria-label="Close" className="shrink-0 rounded-full border border-border bg-background px-2.5 py-1 text-sm">✕</button>
             </div>
-            <p class Name="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+            <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
               Voyce read the photo — fix anything it missed or got wrong. Some things a photo can't show, so you can add them here. It shows on the card and travels with any share.
             </p>
 
