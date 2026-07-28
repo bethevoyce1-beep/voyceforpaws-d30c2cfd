@@ -62,6 +62,11 @@ const GOLD = "#FFDF3B";
 const DEEP_GOLD = "#C9871A";
 const GREEN = "oklch(0.6 0.17 145)";
 
+// Shared with RescueCard: the reporter's address-visibility choice, set here on
+// the analyzing screen BEFORE the card goes out, so it's locked in at send time.
+const LOC_PRIVACY_KEY = "voyce_loc_privacy";
+type LocPrivacy = "exact" | "area" | "hidden";
+
 // Step durations in ms. Kept snappy so the flow is only gated by the real AI
 // call (step index 3 waits for aiPending) — minimal fixed overhead so the card
 // appears as soon as the AI returns.
@@ -250,6 +255,10 @@ export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment
           </div>
         )}
 
+        {/* Address visibility — chosen NOW, before the card is sent to the
+            pack. Defaults to the safe "Area only". */}
+        <AddressPrivacyPicker />
+
         {/* Progress bar */}
         <div className="mt-5 h-2 w-full overflow-hidden rounded-full bg-[oklch(0.92_0.02_85)]">
           <div
@@ -340,6 +349,72 @@ export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment
           AI is advisory — not a diagnosis
         </div>
       </div>
+    </div>
+  );
+}
+
+function AddressPrivacyPicker() {
+  const [val, setVal] = useState<LocPrivacy>(() => {
+    try {
+      const v = typeof window !== "undefined" ? window.localStorage.getItem(LOC_PRIVACY_KEY) : null;
+      return v === "exact" || v === "area" || v === "hidden" ? v : "area";
+    } catch {
+      return "area";
+    }
+  });
+
+  const pick = (v: LocPrivacy) => {
+    setVal(v);
+    try {
+      window.localStorage.setItem(LOC_PRIVACY_KEY, v);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const opts: { id: LocPrivacy; label: string }[] = [
+    { id: "area", label: "Area only" },
+    { id: "exact", label: "Show exact" },
+    { id: "hidden", label: "🙈 Hide" },
+  ];
+
+  const note =
+    val === "exact"
+      ? "Rescuers will see the precise spot + map pin."
+      : val === "area"
+        ? "Only a general area shows — no exact pin or street address."
+        : "No location shows. You can still share it privately with rescuers.";
+
+  return (
+    <div className="mt-4 rounded-2xl border border-[#F0C88A] bg-[#FFF9EC] px-4 py-3">
+      <div className="text-[12.5px] font-bold text-[#8A5A0E]">
+        📍 Who can see the address on this alert?
+      </div>
+      <p className="mt-0.5 text-[11.5px] leading-snug text-[#6B5832]">
+        Set this now — it locks in before your card goes out to the pack.
+      </p>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {opts.map((o) => {
+          const on = val === o.id;
+          return (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => pick(o.id)}
+              className="rounded-full border px-2.5 py-1 text-[12px] font-bold transition active:scale-[0.97]"
+              style={
+                on
+                  ? { borderColor: DEEP_GOLD, background: "#FFF6E5", color: "#8A5A0E" }
+                  : { borderColor: "#E3DAC4", background: "#fff", color: "#6B5832" }
+              }
+            >
+              {on ? "✓ " : ""}
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
+      <p className="mt-1.5 text-[11px] text-[#8A5A0E]">{note}</p>
     </div>
   );
 }
