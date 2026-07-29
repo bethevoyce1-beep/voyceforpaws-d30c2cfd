@@ -711,17 +711,7 @@ export function RescueCard({
                 <span className="text-muted-foreground/70">Urgency:</span><span>{urgency.emoji} {urgency.label}</span>
               </span>
               <span className="inline-flex items-center gap-1 rounded-full border border-[#E8C97A] bg-[#FBF1C8] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#7A5A0A]">🧪 Testing</span>
-              <button type="button" onClick={() => setResolved((v) => !v)}
-                className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] transition active:scale-[0.97]"
-                style={resolved ? { borderColor: "#1F6B3D", background: "#E7F5EC", color: "#1F6B3D" } : { borderColor: "#C9871A", background: "#fff", color: "#8A5A0E" }}>
-                {resolved ? "✅ Resolved · reopen" : "✓ Mark as resolved"}
-              </button>
             </div>
-            {resolved && (
-              <div className="mt-2 rounded-lg border border-[#BFE3CC] bg-[#EAF5EC] px-3 py-1.5 text-[11.5px] font-semibold text-[#1F6B3D]">
-                ✅ Case marked resolved (testing). At launch, this will ask for 2 clear photos to verify before closing.
-              </div>
-            )}
 
             {saveState !== "idle" && (
               <div className="mt-2 text-[11px] font-semibold">
@@ -741,6 +731,12 @@ export function RescueCard({
                   Voyce may see {suspectedCount} animals here but only detailed one. Another animal in the photo? <span className="underline">Tap to add it →</span>
                 </span>
               </button>
+            )}
+
+            {data.ai_confidence === "low" && (
+              <div className="mt-2 rounded-lg border border-[#F0C88A] bg-[#FFF6E5] px-2.5 py-1.5 text-[11px] font-semibold text-[#8A5A0E]">
+                ⚠ Voyce wasn't fully sure about this photo (low confidence). Please double-check the details before sharing.
+              </div>
             )}
 
             <div className="mt-2 text-[12px] font-medium text-muted-foreground">📷 Photo taken {takenStr}</div>
@@ -940,18 +936,38 @@ export function RescueCard({
           </div>
 
           {/* SAFETY notes + one combined confirm — from the shared cardShared
-              module so the copy matches the public /r card exactly (no drift). */}
+              module so the copy matches the public /r card exactly (no drift).
+              The confirm has an id so a gated pill tap can scroll straight to it. */}
           <div className="mx-5 mt-5"><SafetyNotes /></div>
-          <ConfirmGate ok={respondOk} onToggle={() => setRespondOk((v) => !v)} className="mx-5 mt-4 w-[calc(100%-2.5rem)]" />
+          <div id="voyce-confirm-gate">
+            <ConfirmGate ok={respondOk} onToggle={() => setRespondOk((v) => !v)} className="mx-5 mt-4 w-[calc(100%-2.5rem)]" />
+          </div>
 
-          {/* How the pack responds — soft-gated by the confirm above. */}
+          {/* How the pack responds — soft-gated by the confirm above. Tapping a
+              locked pill scrolls to the confirm so it never feels dead. */}
           {reportId && (
             <div className="mt-5 border-t border-[#EDE5D8]">
               <NetworkResponses subjectType="report" subjectId={reportId} animalName={shareName(data)}
                 canRespond={respondOk}
+                onNeedConfirm={() => { if (typeof document !== "undefined") document.getElementById("voyce-confirm-gate")?.scrollIntoView({ behavior: "smooth", block: "center" }); }}
                 onAction={(kind) => { if (kind === "share") setShowShare(true); }} />
             </div>
           )}
+
+          {/* Mark as resolved — sits with the pack actions; one tap closes the
+              case (testing). At launch this becomes the 2-photo verify. */}
+          <div className="mx-5 mt-4">
+            <button type="button" onClick={() => setResolved((v) => !v)}
+              className="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[12px] font-bold uppercase tracking-[0.1em] transition active:scale-[0.97]"
+              style={resolved ? { borderColor: "#1F6B3D", background: "#E7F5EC", color: "#1F6B3D" } : { borderColor: "#C9871A", background: "#fff", color: "#8A5A0E" }}>
+              {resolved ? "✅ Resolved · reopen" : "✓ Mark as resolved"}
+            </button>
+            {resolved && (
+              <div className="mt-2 rounded-lg border border-[#BFE3CC] bg-[#EAF5EC] px-3 py-1.5 text-[11.5px] font-semibold text-[#1F6B3D]">
+                ✅ Case marked resolved (testing). At launch, this will ask for 2 clear photos to verify before closing.
+              </div>
+            )}
+          </div>
 
         </article>
 
