@@ -92,6 +92,41 @@ function locationLine(data: Assessment): string {
   return "Location pinned nearby";
 }
 
+// Downscale + JPEG-compress a captured image before it's SAVED/shared, so the
+// stored payload stays small and the save always succeeds. Big outdoor photos
+// (e.g. a groundhog on pavement) can exceed the request/row size limit at full
+// resolution and fail EVERY time; ~1400px / q0.82 keeps them well under it. The
+// on-card <img> still shows the original; only the saved copy is shrunk. Falls
+// back to the original on any error.
+async function shrinkDataUrl(dataUrl: string, maxDim = 1400, quality = 0.82): Promise<string> {
+  if (typeof document === "undefined" || !dataUrl.startsWith("data:image/")) return dataUrl;
+  try {
+    const img = document.createElement("img");
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("image load failed"));
+      img.src = dataUrl;
+    });
+    const w = img.naturalWidth || img.width;
+    const h = img.naturalHeight || img.height;
+    if (!w || !h) return dataUrl;
+    const scale = Math.min(1, maxDim / Math.max(w, h));
+    if (scale >= 1 && dataUrl.length < 1_200_000) return dataUrl; // already small enough
+    const cw = Math.max(1, Math.round(w * scale));
+    const ch = Math.max(1, Math.round(h * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = cw;
+    canvas.height = ch;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return dataUrl;
+    ctx.drawImage(img, 0, 0, cw, ch);
+    const out = canvas.toDataURL("image/jpeg", quality);
+    return out && out.length < dataUrl.length ? out : dataUrl;
+  } catch {
+    return dataUrl;
+  }
+}
+
 // Every fact as a pill, shown up top — nothing tucked away. Includes the report
 // facts (Case #, AI confidence, Reported by, Date) that used to hide behind the
 // "Case" pill, so the card reads at a glance like the flyer.
@@ -410,8 +445,11 @@ export function RescueCard({
                 : rawLabel
                   ? { label: rawLabel }
                   : null;
+      // Shrink before saving so a large photo can't blow past the size limit
+      // and fail the save (the on-card image stays full-res).
+      const smallImage = await shrinkDataUrl(image);
       const payload = {
-        image,
+        image: smallImage,
         data: { ...data, reporterName: reporterName.trim() || undefined },
         mission,
         situation: situation ?? undefined,
@@ -488,9 +526,13 @@ export function RescueCard({
     const detected = animals && animals.length > 1 ? animals.length : 1;
     if (detected >= 2) return;
     if (!image || !image.startsWith("data:image/")) return;
-    void countAnimals({ data: { imageDataUrl: image } })
-      .then((r) => { if (r && r.count >= 2) setSuspectedCount(r.count); })
-      .catch(() => {});
+    void (async () => {
+      const small = await shrinkDataUrl(image);
+      try {
+        const r = await countAnimals({ data: { imageDataUrl: small } });
+        if (r && r.count >= 2) setSuspectedCount(r.count);
+      } catch { /* best-effort */ }
+    })();
     // run once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
