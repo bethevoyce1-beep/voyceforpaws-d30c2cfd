@@ -298,7 +298,7 @@ export function RescueCard({
   // Optional reporter name shown as "Reported by" and carried onto shares.
   const [reporterName, setReporterName] = useState("");
   // One combined confirm that the reader saw the AI limits + safety notes.
-  // Soft-gates the "how the pack responds" actions below.
+  // Shown as an acknowledgment; no longer hard-blocks the pack actions.
   const [respondOk, setRespondOk] = useState(false);
   // One-tap "mark resolved" for pre-launch testing (anyone can close a test
   // card). At launch this becomes the 2-photo Verify Resolution flow.
@@ -937,19 +937,14 @@ export function RescueCard({
 
           {/* SAFETY notes + one combined confirm — from the shared cardShared
               module so the copy matches the public /r card exactly (no drift).
-              The confirm has an id so a gated pill tap can scroll straight to it. */}
+              The confirm is an acknowledgment; it no longer hard-blocks responding. */}
           <div className="mx-5 mt-5"><SafetyNotes /></div>
-          <div id="voyce-confirm-gate">
-            <ConfirmGate ok={respondOk} onToggle={() => setRespondOk((v) => !v)} className="mx-5 mt-4 w-[calc(100%-2.5rem)]" />
-          </div>
+          <ConfirmGate ok={respondOk} onToggle={() => setRespondOk((v) => !v)} className="mx-5 mt-4 w-[calc(100%-2.5rem)]" />
 
-          {/* How the pack responds — soft-gated by the confirm above. Tapping a
-              locked pill scrolls to the confirm so it never feels dead. */}
+          {/* How the pack responds — pills respond on tap. */}
           {reportId && (
             <div className="mt-5 border-t border-[#EDE5D8]">
               <NetworkResponses subjectType="report" subjectId={reportId} animalName={shareName(data)}
-                canRespond={respondOk}
-                onNeedConfirm={() => { if (typeof document !== "undefined") document.getElementById("voyce-confirm-gate")?.scrollIntoView({ behavior: "smooth", block: "center" }); }}
                 onAction={(kind) => { if (kind === "share") setShowShare(true); }} />
             </div>
           )}
