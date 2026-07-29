@@ -10,6 +10,7 @@ import { SaveCardControls } from "@/components/voyce/SaveCardControls";
 import { useLiveAgo, formatTimer } from "@/lib/useLiveAgo";
 import { NetworkResponses } from "@/components/voyce/NetworkResponses";
 import { caseTypeLabel, seenChipsFrom, SafetyNotes, ConfirmGate, openDirections } from "@/components/voyce/cardShared";
+import { countAnimals } from "@/lib/count.functions";
 
 // =============================================================
 // RescueCard — the SINGLE merged rescue card (replaces the old two-card flow of
@@ -269,6 +270,9 @@ export function RescueCard({
   const [resolved, setResolved] = useState(false);
   // Save reliability — surfaced so a failed save can't silently lose the card.
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  // Animal-count self-check — a suspected undercount surfaced from countAnimals.
+  const [suspectedCount, setSuspectedCount] = useState(0);
+  const countCheckedRef = useRef(false);
   const [manualArea, setManualArea] = useState("");
   const [gps, setGps] = useState<{ lat: number; lon: number } | null>(null);
   const [locNote, setLocNote] = useState<string | null>(null);
@@ -474,6 +478,23 @@ export function RescueCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Animal-count self-check — if the main read found a single animal, ask the
+  // focused "how many animals?" question. If it sees 2+, we prompt a one-tap
+  // "add the other animal" fix (never auto-overwrite). Best-effort; a failure
+  // here is silent and never affects the card.
+  useEffect(() => {
+    if (countCheckedRef.current) return;
+    countCheckedRef.current = true;
+    const detected = animals && animals.length > 1 ? animals.length : 1;
+    if (detected >= 2) return;
+    if (!image || !image.startsWith("data:image/")) return;
+    void countAnimals({ data: { imageDataUrl: image } })
+      .then((r) => { if (r && r.count >= 2) setSuspectedCount(r.count); })
+      .catch(() => {});
+    // run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const doShare = (p: SharePlatform, urlOverride?: string) => {
     const text = buildShareText(data, mission) + (missedSummary ? `\n\n✏️ Reporter added: ${missedSummary}` : "");
     const url = urlOverride ?? shareUrl ?? (typeof window !== "undefined" ? window.location.href : "");
@@ -670,6 +691,16 @@ export function RescueCard({
               </div>
             )}
 
+            {suspectedCount >= 2 && !hasMissed && (
+              <button type="button" onClick={() => setShowMissed(true)}
+                className="mt-2 flex w-full items-start gap-2 rounded-xl border border-[#F0C88A] bg-[#FFF6E5] px-3 py-2 text-left transition active:scale-[0.99]">
+                <span aria-hidden className="mt-[1px]">🐾</span>
+                <span className="text-[11.5px] font-semibold leading-snug text-[#8A5A0E]">
+                  Voyce may see {suspectedCount} animals here but only detailed one. Another animal in the photo? <span className="underline">Tap to add it →</span>
+                </span>
+              </button>
+            )}
+
             <div className="mt-2 text-[12px] font-medium text-muted-foreground">📷 Photo taken {takenStr}</div>
             {isOldPhoto && (
               <div className="mt-1 rounded-lg border border-[#F0C88A] bg-[#FFF6E5] px-2.5 py-1.5 text-[11px] font-semibold text-[#A8431F]">
@@ -817,6 +848,11 @@ export function RescueCard({
                     <span>✏️</span><span>Add what Voyce missed</span>
                   </button>
                 )}
+                <button type="button" onClick={() => setShowMissed(true)}
+                  className="inline-flex items-center gap-1 rounded-full border border-dashed px-3 py-1.5 text-[12.5px] font-semibold transition active:scale-95"
+                  style={{ borderColor: "#D9A3A3", background: "#FBECEC", color: "#7E1F1F" }}>
+                  <span>⚑</span><span>Doesn't look right</span>
+                </button>
               </div>
               {openPill && (
                 <div className="mt-3 rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3.5">
