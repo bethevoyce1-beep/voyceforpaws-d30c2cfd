@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
-import { createSharedReport, updateSharedReport, mergeReporterAdded, type ReporterAdded } from "@/lib/share.functions";
+import { createSharedReport, updateSharedReport, mergeReporterAdded, type ReporterAdded, type CaseMeta } from "@/lib/share.functions";
 import { MISSIONS, animalWord, type MissionId } from "@/lib/missions";
 import { getUrgency } from "@/lib/urgency";
 import { getCondition, CONDITION_COLORS, type ConditionInfo } from "@/lib/condition";
@@ -9,8 +9,9 @@ import { BrandHeader } from "@/components/voyce/BrandHeader";
 import { SaveCardControls } from "@/components/voyce/SaveCardControls";
 import { useLiveAgo, formatTimer } from "@/lib/useLiveAgo";
 import { NetworkResponses } from "@/components/voyce/NetworkResponses";
-import { caseTypeLabel, seenChipsFrom, SafetyNotes, ConfirmGate, openDirections } from "@/components/voyce/cardShared";
+import { caseTypeLabel, seenChipsFrom, SafetyNotes, ConfirmGate, openDirections, CaseMetaBlock } from "@/components/voyce/cardShared";
 import { countAnimals } from "@/lib/count.functions";
+import { extractPost } from "@/lib/extract.functions";
 
 // =============================================================
 // RescueCard — the SINGLE merged rescue card (replaces the old two-card flow of
@@ -288,6 +289,18 @@ export function RescueCard({
     }
   });
   const [note, setNote] = useState("");
+  // Optional structured "case metadata" — where the animal physically is, the
+  // coordinating rescue + how to reach them, the source post, deadline and ask.
+  // Populated from a pasted post (below) and rendered via CaseMetaBlock. Purely
+  // additive — a photo-only card leaves this null and looks exactly as before.
+  const [caseMeta, setCaseMeta] = useState<CaseMeta>(null);
+  // "Paste a post" intake — optional. Paste the text of a Facebook / Craigslist
+  // / shelter post; extractPost pulls ONLY stated facts into case_meta (never
+  // invents) and gently prefills the note. The photo-only flow is untouched.
+  const [showPaste, setShowPaste] = useState(false);
+  const [pasteText, setPasteText] = useState("");
+  const [pasteBusy, setPasteBusy] = useState(false);
+  const [pasteMsg, setPasteMsg] = useState<string | null>(null);
   // Responder-safety: a report shouldn't go to rescuers without a location.
   // If GPS was denied (no `location`), the reporter can add an area manually or
   // retry GPS here; "Send to rescuers" stays gated until we have one.
@@ -351,6 +364,47 @@ export function RescueCard({
           reporterAdded: reporterAdded as Record<string, unknown> | null,
         },
       });
+    }
+  };
+
+  // Run the pasted post through extractPost and prefill the card. Only fills
+  // fields the post actually states (extractPost returns null for the rest) and
+  // never overwrites a note the reporter already typed. Persists case_meta to
+  // the shared card so the public /r/<id> reflects it too.
+  const runExtractPost = async () => {
+    const text = pasteText.trim();
+    if (!text || pasteBusy) return;
+    setPasteBusy(true);
+    setPasteMsg(null);
+    try {
+      const res = await extractPost({ data: { text, imageDataUrl: image || undefined } });
+      const cm = res?.case_meta ?? null;
+      const hasAny =
+        !!cm && (!!cm.origin || !!cm.rescue || !!cm.source_url || !!cm.deadline || !!cm.ask);
+      if (hasAny) {
+        setCaseMeta(cm as CaseMeta);
+        resetShareLink();
+        if (reportId) {
+          void updateSharedReport({
+            data: {
+              id: reportId,
+              editToken: editTokenRef.current,
+              caseMeta: cm as unknown as Record<string, unknown>,
+            },
+          });
+        }
+      }
+      // Gentle note prefill — only if the reporter hasn't written their own yet.
+      const firstNotes = res?.animals?.find((a) => a && a.notes)?.notes || "";
+      if (firstNotes && !note.trim()) {
+        setNote(firstNotes.slice(0, 400));
+        resetShareLink();
+      }
+      setPasteMsg(hasAny || firstNotes ? "Added what the post stated ✓" : "No new facts found in that text.");
+    } catch (e) {
+      setPasteMsg(e instanceof Error ? e.message : "Couldn't read that post — try again.");
+    } finally {
+      setPasteBusy(false);
     }
   };
 
@@ -457,6 +511,7 @@ export function RescueCard({
         note: note.trim() || undefined,
         locPrivacy,
         editToken: editTokenRef.current,
+        caseMeta: (caseMeta ?? undefined) as unknown,
       };
       // Retry the save on a transient failure (network blip) so a card is never
       // silently lost. Up to 3 attempts with a short backoff.
@@ -484,7 +539,7 @@ export function RescueCard({
       setShareSaving(false);
     }
     return null;
-  }, [shareUrl, shareSaving, image, data, mission, situation, location, gps, manualArea, note, locPrivacy, reporterName]);
+  }, [shareUrl, shareSaving, image, data, mission, situation, location, gps, manualArea, note, locPrivacy, reporterName, caseMeta]);
 
   // Changing privacy or the note invalidates any link already minted.
   const resetShareLink = () => setShareUrl(null);
@@ -837,6 +892,11 @@ export function RescueCard({
               </div>
             )}
 
+            {/* Case metadata — where the animal is, who's coordinating, and the
+                source post. Renders only when present (photo-only cards are
+                untouched). Same shared block as the public /r/<id> card. */}
+            {caseMeta && <CaseMetaBlock cm={caseMeta} className="mt-3" />}
+
             {/* Reporter's own name (optional) — shows as "Reported by" and
                 travels with any share. No account needed. */}
             <div className="mt-2 flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
@@ -1114,6 +1174,36 @@ export function RescueCard({
               <p className="mt-1 text-[11px] text-muted-foreground">
                 {locPrivacy === "exact" ? "The exact spot + map will show on the public link." : locPrivacy === "area" ? "Only a general area shows — no map pin, no street address." : "No location shows publicly — you can still share it privately with rescuers."}
               </p>
+            </div>
+
+            {/* Optional "Paste a post" intake — pull stated facts from a
+                Facebook / Craigslist / shelter post into the card. Additive;
+                the photo-only flow is unchanged. */}
+            <div className="mt-3">
+              {!showPaste ? (
+                <button type="button" onClick={() => setShowPaste(true)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#E3DAC4] bg-white px-3 py-1.5 text-[12.5px] font-semibold text-[#6B5832] transition active:scale-95">
+                  📋 Paste a post
+                </button>
+              ) : (
+                <div className="rounded-2xl border border-[#E2DED6] bg-[#FBF7EC] px-3 py-3">
+                  <label className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">📋 Paste a post (optional)</label>
+                  <p className="mt-1 text-[11px] text-muted-foreground">Paste the text of a rescue post. Voyce fills in only what the post actually says — where the animal is, who's coordinating, and the source. It never invents facts.</p>
+                  <textarea value={pasteText} onChange={(e) => setPasteText(e.target.value)} rows={4}
+                    placeholder="Paste the Facebook / Craigslist / shelter post text here…"
+                    className="mt-2 w-full resize-none rounded-xl border border-[#E2DED6] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#C9871A]" />
+                  <div className="mt-2 flex items-center gap-2">
+                    <button type="button" onClick={() => void runExtractPost()} disabled={pasteBusy || !pasteText.trim()}
+                      className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12.5px] font-bold text-[#3A2A07] disabled:opacity-50"
+                      style={{ background: "linear-gradient(135deg,#FFDF3B,#C9871A)" }}>
+                      {pasteBusy ? "Reading…" : "✨ Extract details"}
+                    </button>
+                    <button type="button" onClick={() => { setShowPaste(false); setPasteMsg(null); }}
+                      className="text-[12px] font-semibold text-muted-foreground">Close</button>
+                  </div>
+                  {pasteMsg && <p className="mt-2 text-[12px] font-semibold text-[#8A5A0E]">{pasteMsg}</p>}
+                </div>
+              )}
             </div>
 
             {/* Optional note — the finder's experience, their words */}
