@@ -3,7 +3,7 @@ import { useState, type ReactNode } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
 import { getSharedReport, mergeReporterAdded, reporterAddedSummary, type SharedReport, type ReporterAdded } from "@/lib/share.functions";
 import { NetworkResponses } from "@/components/voyce/NetworkResponses";
-import { caseTypeLabel, seenChipsFrom, SafetyNotes, ConfirmGate, openDirections } from "@/components/voyce/cardShared";
+import { caseTypeLabel, seenChipsFrom, SafetyNotes, ConfirmGate, openDirections, CaseMetaBlock } from "@/components/voyce/cardShared";
 import { getUrgency } from "@/lib/urgency";
 import { getCondition, CONDITION_COLORS } from "@/lib/condition";
 import { VoyceMark } from "@/components/voyce/VoyceMark";
@@ -413,6 +413,11 @@ function SharePage() {
                 ))}
               </div>
             )}
+
+            {/* Case metadata — where the animal is, who's coordinating, source
+                post. Renders only when present, so photo-only cards are
+                unchanged. Same shared block as the in-app card. */}
+            {report.case_meta && <CaseMetaBlock cm={report.case_meta} className="mt-3" />}
 
             {report.note && (
               <div className="mt-3 rounded-2xl border border-[#F0C88A] bg-[#FFF6E5] px-4 py-3">
