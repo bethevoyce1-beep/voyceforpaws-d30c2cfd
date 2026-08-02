@@ -11,7 +11,7 @@ export function RescueReport(props: {
   image: string;
   data: Assessment;
   mission: MissionId;
-  location?: { lat: number; lon: number; label: string } | null;
+  location?: { lat: number; lon: number; label: string; accuracy?: number; precision?: string } | null;
   situation?: string;
   animals?: Assessment[];
   animalIndex?: number;
