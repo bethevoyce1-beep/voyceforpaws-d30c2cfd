@@ -155,9 +155,16 @@ export const submitNetworkSignup = createServerFn({ method: "POST" })
     };
   })
   .handler(async ({ data }) => {
-    // Verify Turnstile server-side
+    // Verify Turnstile server-side. FAIL-CLOSED: if the captcha secret isn't
+    // configured, REJECT rather than silently accepting unverified signups —
+    // bot protection must never quietly become a no-op. The client always sends
+    // a token, so a missing secret is a server misconfiguration to fix, not to
+    // ignore. (Set TURNSTILE_SECRET_KEY in the app's host environment.)
     const secret = process.env.TURNSTILE_SECRET_KEY;
-    if (secret) {
+    if (!secret) {
+      throw new Error("Signup verification is temporarily unavailable. Please try again shortly.");
+    }
+    {
       const form = new URLSearchParams();
       form.set("secret", secret);
       form.set("response", data.turnstileToken);
