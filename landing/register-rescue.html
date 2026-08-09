@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Register your shelter · Voyce for Paws</title>
+<title>Register your rescue · Voyce for Paws</title>
 <style>
   :root{
     --gold:#FFDF3B; --gold2:#C9871A; --ink:#0B0B0C; --cream:#FAF7F1;
@@ -80,19 +80,19 @@
       <svg viewBox="0 0 100 100" fill="#fff"><path d="M50,91 C33,91 24,80 24,68 C24,56 33,49 50,49 C67,49 76,56 76,68 C76,80 67,91 50,91 Z"/><ellipse cx="21" cy="40" rx="9.5" ry="13"/><ellipse cx="39" cy="27" rx="9.5" ry="13"/><ellipse cx="57" cy="27" rx="9.5" ry="13"/><ellipse cx="73" cy="40" rx="9.5" ry="13"/></svg>
     </div>
     <div class="brand">Voyce <em>for</em> Paws</div>
-    <h1>Register your <em>shelter</em></h1>
-    <p>Once you're set up, Voyce watches your at-risk list and turns every animal into a shareable rescue alert &mdash; reaching fosters, rescuers, and adopters faster.</p>
-    <div class="free">For shelters · nationwide</div>
+    <h1>Register your <em>rescue</em></h1>
+    <p>Once you're set up, Voyce brings your urgent dogs and foster-takeover needs to a network of nearby fosters, rescuers, and adopters &mdash; automatically.</p>
+    <div class="free">For rescues · nationwide</div>
   </div>
 
   <div class="wrap">
     <div class="card" style="padding:20px 22px">
       <div class="sect-h" style="margin-bottom:8px">Why register with Voyce</div>
-      <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:var(--body)">Voyce brings your urgent animals to a network of nearby fosters, rescuers and adopters &mdash; automatically. Most shelters don&rsquo;t have the time or ad budget to get every at-risk or at-capacity animal seen. <strong>Voyce does that part for you.</strong></p>
+      <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:var(--body)">Voyce brings your urgent animals to a network of nearby fosters, rescuers and adopters &mdash; automatically. Most rescues run on volunteer time with no ad budget to get every urgent dog or foster-takeover seen. <strong>Voyce does that part for you.</strong></p>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px">
         <div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px"><span style="width:24px;height:24px;border-radius:50%;background:var(--gold);color:var(--ink);font-weight:800;font-size:13px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto">1</span><b style="font-size:13.5px;color:var(--ink)">Register once</b></div>
-          <div style="font-size:12.5px;color:var(--muted);line-height:1.5">About two minutes. Tell us who you are and where your at-risk list lives.</div>
+          <div style="font-size:12.5px;color:var(--muted);line-height:1.5">About two minutes. Tell us who you are and where your urgent animals live.</div>
         </div>
         <div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px"><span style="width:24px;height:24px;border-radius:50%;background:var(--gold);color:var(--ink);font-weight:800;font-size:13px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto">2</span><b style="font-size:13.5px;color:var(--ink)">We watch your list</b></div>
@@ -103,46 +103,46 @@
           <div style="font-size:12.5px;color:var(--muted);line-height:1.5">Nearby fosters, rescuers and adopters get alerted. You stay in control &mdash; every decision is yours.</div>
         </div>
       </div>
-      <p style="margin:16px 0 0;font-size:12.5px;color:#8A7B58;line-height:1.5">We&rsquo;ll confirm your shelter and get you set up. Voyce connects people &mdash; it never dispatches or promises a rescue on your behalf.</p>
+      <p style="margin:16px 0 0;font-size:12.5px;color:#8A7B58;line-height:1.5">We&rsquo;ll confirm your rescue and get you set up. Voyce connects people &mdash; it never dispatches or promises a rescue on your behalf.</p>
     </div>
     <form class="card" id="form" style="margin-top:16px">
       <!-- Auto-fill -->
       <div class="af">
-        <span class="lab">Find your shelter <span class="opt">type its name or paste your website — we'll fill in the rest</span></span>
+        <span class="lab">Find your rescue <span class="opt">type its name or paste your website — we'll fill in the rest</span></span>
         <div style="display:flex;gap:8px;margin-top:6px">
-          <input class="t" id="af_q" placeholder="e.g. Austin Animal Center — or yourshelter.org">
+          <input class="t" id="af_q" placeholder="e.g. Peach State Rescue — or yourrescue.org">
           <button type="button" class="af-btn" id="af_go">Auto-fill</button>
         </div>
         <div id="af_msg" style="font-size:12px;margin-top:8px;color:var(--muted)"></div>
         <div id="af_cands"></div>
       </div>
-      <!-- 1. Shelter -->
+      <!-- 1. Rescue -->
       <div class="sect">
-        <div class="sect-h">Your shelter</div>
+        <div class="sect-h">Your rescue</div>
         <div class="sect-sub">The basics so we know who you are.</div>
-        <label class="f"><span class="lab">Shelter name <span class="req">*</span></span>
-          <input class="t" id="shelter_name" placeholder="e.g. San Antonio Animal Care Services" required></label>
-        <label class="f"><span class="lab">Manager / Director name <span class="opt">(optional)</span></span>
+        <label class="f"><span class="lab">Rescue name <span class="req">*</span></span>
+          <input class="t" id="shelter_name" placeholder="e.g. Peach State Rescue" required></label>
+        <label class="f"><span class="lab">Founder / Director name <span class="opt">(optional)</span></span>
           <input class="t" id="director_name" placeholder="Full name"></label>
         <div class="grid">
           <label class="f"><span class="lab">Type</span>
             <select class="t" id="shelter_type">
               <option value="">Select…</option>
-              <option>Municipal / City</option><option>County</option>
-              <option>Private nonprofit</option><option>Humane Society / SPCA</option>
-              <option>Rescue-run</option><option>Other</option>
+              <option>Foster-based rescue</option><option>Rescue with a facility</option>
+              <option>Breed-specific rescue</option><option>Sanctuary</option>
+              <option>Transport / pull group</option><option>Other</option>
             </select></label>
           <label class="f"><span class="lab">Website</span>
             <input class="t" id="website" placeholder="https://…"></label>
         </div>
         <div class="grid">
-          <label class="f"><span class="lab">Main phone</span><input class="t" id="main_phone" placeholder="(210) 555-0134"></label>
-          <label class="f"><span class="lab">Street address <span class="opt">(optional)</span></span><input class="t" id="address" placeholder="4710 State Hwy 151"></label>
+          <label class="f"><span class="lab">Main phone</span><input class="t" id="main_phone" placeholder="(404) 555-0134"></label>
+          <label class="f"><span class="lab">Street address <span class="opt">(optional)</span></span><input class="t" id="address" placeholder="If you have a facility"></label>
         </div>
         <div class="grid">
           <label class="f"><span class="lab">City <span class="req">*</span></span><input class="t" id="city" required></label>
           <div class="grid" style="grid-template-columns:1fr 1fr">
-            <label class="f"><span class="lab">State <span class="req">*</span></span><input class="t" id="state" placeholder="TX" required></label>
+            <label class="f"><span class="lab">State <span class="req">*</span></span><input class="t" id="state" placeholder="GA" required></label>
             <label class="f"><span class="lab">ZIP</span><input class="t" id="zip"></label>
           </div>
         </div>
@@ -153,10 +153,12 @@
             <label class="pill"><input type="checkbox" value="Rabbits">🐰 Rabbits</label>
             <label class="pill"><input type="checkbox" value="Other">🐾 Other</label>
           </div></label>
+        <label class="f"><span class="lab">Breeds you focus on <span class="opt">(optional — only if you're a breed-specific rescue)</span></span>
+          <input class="t" id="breeds_focus" placeholder="e.g. Huskies, Pit Bulls, Chihuahuas"></label>
       </div>
 
-      <div id="verifyBox" style="display:none;background:#FFF7D6;border:1px solid #EBD9AE;border-radius:12px;padding:10px 12px;margin-bottom:6px">
-        <div style="font-size:12.5px;color:#4A3E2B">As a 501(c)(3) / humane society, we verify with your <b>IRS determination letter</b> (first page is fine).</div>
+      <div id="verifyBox" style="background:#FFF7D6;border:1px solid #EBD9AE;border-radius:12px;padding:10px 12px;margin-bottom:6px">
+        <div style="font-size:12.5px;color:#4A3E2B">As a rescue, we verify with your <b>IRS 501(c)(3) determination letter</b> (first page is fine). If your 501(c)(3) is still pending, just note that below and we'll work with you.</div>
         <label style="display:flex;gap:8px;align-items:center;margin-top:8px;font-size:13px;color:var(--body);cursor:pointer"><input type="checkbox" id="can501" style="width:16px;height:16px;accent-color:var(--gold2)"> I can provide our IRS 501(c)(3) determination letter</label>
         <div style="margin-top:10px">
           <span class="lab" style="display:block;margin-bottom:4px">Upload it now <span class="opt">(optional — PDF or photo, or we'll email you for it during review)</span></span>
@@ -164,7 +166,6 @@
           <div id="det_msg" style="font-size:11.5px;color:var(--muted);margin-top:4px"></div>
         </div>
       </div>
-      <div id="muniBox" style="display:none;font-size:12.5px;color:var(--muted);margin-bottom:6px">✓ Municipal / animal-control shelters: no paperwork needed.</div>
 
       <!-- 2. Contact -->
       <div class="sect">
@@ -172,15 +173,15 @@
         <div class="sect-sub">Who Voyce should reach out to (add more if several people coordinate).</div>
         <div class="grid">
           <label class="f"><span class="lab">Contact name</span><input class="t" id="contact_name" placeholder="Your name"></label>
-          <label class="f"><span class="lab">Title / role</span><input class="t" id="contact_title" placeholder="e.g. Rescue Coordinator"></label>
+          <label class="f"><span class="lab">Title / role</span><input class="t" id="contact_title" placeholder="e.g. Intake Coordinator"></label>
         </div>
         <div class="grid">
-          <label class="f"><span class="lab">Contact email <span class="req">*</span></span><input class="t" id="contact_email" type="email" placeholder="you@shelter.org" required></label>
+          <label class="f"><span class="lab">Contact email <span class="req">*</span></span><input class="t" id="contact_email" type="email" placeholder="you@rescue.org" required></label>
           <label class="f"><span class="lab">Contact phone</span><input class="t" id="contact_phone"></label>
         </div>
         <div id="moreContacts"></div>
         <button type="button" id="addContact" class="cand" style="cursor:pointer;border-style:dashed">+ Add another contact</button>
-        <label style="display:flex;gap:8px;align-items:flex-start;margin-top:14px;font-size:13px;color:var(--body);cursor:pointer"><input type="checkbox" id="is_private" style="margin-top:2px;width:16px;height:16px;accent-color:var(--gold2)"> Keep our shelter &amp; contact info private (not shown publicly)</label>
+        <label style="display:flex;gap:8px;align-items:flex-start;margin-top:14px;font-size:13px;color:var(--body);cursor:pointer"><input type="checkbox" id="is_private" style="margin-top:2px;width:16px;height:16px;accent-color:var(--gold2)"> Keep our rescue &amp; contact info private (not shown publicly)</label>
       </div>
 
       <!-- 2b. Placement action contacts (power the app's animal-card buttons) -->
@@ -188,25 +189,25 @@
         <div class="sect-h">How rescuers &amp; adopters reach you</div>
         <div class="sect-sub">These fill the action buttons on your animals' cards — the email, foster application, and deadline a rescuer sees.</div>
         <div class="grid">
-          <label class="f"><span class="lab">Adoption email <span class="opt">(for the "Email adoptions" button)</span></span><input class="t" id="adoption_email" type="email" placeholder="adoptions@shelter.org"></label>
-          <label class="f"><span class="lab">Adoption phone <span class="opt">(for the "Call adoptions" button)</span></span><input class="t" id="adoption_phone" placeholder="(210) 555-0134"></label>
+          <label class="f"><span class="lab">Adoption email <span class="opt">(for the "Email adoptions" button)</span></span><input class="t" id="adoption_email" type="email" placeholder="adopt@rescue.org"></label>
+          <label class="f"><span class="lab">Adoption phone <span class="opt">(for the "Call adoptions" button)</span></span><input class="t" id="adoption_phone" placeholder="(404) 555-0134"></label>
         </div>
         <div class="grid">
-          <label class="f"><span class="lab">Foster email <span class="opt">(if different)</span></span><input class="t" id="foster_email" type="email" placeholder="fosters@shelter.org"></label>
-          <label class="f"><span class="lab">Foster phone <span class="opt">(if different)</span></span><input class="t" id="foster_phone" placeholder="(210) 555-0199"></label>
+          <label class="f"><span class="lab">Foster email <span class="opt">(if different)</span></span><input class="t" id="foster_email" type="email" placeholder="foster@rescue.org"></label>
+          <label class="f"><span class="lab">Foster phone <span class="opt">(if different)</span></span><input class="t" id="foster_phone" placeholder="(404) 555-0199"></label>
         </div>
         <label class="f"><span class="lab">Foster application link <span class="opt">(optional)</span></span><input class="t" id="foster_url" placeholder="https://…/foster-application"></label>
         <div class="grid">
-          <label class="f"><span class="lab">Facebook page <span class="opt">(optional)</span></span><input class="t" id="facebook_url" placeholder="https://facebook.com/yourshelter"></label>
-          <label class="f"><span class="lab">Instagram <span class="opt">(optional)</span></span><input class="t" id="instagram_url" placeholder="https://instagram.com/yourshelter"></label>
+          <label class="f"><span class="lab">Facebook page <span class="opt">(optional)</span></span><input class="t" id="facebook_url" placeholder="https://facebook.com/yourrescue"></label>
+          <label class="f"><span class="lab">Instagram <span class="opt">(optional)</span></span><input class="t" id="instagram_url" placeholder="https://instagram.com/yourrescue"></label>
         </div>
-        <label class="f"><span class="lab">Placement deadline <span class="opt">(optional — shown as a reminder)</span></span><input class="t" id="placement_deadline" placeholder="e.g. 5:30 PM Mon–Fri / 12:30 PM Sat"></label>
+        <label class="f"><span class="lab">Placement deadline <span class="opt">(optional — shown as a reminder)</span></span><input class="t" id="placement_deadline" placeholder="e.g. foster takeover needed by Fri"></label>
       </div>
 
       <!-- Mailing (private) -->
       <div class="sect">
         <div class="sect-h">Mailing address <span style="text-transform:none;letter-spacing:0;color:var(--muted);font-weight:600">· private</span></div>
-        <div class="sect-sub">Only if different from the physical location above. Never shown publicly.</div>
+        <div class="sect-sub">Where donations or paperwork should go. Never shown publicly.</div>
         <label class="f"><span class="lab">Name on mail</span><input class="t" id="mail_name"></label>
         <label class="f"><span class="lab">Mailing address</span><input class="t" id="mailing_address"></label>
         <div class="grid">
@@ -218,24 +219,24 @@
         </div>
       </div>
 
-      <!-- 3. At-risk data -->
+      <!-- 3. Urgent data -->
       <div class="sect">
-        <div class="sect-h">Your at-risk animals</div>
+        <div class="sect-h">Your urgent animals</div>
         <div class="sect-sub">This is what lets Voyce alert people in time &mdash; even when you&rsquo;re full and at capacity.</div>
-        <span class="lab">Do you publish an at-risk / euthanasia / at-capacity / urgent list online?</span>
+        <span class="lab">Do you post urgent / foster-needed / at-capacity animals online?</span>
         <div class="pills" id="pub_pills">
           <div class="pill" data-v="yes">Yes</div>
           <div class="pill" data-v="no">No / not yet</div>
         </div>
         <label class="f" id="listWrap" style="display:none;margin-top:12px"><span class="lab">Link(s) to that list <span class="opt">(one per line)</span></span>
-          <textarea class="t" id="list_urls" placeholder="https://www.sanantonio.gov/animal-care/…"></textarea></label>
+          <textarea class="t" id="list_urls" placeholder="https://yourrescue.org/urgent  ·  or your Facebook/Petfinder page"></textarea></label>
         <div style="margin-top:12px"><span class="lab">Where do you post urgent animals now? <span class="opt">(pick any)</span></span>
           <div class="chk" id="channels">
             <label class="pill"><input type="checkbox" value="Website">Website</label>
             <label class="pill"><input type="checkbox" value="Facebook">Facebook</label>
             <label class="pill"><input type="checkbox" value="Instagram">Instagram</label>
-            <label class="pill"><input type="checkbox" value="PetHarbor / 24PetConnect">PetHarbor</label>
-            <label class="pill"><input type="checkbox" value="Shelterluv">Shelterluv</label>
+            <label class="pill"><input type="checkbox" value="Petfinder">Petfinder</label>
+            <label class="pill"><input type="checkbox" value="Adopt-a-Pet">Adopt-a-Pet</label>
             <label class="pill"><input type="checkbox" value="Email list">Email list</label>
             <label class="pill"><input type="checkbox" value="Other">Other</label>
           </div>
@@ -244,11 +245,11 @@
           <label class="f"><span class="lab">How often is it updated?</span>
             <select class="t" id="update_frequency"><option value="">Select…</option>
               <option>Daily</option><option>Weekdays</option><option>A few times a week</option><option>Weekly</option><option>As needed</option></select></label>
-          <label class="f"><span class="lab">Animals at risk in a typical week</span>
-            <input class="t" id="animals_at_risk_weekly" placeholder="e.g. 20–30"></label>
+          <label class="f"><span class="lab">Animals needing placement in a typical week</span>
+            <input class="t" id="animals_at_risk_weekly" placeholder="e.g. 5–10"></label>
         </div>
-        <label class="f"><span class="lab">Total animals in your care <span class="opt">(rough)</span></span>
-          <input class="t" id="total_in_care" placeholder="e.g. 300"></label>
+        <label class="f"><span class="lab">Animals currently in your care / foster <span class="opt">(rough)</span></span>
+          <input class="t" id="total_in_care" placeholder="e.g. 40"></label>
       </div>
 
       <!-- 4. Needs -->
@@ -256,42 +257,42 @@
         <div class="sect-h">What you need most</div>
         <div class="sect-sub">So we prioritize the right alerts for your animals.</div>
         <div class="chk" id="needs">
-          <label class="pill"><input type="checkbox" value="Rescue pulls">Rescue pulls</label>
-          <label class="pill"><input type="checkbox" value="Fosters">Fosters</label>
+          <label class="pill"><input type="checkbox" value="Foster homes">Foster homes</label>
+          <label class="pill"><input type="checkbox" value="Foster takeovers">Foster takeovers</label>
           <label class="pill"><input type="checkbox" value="Adopters">Adopters</label>
           <label class="pill"><input type="checkbox" value="Transport">Transport</label>
           <label class="pill"><input type="checkbox" value="Donations">Donations</label>
           <label class="pill"><input type="checkbox" value="Sharing / awareness">Sharing</label>
         </div>
         <div class="grid" style="margin-top:14px">
-          <label class="f"><span class="lab">EIN <span class="opt">(if 501(c)(3))</span></span><input class="t" id="ein" placeholder="32-0760338"></label>
-          <label class="f"><span class="lab">Government registration / license # <span class="opt">(optional)</span></span><input class="t" id="gov_reg_number" placeholder="e.g. state charity or shelter license #"></label>
+          <label class="f"><span class="lab">EIN <span class="opt">(if 501(c)(3))</span></span><input class="t" id="ein" placeholder="12-3456789"></label>
+          <label class="f"><span class="lab">Government registration / license # <span class="opt">(optional)</span></span><input class="t" id="gov_reg_number" placeholder="e.g. state charity registration #"></label>
         </div>
         <label class="f"><span class="lab">Anything else we should know?</span>
-          <textarea class="t" id="notes" placeholder="How you currently share urgent animals, deadlines, kennel codes, who else to loop in…"></textarea></label>
+          <textarea class="t" id="notes" placeholder="How you currently share urgent animals, 501(c)(3) status if pending, deadlines, who else to loop in…"></textarea></label>
       </div>
 
-      <details class="terms"><summary>View Shelter Terms</summary>
+      <details class="terms"><summary>View Rescue Terms</summary>
         <ol>
-          <li>You authorize <b>Voyce for Paws</b> (a project of Be the Voyce, Inc.) to display and share your publicly-listed at-risk animals and their photos to help place them.</li>
-          <li>You'll keep your listing and contact info reasonably current, and can update or remove your shelter at any time by contacting us.</li>
+          <li>You authorize <b>Voyce for Paws</b> (a project of Be the Voyce, Inc.) to display and share your publicly-listed urgent animals and their photos to help place them.</li>
+          <li>You'll keep your listing and contact info reasonably current, and can update or remove your rescue at any time by contacting us.</li>
           <li>Voyce is a coordination tool — it does not take custody of animals and is not responsible for adoption or rescue outcomes; AI descriptions are advisory, not a diagnosis.</li>
           <li>Your data is handled per our Privacy Policy; your mailing address and anything marked private will not be shown publicly.</li>
-          <li>You confirm you are authorized to register this shelter.</li>
+          <li>You confirm you are authorized to register this rescue.</li>
         </ol>
       </details>
       <label class="consent"><input type="checkbox" id="consent">
-        <span>I agree to the <b>Shelter Terms</b> above and confirm I'm authorized to register this shelter.</span></label>
+        <span>I agree to the <b>Rescue Terms</b> above and confirm I'm authorized to register this rescue.</span></label>
 
       <div class="err" id="err"></div>
-      <button class="submit" id="btn" type="submit">Register my shelter →</button>
+      <button class="submit" id="btn" type="submit">Register my rescue →</button>
       <div class="fine">We'll review your registration and reach out within a few days.</div>
     </form>
 
     <div class="done" id="done">
       <div class="em">🎉</div>
       <h2 id="doneName">You're on the list!</h2>
-      <p>Thank you for registering and joining the Voyce Pack. We'll review your shelter and reach out within a few days to get Voyce watching your at-risk list. — The Voyce team</p>
+      <p>Thank you for registering and joining the Voyce Pack. We'll review your rescue and reach out within a few days to get Voyce watching your urgent animals. — The Voyce team</p>
     </div>
   </div>
 
@@ -311,14 +312,6 @@
   // checkbox pills toggle 'on' style
   document.querySelectorAll('.chk .pill input').forEach(function(cb){
     cb.addEventListener('change', function(){ this.closest('.pill').classList.toggle('on', this.checked); });
-  });
-  // Verification tier by shelter type
-  var TYPE_NP = ['Private nonprofit','Humane Society / SPCA','Rescue-run'];
-  var TYPE_MUNI = ['Municipal / City','County'];
-  document.getElementById('shelter_type').addEventListener('change', function(){
-    var v=this.value;
-    document.getElementById('verifyBox').style.display = TYPE_NP.indexOf(v)>=0 ? '' : 'none';
-    document.getElementById('muniBox').style.display = TYPE_MUNI.indexOf(v)>=0 ? '' : 'none';
   });
   // Add another adoption contact
   var contactN=1;
@@ -378,14 +371,14 @@
   function renderSuggestions(s){
     var cands=document.getElementById('af_cands'), msg=document.getElementById('af_msg'); cands.innerHTML=''; cands.classList.remove('open');
     if(!s || !s.length){ msg.style.color='#B4610F'; msg.textContent="No matches yet — keep typing, paste a website link, or just type your info in below."; return; }
-    msg.style.color='var(--muted)'; msg.textContent="Tap your shelter to fill the form:";
+    msg.style.color='var(--muted)'; msg.textContent="Tap your rescue to fill the form:";
     cands.classList.add('open');
     s.forEach(function(it){
       var b=document.createElement('button'); b.type='button'; b.className='sugg';
       var loc=[it.city,it.state].filter(Boolean).join(', ');
       var web=it.website?(' · '+it.website.replace(/^https?:\/\//,'').replace(/\/$/,'')):'';
       b.innerHTML='<span class="src">'+(it.source||'')+'</span><b>'+(it.name||'')+'</b><div class="m">'+(loc+web)+'</div>';
-      b.addEventListener('click', function(){ forceFill(it); cands.innerHTML=''; cands.classList.remove('open'); if(it.website){ msg.style.color='var(--muted)'; msg.textContent="Reading "+(it.name||'your shelter')+"’s website for contacts…"; enrichFromWebsite(it.website); } else { msg.style.color='#166534'; msg.textContent="✓ Filled from "+(it.source||'directory')+" — review & complete the rest."; } });
+      b.addEventListener('click', function(){ forceFill(it); cands.innerHTML=''; cands.classList.remove('open'); if(it.website){ msg.style.color='var(--muted)'; msg.textContent="Reading "+(it.name||'your rescue')+"’s website for contacts…"; enrichFromWebsite(it.website); } else { msg.style.color='#166534'; msg.textContent="✓ Filled from "+(it.source||'directory')+" — review & complete the rest."; } });
       cands.appendChild(b);
     });
   }
@@ -398,12 +391,12 @@
     var q=this.value.trim(); clearTimeout(afTimer);
     var cands=document.getElementById('af_cands'), msg=document.getElementById('af_msg');
     if(afLooksUrl(q) || q.length<2){ cands.innerHTML=''; cands.classList.remove('open'); msg.textContent=''; return; }
-    msg.style.color='var(--muted)'; msg.textContent="Searching shelters…";
+    msg.style.color='var(--muted)'; msg.textContent="Searching rescues…";
     var mine=++afSeq;
     afTimer=setTimeout(function(){
       fetch(SB_URL+'/functions/v1/shelter-lookup?q='+encodeURIComponent(q), { headers:{ apikey:SB_KEY, Authorization:'Bearer '+SB_KEY } })
         .then(function(r){return r.json()}).then(function(d){ if(mine!==afSeq) return; if(d && d.kind==='name') renderSuggestions(d.suggestions); })
-        .catch(function(){ if(mine!==afSeq) return; msg.style.color='#B4610F'; msg.textContent="Couldn't reach the directory — type your shelter info in below."; });
+        .catch(function(){ if(mine!==afSeq) return; msg.style.color='#B4610F'; msg.textContent="Couldn't reach the directory — type your rescue info in below."; });
     }, 300);
   });
   document.getElementById('af_go').addEventListener('click', function(){
@@ -429,7 +422,7 @@
           document.querySelectorAll('#pub_pills .pill').forEach(function(x){ x.classList.toggle('on', x.getAttribute('data-v')==='yes'); });
           publishes='yes'; document.getElementById('listWrap').style.display='';
           var lab=document.createElement('div'); lab.className='lab'; lab.style.marginTop='10px';
-          lab.textContent='Possible at-risk / adoptable lists — tap to use:'; cands.appendChild(lab);
+          lab.textContent='Possible urgent / adoptable lists — tap to use:'; cands.appendChild(lab);
           cs.forEach(function(c){
             var b=document.createElement('span'); b.className='cand'; b.textContent=(c.text||c.url).slice(0,44); b.title=c.url;
             b.addEventListener('click', function(){ var ta=document.getElementById('list_urls'); ta.value=(ta.value?ta.value+'\n':'')+c.url; b.style.opacity='0.5'; });
@@ -444,20 +437,21 @@
     ev.preventDefault();
     var err = document.getElementById('err'); err.style.display='none';
     function fail(m){ err.textContent=m; err.style.display='block'; err.scrollIntoView({behavior:'smooth',block:'center'}); }
-    if(!val('shelter_name')) return fail('Please enter your shelter name.');
+    if(!val('shelter_name')) return fail('Please enter your rescue name.');
     if(!val('city') || !val('state')) return fail('Please enter your city and state.');
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(val('contact_email'))) return fail('Please enter a valid contact email.');
     if(!document.getElementById('consent').checked) return fail('Please confirm you’re authorized and agree to be contacted.');
 
+    var subtype = val('shelter_type');
     var payload = {
-      shelter_name: val('shelter_name'), shelter_type: val('shelter_type'), website: val('website'), main_phone: val('main_phone'),
+      shelter_name: val('shelter_name'), shelter_type: subtype ? ('Rescue — '+subtype) : 'Rescue', website: val('website'), main_phone: val('main_phone'),
       address: val('address'), city: val('city'), state: val('state'), zip: val('zip'),
       contact_name: val('contact_name'), contact_title: val('contact_title'), contact_email: val('contact_email'), contact_phone: val('contact_phone'),
       adoption_email: val('adoption_email'), adoption_phone: val('adoption_phone'), foster_email: val('foster_email'), foster_phone: val('foster_phone'), foster_url: val('foster_url'), placement_deadline: val('placement_deadline'),
       facebook_url: val('facebook_url'), instagram_url: val('instagram_url'),
       publishes_list: publishes, list_urls: val('list_urls'), post_channels: vals('channels'), update_frequency: val('update_frequency'),
       animals_at_risk_weekly: val('animals_at_risk_weekly'), total_in_care: val('total_in_care'),
-      needs: vals('needs'), animal_types: vals('species'), ein: val('ein'), gov_reg_number: val('gov_reg_number'), notes: val('notes'),
+      needs: vals('needs'), animal_types: vals('species'), breeds_focus: val('breeds_focus'), ein: val('ein'), gov_reg_number: val('gov_reg_number'), notes: val('notes'),
       director_name: val('director_name'),
       mail_name: val('mail_name'), mailing_address: val('mailing_address'), mailing_city: val('mailing_city'), mailing_state: val('mailing_state'), mailing_zip: val('mailing_zip'),
       contacts: gatherContacts(),
@@ -480,11 +474,11 @@
         else { success(); }
       }).catch(function(e){ btn.disabled=false; btn.textContent='Try again'; fail('Network error — please try again or email bethevoyce1@gmail.com.'); });
     }
-    // Optional: upload the IRS determination letter first (nonprofits). Never blocks registration.
+    // Optional: upload the IRS determination letter first. Never blocks registration.
     var fileEl = document.getElementById('det_letter');
     var file = fileEl && fileEl.files && fileEl.files[0];
     if(file && sb){
-      if(file.size > 10*1024*1024){ btn.disabled=false; btn.textContent='Register my shelter →'; return fail('That file is over 10MB — please upload a smaller PDF or image (or skip it; we can email you for it).'); }
+      if(file.size > 10*1024*1024){ btn.disabled=false; btn.textContent='Register my rescue →'; return fail('That file is over 10MB — please upload a smaller PDF or image (or skip it; we can email you for it).'); }
       var safe = file.name.replace(/[^a-zA-Z0-9._-]/g,'_').slice(-80);
       var uid = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now()+'-'+Math.random().toString(16).slice(2));
       var path = 'registrations/'+uid+'-'+safe;
