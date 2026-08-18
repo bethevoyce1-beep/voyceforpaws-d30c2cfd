@@ -2389,18 +2389,59 @@ function voyceJoin(e){
   }
 })();
 
-// Deep-link: /#join-pack (or legacy #join-network) opens the Join the Pack pop-up.
+// Deep-link: opens the Join the Pack pop-up.
+// Accepts every shape the link can arrive in, because Instagram (and some
+// other apps) percent-encode the "#" into "%23", which turns the anchor into
+// a path segment and silently killed this before:
+//   /#join-pack          canonical
+//   /%23join-pack        Instagram bio link
+//   /join-pack           clean path, safe to use anywhere
+//   /?join=pack          query form
+//   legacy #join-network is still honoured
 (function(){
-  function openJoinFromHash(){
-    var h = (location.hash || '').toLowerCase();
-    if (h === '#join-pack' || h === '#join-network') {
-      if (typeof window.vsmOpen === 'function') window.vsmOpen('network');
-    }
+  function wantsJoin(){
+    var hash = (location.hash || '').toLowerCase();
+    var path = (location.pathname || '').toLowerCase();
+    var qs   = (location.search || '').toLowerCase();
+    var dec  = path;
+    try { dec = decodeURIComponent(path).toLowerCase(); } catch (e) {}
+
+    if (hash.indexOf('join-pack') !== -1 || hash.indexOf('join-network') !== -1) return true;
+    if (path.indexOf('join-pack') !== -1 || path.indexOf('join-network') !== -1) return true;
+    if (dec.indexOf('join-pack')  !== -1 || dec.indexOf('join-network')  !== -1) return true;
+    if (/[?&]join=(pack|network|1|true)/.test(qs)) return true;
+    return false;
   }
+
+  // Normalise the address bar to /#join-pack without reloading, keeping any
+  // utm_* / fbclid parameters so attribution still works.
+  function tidyUrl(){
+    if (!window.history || !history.replaceState) return;
+    if ((location.pathname || '/') === '/' && (location.hash || '').toLowerCase() === '#join-pack') return;
+    try { history.replaceState(null, '', '/' + (location.search || '') + '#join-pack'); } catch (e) {}
+  }
+
+  function openJoin(){
+    if (typeof window.vsmOpen === 'function') { window.vsmOpen('network'); return true; }
+    return false;
+  }
+
+  function openJoinFromUrl(){
+    if (!wantsJoin()) return;
+    tidyUrl();
+    // vsmOpen is defined further down in a large inline script, so retry
+    // briefly rather than firing once and giving up on a slow load.
+    var tries = 0;
+    (function attempt(){
+      if (openJoin()) return;
+      if (++tries < 40) setTimeout(attempt, 150);
+    })();
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', openJoinFromHash);
-  } else { openJoinFromHash(); }
-  window.addEventListener('hashchange', openJoinFromHash);
+    document.addEventListener('DOMContentLoaded', openJoinFromUrl);
+  } else { openJoinFromUrl(); }
+  window.addEventListener('hashchange', openJoinFromUrl);
 })();
 
 (function(){
