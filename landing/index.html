@@ -21,7 +21,9 @@
     --radius:20px; --radius-sm:14px; --maxw:1120px;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  html{scroll-behavior:smooth}
+  /* 85px sticky nav + breathing room, so anchor jumps don't land section
+     headings underneath the header */
+  html{scroll-behavior:smooth;scroll-padding-top:100px}
   body{font-family:'Inter',system-ui,-apple-system,sans-serif;color:var(--ink);background:var(--white);line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
   a{color:inherit;text-decoration:none}
   img{max-width:100%;display:block}
@@ -677,6 +679,23 @@ section#how.sec-alt{background:linear-gradient(180deg,#FAF7F0 0%,#F7F2E7 100%)}
 .why-disclaimer{text-align:center;font-size:11px;color:var(--slate);max-width:820px;margin:22px auto 0;line-height:1.6;font-style:italic}
 @media(max-width:820px){.why-story{grid-template-columns:1fr;gap:22px;padding:24px 22px}.why-compare{grid-template-columns:1fr}}
 </style>
+<style id="hero-mobile-fix">
+/* Mobile: centered + compact like FinalFetch / Merlin — message + CTA fill the first screen, phone below */
+@media (max-width:600px){
+  .hero-copy{display:flex !important; flex-direction:column; align-items:center; text-align:center !important;}
+  .hv-pill{margin:0 auto 16px !important;}
+  .hv-h1{font-size:46px !important; line-height:1.02 !important; margin:0 auto 12px !important; max-width:100%;}
+  .hv-desc{margin:0 auto 10px !important;}
+  .hv-btns{flex-direction:column !important; align-items:center; width:100%; margin:20px 0 8px !important;}
+  .hv-btn{width:100% !important; max-width:340px; justify-content:center;}
+  .hv-fine{text-align:center !important;}
+  .hero-grid{gap:26px !important;}
+  .hero-stage2{position:relative !important; height:auto !important; display:flex !important; flex-direction:column; align-items:center; gap:12px; transform:none !important; max-width:100%; margin:0 auto;}
+  .hv-phone{position:relative !important; right:auto !important; left:auto !important; top:auto !important; transform:none !important; margin:0 auto; order:-1;}
+  .hcard{position:relative !important; left:auto !important; right:auto !important; top:auto !important; display:flex !important; opacity:1 !important; animation:none !important; width:100% !important; max-width:300px;}
+  .hv-demolbl{position:relative !important; right:auto !important; left:auto !important; transform:none !important; text-align:center; margin-top:2px;}
+}
+</style>
 </head>
 <body>
 <div class="intro-overlay" id="intro-overlay">
@@ -719,7 +738,7 @@ section#how.sec-alt{background:linear-gradient(180deg,#FAF7F0 0%,#F7F2E7 100%)}
     </nav>
     <div class="nav-cta">
       <a href="javascript:void(0)" class="btn btn-ghost" onclick="vsmOpen('network');return false;">Join the Voyce Pack</a>
-      <a href="https://app.voyceforpaws.org" target="_blank" rel="noopener" class="btn btn-gold">Experience the Voyce</a>
+      <a href="https://app.voyceforpaws.org" target="_blank" rel="noopener" class="btn btn-gold">Experience Voyce</a>
       <button class="hamb" id="hamb" aria-label="Menu">☰</button>
     </div>
   </div>
@@ -745,9 +764,10 @@ section#how.sec-alt{background:linear-gradient(180deg,#FAF7F0 0%,#F7F2E7 100%)}
     <div class="hero-copy">
       <span class="hv-pill"><span class="dot"></span>AI-assisted · Real-time · Rescue coordination</span>
       <h1 class="hv-h1">See an animal<br><em>in need?</em></h1>
-      <p class="hv-desc">An injured or lost stray on the street. A dog out of time at a shelter. A cat no one is coming for. <b>One photo alerts and coordinates</b> everyone who can help — closest first, rippling outward.</p>
+      <p class="hv-desc" style="font-size:14px;line-height:23px">An injured or lost stray on the street. A dog out of time at a shelter. A cat no one is coming for.</p>
+      <p class="hv-desc" style="color:var(--hv-ink)"><b>One photo alerts and coordinates</b> everyone who can help.</p>
       <div class="hv-btns">
-        <a href="https://app.voyceforpaws.org" target="_blank" rel="noopener" class="hv-btn hv-btn-primary">▶ Experience the Voyce</a>
+        <a href="https://app.voyceforpaws.org" target="_blank" rel="noopener" class="hv-btn hv-btn-primary">▶ Experience Voyce</a>
         <button type="button" onclick="vsmOpen('network')" class="hv-btn hv-btn-secondary">Join the Voyce Pack</button>
       </div>
       <p class="hv-fine">⚡ Pre-launch · <b>preview the app now</b> — no live alerts are sent yet.</p>
@@ -1172,7 +1192,7 @@ window.addEventListener('DOMContentLoaded', function(){
 
 <div class="hv-dock" id="hvDock" aria-hidden="true">
   <a href="#donate" class="dk-donate">💛 Donate</a>
-  <a href="https://app.voyceforpaws.org" target="_blank" rel="noopener" class="dk-app">▶ Experience the Voyce</a>
+  <a href="https://app.voyceforpaws.org" target="_blank" rel="noopener" class="dk-app">▶ Experience Voyce</a>
 </div>
 <script>
 (function(){
@@ -2389,59 +2409,18 @@ function voyceJoin(e){
   }
 })();
 
-// Deep-link: opens the Join the Pack pop-up.
-// Accepts every shape the link can arrive in, because Instagram (and some
-// other apps) percent-encode the "#" into "%23", which turns the anchor into
-// a path segment and silently killed this before:
-//   /#join-pack          canonical
-//   /%23join-pack        Instagram bio link
-//   /join-pack           clean path, safe to use anywhere
-//   /?join=pack          query form
-//   legacy #join-network is still honoured
+// Deep-link: /#join-pack (or legacy #join-network) opens the Join the Pack pop-up.
 (function(){
-  function wantsJoin(){
-    var hash = (location.hash || '').toLowerCase();
-    var path = (location.pathname || '').toLowerCase();
-    var qs   = (location.search || '').toLowerCase();
-    var dec  = path;
-    try { dec = decodeURIComponent(path).toLowerCase(); } catch (e) {}
-
-    if (hash.indexOf('join-pack') !== -1 || hash.indexOf('join-network') !== -1) return true;
-    if (path.indexOf('join-pack') !== -1 || path.indexOf('join-network') !== -1) return true;
-    if (dec.indexOf('join-pack')  !== -1 || dec.indexOf('join-network')  !== -1) return true;
-    if (/[?&]join=(pack|network|1|true)/.test(qs)) return true;
-    return false;
+  function openJoinFromHash(){
+    var h = (location.hash || '').toLowerCase();
+    if (h === '#join-pack' || h === '#join-network') {
+      if (typeof window.vsmOpen === 'function') window.vsmOpen('network');
+    }
   }
-
-  // Normalise the address bar to /#join-pack without reloading, keeping any
-  // utm_* / fbclid parameters so attribution still works.
-  function tidyUrl(){
-    if (!window.history || !history.replaceState) return;
-    if ((location.pathname || '/') === '/' && (location.hash || '').toLowerCase() === '#join-pack') return;
-    try { history.replaceState(null, '', '/' + (location.search || '') + '#join-pack'); } catch (e) {}
-  }
-
-  function openJoin(){
-    if (typeof window.vsmOpen === 'function') { window.vsmOpen('network'); return true; }
-    return false;
-  }
-
-  function openJoinFromUrl(){
-    if (!wantsJoin()) return;
-    tidyUrl();
-    // vsmOpen is defined further down in a large inline script, so retry
-    // briefly rather than firing once and giving up on a slow load.
-    var tries = 0;
-    (function attempt(){
-      if (openJoin()) return;
-      if (++tries < 40) setTimeout(attempt, 150);
-    })();
-  }
-
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', openJoinFromUrl);
-  } else { openJoinFromUrl(); }
-  window.addEventListener('hashchange', openJoinFromUrl);
+    document.addEventListener('DOMContentLoaded', openJoinFromHash);
+  } else { openJoinFromHash(); }
+  window.addEventListener('hashchange', openJoinFromHash);
 })();
 
 (function(){
