@@ -9,15 +9,16 @@ import {
 // NetworkResponses — the shared "Can you help? + How the network responds"
 // block. It does BOTH jobs in one place:
 //   1) Commitment — a viewer enters their name once, taps how they can help
-//      (Foster, Adopt, Rescue pull, Transport, Pledge), then a popup asks what
-//      ELSE is still needed to get the animal all the way to safety.
+//      (Foster, Adopt, Rescue pull, Transport, Pledge, Good Samaritan, …), then
+//      a popup asks what they can do + what ELSE is still needed to get the
+//      animal all the way to safety, and where they're at (status).
 //   2) Live pack feed — that commitment posts to a shared feed so EVERYONE
-//      watching this animal sees the pack step up in real time, and the feed
-//      line reflects both the role AND the still-needs, e.g.
-//      "Rachna · can foster · still needs an adopter, a vet".
+//      watching this animal sees the pack step up in real time, e.g.
+//      "Rachna · Offered · can foster · still needs a rescue and an adopter".
 // Persisted in Supabase (network_responses), keyed by animal. A "➕ Other" pill
-// opens a sheet with the less-common paths (shelter transfer, transport, vet,
-// trainer, boarding) plus a free-text "Something else" field.
+// opens a sheet with the less-common paths (shelter transfer, vet, trainer,
+// boarding) plus a free-text "Something else" field — and those now open the
+// same needs + status popup too.
 //
 // It also EXPLAINS itself (a short "this is the pack, live" intro) and offers a
 // "Join the pack / Donate" footer (hide with showJoinCta={false}).
@@ -30,20 +31,28 @@ function cap(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
 
+// Join a list of phrases as "a", "a and b", or "a, b and c".
+function joinNice(list: string[]): string {
+  if (list.length === 0) return "";
+  if (list.length === 1) return list[0];
+  return list.slice(0, -1).join(", ") + " and " + list[list.length - 1];
+}
+
 type KindMeta = { label: string; dot: string; icon?: string; chip?: string };
 const KINDS: Record<string, KindMeta> = {
-  adopt:         { label: "wants to adopt", dot: "#993556", icon: "🤝", chip: "Adopt" },
-  rescue:        { label: "will pull · rescue partner", dot: "#7C3AED", icon: "🐾", chip: "Rescue pull" },
-  foster_rescue: { label: "can foster", dot: "#12805C", icon: "🏠", chip: "Foster" },
-  transport:     { label: "can transport", dot: "#2563EB", icon: "🚚", chip: "Transport" },
-  pledge:        { label: "pledged funds toward the pull", dot: "#0F6E56", icon: "💵", chip: "Pledge" },
-  share:         { label: "shared to the network", dot: "#8A8175", icon: "📣", chip: "Share" },
-  foster_acs:    { label: "can foster · can pick up nearby", dot: "#8A5A0E" },
-  transfer:      { label: "another shelter can take · transfer", dot: "#185FA5", icon: "🏢", chip: "Shelter transfer" },
-  vet:           { label: "can help with vet care", dot: "#0F766E", icon: "🩺", chip: "Vet care" },
-  trainer:       { label: "can help with training · behavior", dot: "#7C3AED", icon: "🎓", chip: "Trainer" },
-  boarding:      { label: "can offer boarding · temporary space", dot: "#B45309", icon: "🛏", chip: "Boarding" },
-  other:         { label: "wants to help", dot: "#8A5A0E" },
+  adopt:          { label: "wants to adopt", dot: "#993556", icon: "🤝", chip: "Adopt" },
+  rescue:         { label: "will pull · rescue partner", dot: "#7C3AED", icon: "🐾", chip: "Rescue pull" },
+  foster_rescue:  { label: "can foster", dot: "#12805C", icon: "🏠", chip: "Foster" },
+  transport:      { label: "can transport", dot: "#2563EB", icon: "🚚", chip: "Transport" },
+  pledge:         { label: "pledged funds toward the pull", dot: "#0F6E56", icon: "💵", chip: "Pledge" },
+  share:          { label: "shared to the network", dot: "#8A8175", icon: "📣", chip: "Share" },
+  good_samaritan: { label: "can help nearby", dot: "#0891B2", icon: "🙌", chip: "Samaritan" },
+  foster_acs:     { label: "can foster · can pick up nearby", dot: "#8A5A0E" },
+  transfer:       { label: "another shelter can take · transfer", dot: "#185FA5", icon: "🏢", chip: "Shelter transfer" },
+  vet:            { label: "can help with vet care", dot: "#0F766E", icon: "🩺", chip: "Vet care" },
+  trainer:        { label: "can help with training · behavior", dot: "#7C3AED", icon: "🎓", chip: "Trainer" },
+  boarding:       { label: "can offer boarding · temporary space", dot: "#B45309", icon: "🛏", chip: "Boarding" },
+  other:          { label: "wants to help", dot: "#8A5A0E" },
 };
 
 // Where a helper is in their commitment — an optional, evolving progress marker
@@ -62,41 +71,68 @@ const STATUS_META: Record<string, StatusMeta> = {
   confirmed:  { label: "Confirmed",  bg: "#12805C" },
 };
 
-// The tappable actions, in order. Each role (all but "share") opens the
-// commitment popup; "share" posts directly and lets the host open its share UI.
+// The main tappable role pills, in order. "share" posts directly; every other
+// role opens the commit popup (needs + status). "good_samaritan" is shown as a
+// separate full-width button below the grid.
 const ACTIONS = ["foster_rescue", "adopt", "rescue", "transport", "pledge", "share"] as const;
 
-// The verb shown in the commitment popup header for each role.
+// The verb shown in the commitment popup header for each kind.
 const ROLE_VERB: Record<string, string> = {
   foster_rescue: "foster",
   adopt: "adopt",
   rescue: "pull",
   transport: "transport",
   pledge: "pledge for",
+  vet: "help vet",
+  trainer: "help train",
+  boarding: "board",
+  transfer: "transfer",
+  good_samaritan: "help",
+  other: "help",
 };
-// After picking a role, the responder says what ELSE is still needed. These
-// post together so the feed reads "can foster · still needs an adopter, a vet".
+
+// The practical "still needs" menu — the real chain to get an animal all the
+// way to safe. Every role picks from this (minus the one it already is).
 const STILL_NEEDS: { id: string; label: string }[] = [
+  { id: "rescue",    label: "a rescue to pull" },
   { id: "foster",    label: "a foster" },
   { id: "adopter",   label: "an adopter" },
   { id: "transport", label: "transport" },
-  { id: "funds",     label: "funds / pledges" },
   { id: "vet",       label: "a vet" },
+  { id: "funds",     label: "funds / pledges" },
+  { id: "boarding",  label: "boarding" },
 ];
-// The need each role already covers (so we don't ask the lead for it again).
+// The need each kind already covers (so we don't ask the lead for it again).
 const ROLE_COVERS: Record<string, string> = {
   foster_rescue: "foster",
   adopt: "adopter",
-  rescue: "",
+  rescue: "rescue",
   transport: "transport",
   pledge: "funds",
+  vet: "vet",
+  boarding: "boarding",
+  transfer: "rescue",
+  trainer: "",
+  good_samaritan: "",
+  other: "",
 };
 
+// The on-the-ground actions a Good Samaritan (anyone nearby) can take. `phrase`
+// is how it reads in the live feed. Shown only in the Good Samaritan popup.
+const SAM_ACTIONS: { id: string; icon: string; label: string; phrase: string }[] = [
+  { id: "eyes_on",   icon: "👀", label: "Keep eyes on",   phrase: "keeping eyes on it" },
+  { id: "contain",   icon: "🤲", label: "Contain / hold",  phrase: "can contain / hold" },
+  { id: "food",      icon: "🥣", label: "Food / water",    phrase: "bringing food / water" },
+  { id: "ride",      icon: "🚗", label: "Give a ride",     phrase: "can give a ride" },
+  { id: "photos",    icon: "📸", label: "Photos / video",  phrase: "adding photos / video" },
+  { id: "overnight", icon: "🏠", label: "Keep overnight",  phrase: "can keep overnight" },
+  { id: "share",     icon: "📣", label: "Share it out",    phrase: "sharing it out" },
+];
+
 // The less-common ways to step up, shown in the "More ways to help" sheet that
-// the ➕ Other pill opens. Each posts to the same live feed via respond().
+// the ➕ Other pill opens. Each now opens the same needs + status popup.
 const MORE_WAYS: { kind: string; icon: string; label: string; tag: string }[] = [
   { kind: "transfer",  icon: "🏢", label: "Shelter transfer", tag: "another shelter takes" },
-  { kind: "transport", icon: "🚚", label: "Transport",        tag: "get them there" },
   { kind: "vet",       icon: "🩺", label: "Vet care",          tag: "medical" },
   { kind: "trainer",   icon: "🎓", label: "Trainer",           tag: "behavior help" },
   { kind: "boarding",  icon: "🛏", label: "Boarding",           tag: "temporary space" },
@@ -154,10 +190,11 @@ export function NetworkResponses({
   const [draft, setDraft] = useState("");
   const [items, setItems] = useState<NetworkResponse[]>([]);
   const [busy, setBusy] = useState(false);
-  // Commitment popup — the role the responder tapped + what else they still
-  // need + where they're at (status).
+  // Commitment popup — the kind tapped + what the Samaritan can do + what else
+  // is still needed + where they're at (status).
   const [commitRole, setCommitRole] = useState<string | null>(null);
   const [needs, setNeeds] = useState<Record<string, boolean>>({});
+  const [samActions, setSamActions] = useState<Record<string, boolean>>({});
   const [commitStatus, setCommitStatus] = useState<string>("offered");
   // "More ways to help" sheet (opened by the ➕ Other pill) + its free-text draft.
   const [showMore, setShowMore] = useState(false);
@@ -188,10 +225,8 @@ export function NetworkResponses({
     setName(v);
   };
 
-  // Post a response to the shared feed. `detail` carries the "still needs …"
-  // phrase (or the free-text "Something else" answer) so it shows in the feed.
-  // `status` is the optional commitment-progress marker (offered / on_the_way /
-  // confirmed) shown as a pill.
+  // Post a response to the shared feed. `detail` carries the "can do … · still
+  // needs …" phrase; `status` is the optional commitment-progress marker.
   const respond = async (kind: string, detail?: string, status?: string) => {
     if (!name || busy) return;
     setBusy(true);
@@ -209,6 +244,7 @@ export function NetworkResponses({
     if (!name) return;
     setCommitRole(role);
     setNeeds({});
+    setSamActions({});
     setCommitStatus("offered");
   };
 
@@ -254,9 +290,9 @@ export function NetworkResponses({
           {items.map((r) => {
             const meta = KINDS[r.kind] ?? KINDS.other;
             const statusMeta = r.status ? STATUS_META[r.status] : undefined;
-            // Free-text "Something else" shows verbatim; a role commitment shows
-            // its label plus any "still needs …" detail the responder added.
-            const sub = r.kind === "other"
+            // Free-text "Something else" and Good Samaritan show their detail
+            // verbatim; a role commitment shows its label plus any detail.
+            const sub = (r.kind === "other" || r.kind === "good_samaritan")
               ? (r.detail || meta.label)
               : (meta.label + (r.detail ? ` · ${r.detail}` : ""));
             return (
@@ -338,6 +374,16 @@ export function NetworkResponses({
               <span>➕</span><span>Other</span>
             </button>
           </div>
+
+          {/* Good Samaritan — the everyone-can-help entry. Anyone nearby can
+              step in, even without a formal role. Opens the same popup with an
+              extra "what can you do right now?" picker. */}
+          <button type="button" disabled={busy}
+            onClick={() => { if (!canRespond) { onNeedConfirm?.(); return; } openCommit("good_samaritan"); }}
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 px-3 py-2.5 text-[13px] font-bold transition active:scale-[0.98] disabled:opacity-60"
+            style={{ borderColor: "#0891B2", background: "#ECFEFF", color: "#0E6A80" }}>
+            <span>🙌</span><span>I can help — Good Samaritan</span>
+          </button>
         </div>
       )}
 
@@ -358,50 +404,85 @@ export function NetworkResponses({
         </div>
       )}
 
-      {/* Commitment popup — opened by a role pill. Pick what else is still
-          needed (optional) and where you're at (status), then it posts to the
-          live feed above with the role, the "still needs …" detail, and status. */}
+      {/* Commitment popup — opened by any role (or Good Samaritan). For a
+          Samaritan it also asks "what can you do right now?". Everyone picks
+          what's still needed (optional) and where they're at (status), then it
+          posts to the live feed. */}
       {commitRole && (() => {
+        const isSam = commitRole === "good_samaritan";
         const covers = ROLE_COVERS[commitRole] ?? "";
         const askable = STILL_NEEDS.filter((n) => n.id !== covers);
         const chosen = askable.filter((n) => needs[n.id]);
+        const doing = SAM_ACTIONS.filter((a) => samActions[a.id]);
         const verb = ROLE_VERB[commitRole] ?? "help";
         const accept = () => {
-          const list = chosen.map((n) => n.label);
-          const phrase =
-            list.length === 0 ? undefined :
-            "still needs " + (list.length === 1
-              ? list[0]
-              : list.slice(0, -1).join(", ") + " and " + list[list.length - 1]);
-          void respond(commitRole, phrase, commitStatus);
+          const needsPhrase = chosen.length ? "still needs " + joinNice(chosen.map((n) => n.label)) : "";
+          let detail: string | undefined;
+          if (isSam) {
+            const doingPhrase = doing.length ? joinNice(doing.map((a) => a.phrase)) : "";
+            detail = [doingPhrase, needsPhrase].filter(Boolean).join(" · ") || undefined;
+          } else {
+            detail = needsPhrase || undefined;
+          }
+          void respond(commitRole, detail, commitStatus);
           onAction?.(commitRole);
           setCommitRole(null);
           setNeeds({});
+          setSamActions({});
         };
         return (
           <div role="dialog" aria-modal="true"
             className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 sm:items-center sm:pb-10"
             onClick={() => setCommitRole(null)}>
-            <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-3xl border border-border bg-card p-5 shadow-2xl">
+            <div onClick={(e) => e.stopPropagation()} className="max-h-[85vh] w-full max-w-sm overflow-y-auto rounded-3xl border border-border bg-card p-5 shadow-2xl">
               <div className="flex items-center justify-between gap-3">
-                <h3 className="font-serif text-lg font-semibold leading-tight">You're stepping up to {verb} {who}</h3>
+                <h3 className="font-serif text-lg font-semibold leading-tight">
+                  {isSam ? `You're helping ${who}` : `You're stepping up to ${verb} ${who}`}
+                </h3>
                 <button type="button" onClick={() => setCommitRole(null)} aria-label="Close"
                   className="shrink-0 rounded-full border border-border bg-background px-2.5 py-1 text-sm">✕</button>
               </div>
               <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-                As the first to accept, you're the <span className="font-semibold text-foreground/80">lead</span>. What else does {who} still need to get all the way to safety? <span className="italic">(Optional — you can just commit.)</span>
+                {isSam
+                  ? <>Anyone nearby can help — even small things move {who} toward safety. <span className="italic">(Pick what fits — all optional.)</span></>
+                  : <>As the first to accept, you're the <span className="font-semibold text-foreground/80">lead</span>. What else does {who} still need to get all the way to safety? <span className="italic">(Optional — you can just commit.)</span></>}
               </p>
-              <div className="mt-3 space-y-2">
-                {askable.map((n) => {
-                  const on = !!needs[n.id];
-                  return (
-                    <button key={n.id} type="button" onClick={() => setNeeds((s) => ({ ...s, [n.id]: !on }))}
-                      className="flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-[13px] font-semibold transition active:scale-[0.99]"
-                      style={on ? { borderColor: "#C9871A", background: "#FFF6E5", color: "#8A5A0E" } : { borderColor: "#E3DAC4", background: "#fff", color: "#6B5832" }}>
-                      <span className="text-[15px] leading-none">{on ? "✅" : "▢"}</span><span>{cap(n.label)}</span>
-                    </button>
-                  );
-                })}
+
+              {/* Good Samaritan: what can you do right now? */}
+              {isSam && (
+                <div className="mt-3">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">What can you do right now?</div>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {SAM_ACTIONS.map((a) => {
+                      const on = !!samActions[a.id];
+                      return (
+                        <button key={a.id} type="button" onClick={() => setSamActions((s) => ({ ...s, [a.id]: !on }))}
+                          className="flex items-center gap-2 rounded-xl border px-2.5 py-2 text-left text-[12.5px] font-semibold transition active:scale-[0.98]"
+                          style={on ? { borderColor: "#0891B2", background: "#ECFEFF", color: "#0E6A80" } : { borderColor: "#E3DAC4", background: "#fff", color: "#6B5832" }}>
+                          <span>{a.icon}</span><span>{a.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* What does {who} still need? — the practical menu, minus what
+                  this role already is. */}
+              <div className="mt-4">
+                <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">What does {who} still need?</div>
+                <div className="mt-2 space-y-2">
+                  {askable.map((n) => {
+                    const on = !!needs[n.id];
+                    return (
+                      <button key={n.id} type="button" onClick={() => setNeeds((s) => ({ ...s, [n.id]: !on }))}
+                        className="flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-[13px] font-semibold transition active:scale-[0.99]"
+                        style={on ? { borderColor: "#C9871A", background: "#FFF6E5", color: "#8A5A0E" } : { borderColor: "#E3DAC4", background: "#fff", color: "#6B5832" }}>
+                        <span className="text-[15px] leading-none">{on ? "✅" : "▢"}</span><span>{cap(n.label)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Where are you at? — the status pill that shows in the feed. */}
@@ -436,8 +517,8 @@ export function NetworkResponses({
         );
       })()}
 
-      {/* More ways to help — opened by the ➕ Other pill. Every option posts to
-          the same live feed; the free-text answer is saved verbatim in `detail`. */}
+      {/* More ways to help — opened by the ➕ Other pill. The listed options now
+          open the same needs + status popup; the free-text answer posts verbatim. */}
       {showMore && (
         <div role="dialog" aria-modal="true"
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 sm:items-center sm:pb-10"
@@ -451,7 +532,7 @@ export function NetworkResponses({
             <div className="mt-3 space-y-2">
               {MORE_WAYS.map((w) => (
                 <button key={w.kind} type="button" disabled={busy}
-                  onClick={() => { void respond(w.kind); onAction?.(w.kind); setShowMore(false); }}
+                  onClick={() => { setShowMore(false); openCommit(w.kind); }}
                   className="flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-[13.5px] font-semibold transition active:scale-[0.99] disabled:opacity-60"
                   style={{ borderColor: "#E3DAC4", background: "#fff", color: "#6B5832" }}>
                   <span className="flex items-center gap-2"><span>{w.icon}</span><span>{w.label}</span></span>
