@@ -25,6 +25,9 @@ export type NetworkResponse = {
   responder_name: string;
   kind: string;
   detail: string | null;
+  // Where the helper is in their commitment: "offered" | "on_the_way" |
+  // "confirmed" (null for older rows and for one-off actions like a share).
+  status: string | null;
 };
 
 // A rescuer/foster/etc. responds to a specific animal — logged to the shared
@@ -41,6 +44,7 @@ export const addNetworkResponse = createServerFn({ method: "POST" })
       responderName: s("responderName") || "Someone",
       kind: s("kind") || "other",
       detail: s("detail") || null,
+      status: s("status") || null,
     };
   })
   .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {
@@ -54,6 +58,7 @@ export const addNetworkResponse = createServerFn({ method: "POST" })
         responder_name: data.responderName,
         kind: data.kind,
         detail: data.detail,
+        status: data.status,
       },
     });
     if (error) return { ok: false, error: error.message };
