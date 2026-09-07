@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
 import { createSharedReport, updateSharedReport, mergeReporterAdded, type ReporterAdded } from "@/lib/share.functions";
 import { MISSIONS, animalWord, type MissionId } from "@/lib/missions";
@@ -131,17 +130,12 @@ async function shrinkDataUrl(dataUrl: string, maxDim = 1400, quality = 0.82): Pr
 // facts (Case #, AI confidence, Reported by, Date) that used to hide behind the
 // "Case" pill, so the card reads at a glance like the flyer.
 function profileChips(data: Assessment): { label: string; value: string }[] {
-  const dateStr = data.reportedAt ? new Date(data.reportedAt).toLocaleDateString() : "";
   return [
     { label: "Species", value: data.species },
     { label: "Breed", value: data.breed },
     { label: "Age", value: data.age },
     { label: "Size", value: data.size },
     { label: "Weight", value: formatWeight(data.weight) },
-    { label: "Color", value: data.color },
-    { label: "Case #", value: data.caseId ?? "" },
-    { label: "AI confidence", value: data.ai_confidence ? cap(data.ai_confidence) : "" },
-    { label: "Date", value: dateStr },
   ].filter((c) => c.value && !/^unknown$/i.test(String(c.value))) as { label: string; value: string }[];
 }
 
