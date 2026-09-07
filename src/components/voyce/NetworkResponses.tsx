@@ -45,6 +45,23 @@ const KINDS: Record<string, KindMeta> = {
   boarding:      { label: "can offer boarding · temporary space", dot: "#B45309", icon: "🛏", chip: "Boarding" },
   other:         { label: "wants to help", dot: "#8A5A0E" },
 };
+
+// Where a helper is in their commitment — an optional, evolving progress marker
+// shown as a small colored pill in the live feed. Distinct from `kind` (WHAT
+// they offered) and `detail` (what's still needed). Null for older rows and for
+// one-off actions like a share.
+type StatusMeta = { label: string; bg: string };
+const STATUSES: { id: string; label: string }[] = [
+  { id: "offered",    label: "Offered" },
+  { id: "on_the_way", label: "On the way" },
+  { id: "confirmed",  label: "Confirmed" },
+];
+const STATUS_META: Record<string, StatusMeta> = {
+  offered:    { label: "Offered",    bg: "#B08400" },
+  on_the_way: { label: "On the way", bg: "#2563EB" },
+  confirmed:  { label: "Confirmed",  bg: "#12805C" },
+};
+
 // The tappable actions, in order. Each role (all but "share") opens the
 // commitment popup; "share" posts directly and lets the host open its share UI.
 const ACTIONS = ["foster_rescue", "adopt", "rescue", "transport", "pledge", "share"] as const;
@@ -137,9 +154,11 @@ export function NetworkResponses({
   const [draft, setDraft] = useState("");
   const [items, setItems] = useState<NetworkResponse[]>([]);
   const [busy, setBusy] = useState(false);
-  // Commitment popup — the role the responder tapped + what else they still need.
+  // Commitment popup — the role the responder tapped + what else they still
+  // need + where they're at (status).
   const [commitRole, setCommitRole] = useState<string | null>(null);
   const [needs, setNeeds] = useState<Record<string, boolean>>({});
+  const [commitStatus, setCommitStatus] = useState<string>("offered");
   // "More ways to help" sheet (opened by the ➕ Other pill) + its free-text draft.
   const [showMore, setShowMore] = useState(false);
   const [customText, setCustomText] = useState("");
@@ -171,12 +190,14 @@ export function NetworkResponses({
 
   // Post a response to the shared feed. `detail` carries the "still needs …"
   // phrase (or the free-text "Something else" answer) so it shows in the feed.
-  const respond = async (kind: string, detail?: string) => {
+  // `status` is the optional commitment-progress marker (offered / on_the_way /
+  // confirmed) shown as a pill.
+  const respond = async (kind: string, detail?: string, status?: string) => {
     if (!name || busy) return;
     setBusy(true);
     try {
       await addNetworkResponse({
-        data: { subjectType, subjectId, animalName, responderName: name, kind, detail: detail ?? null },
+        data: { subjectType, subjectId, animalName, responderName: name, kind, detail: detail ?? null, status: status ?? null },
       });
       await refresh();
     } catch { /* ignore */ } finally {
@@ -188,6 +209,7 @@ export function NetworkResponses({
     if (!name) return;
     setCommitRole(role);
     setNeeds({});
+    setCommitStatus("offered");
   };
 
   const submitCustom = () => {
@@ -231,6 +253,7 @@ export function NetworkResponses({
         <ul className="mt-3 space-y-1.5">
           {items.map((r) => {
             const meta = KINDS[r.kind] ?? KINDS.other;
+            const statusMeta = r.status ? STATUS_META[r.status] : undefined;
             // Free-text "Something else" shows verbatim; a role commitment shows
             // its label plus any "still needs …" detail the responder added.
             const sub = r.kind === "other"
@@ -241,7 +264,12 @@ export function NetworkResponses({
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ background: meta.dot }}>{initials(r.responder_name)}</span>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[13px] font-semibold text-foreground/90">{r.responder_name}</div>
-                  <div className="truncate text-[12px] text-muted-foreground">{sub}</div>
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    {statusMeta && (
+                      <span className="shrink-0 rounded-full px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-white" style={{ background: statusMeta.bg }}>{statusMeta.label}</span>
+                    )}
+                    <span className="truncate text-[12px] text-muted-foreground">{sub}</span>
+                  </div>
                 </div>
                 {meta.chip && (
                   <span className="shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-bold text-white" style={{ background: meta.dot }}>{meta.chip}</span>
@@ -331,8 +359,8 @@ export function NetworkResponses({
       )}
 
       {/* Commitment popup — opened by a role pill. Pick what else is still
-          needed (optional), then it posts to the live feed above with both the
-          role and the "still needs …" detail. */}
+          needed (optional) and where you're at (status), then it posts to the
+          live feed above with the role, the "still needs …" detail, and status. */}
       {commitRole && (() => {
         const covers = ROLE_COVERS[commitRole] ?? "";
         const askable = STILL_NEEDS.filter((n) => n.id !== covers);
@@ -345,7 +373,7 @@ export function NetworkResponses({
             "still needs " + (list.length === 1
               ? list[0]
               : list.slice(0, -1).join(", ") + " and " + list[list.length - 1]);
-          void respond(commitRole, phrase);
+          void respond(commitRole, phrase, commitStatus);
           onAction?.(commitRole);
           setCommitRole(null);
           setNeeds({});
@@ -375,6 +403,26 @@ export function NetworkResponses({
                   );
                 })}
               </div>
+
+              {/* Where are you at? — the status pill that shows in the feed. */}
+              <div className="mt-4">
+                <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">Where are you at?</div>
+                <div className="mt-2 flex gap-1.5">
+                  {STATUSES.map((st) => {
+                    const on = commitStatus === st.id;
+                    const bg = STATUS_META[st.id].bg;
+                    return (
+                      <button key={st.id} type="button" onClick={() => setCommitStatus(st.id)}
+                        aria-pressed={on}
+                        className="flex-1 rounded-full px-2 py-1.5 text-[11.5px] font-bold transition active:scale-95"
+                        style={on ? { background: bg, color: "#fff", borderColor: "transparent" } : { background: "#fff", color: "#6B5832", border: "1px solid #E3DAC4" }}>
+                        {st.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="mt-4 flex items-center justify-end gap-2">
                 <button type="button" onClick={() => setCommitRole(null)} className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium">Cancel</button>
                 <button type="button" disabled={busy} onClick={accept}
