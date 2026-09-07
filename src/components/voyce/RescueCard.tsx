@@ -236,6 +236,8 @@ export function RescueCard({
   // "Add what Voyce missed" — reporter's manual add for a second animal the AI
   // didn't catch or any detail it got wrong. `missed` is the saved text.
   const [showMissed, setShowMissed] = useState(false);
+  const [showAllSeen, setShowAllSeen] = useState(false);
+  const [showSafety, setShowSafety] = useState(false);
   // Structured "what Voyce missed / got wrong" — animal type, what's happening,
   // what the photo can't show (witnessed), plus a free-text note.
   const [mAnimal, setMAnimal] = useState("");
@@ -851,9 +853,15 @@ export function RescueCard({
               <div className="mt-3">
                 <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">What Voyce saw</div>
                 <div className="flex flex-wrap gap-1.5">
-                  {seenChips.map((c, i) => (
+                  {(showAllSeen ? seenChips : seenChips.slice(0, 3)).map((c, i) => (
                     <span key={i} className="rounded-full border border-[#F3E5B6] bg-[#FFF6D6] px-2.5 py-1 text-[12px] text-[#3A2A07]">{c}</span>
                   ))}
+                  {seenChips.length > 3 && (
+                    <button type="button" onClick={() => setShowAllSeen((v) => !v)}
+                      className="rounded-full border border-[#E3DAC4] bg-white px-2.5 py-1 text-[12px] font-semibold text-[#8A5A0E] transition active:scale-95">
+                      {showAllSeen ? "Show less" : `See all ${seenChips.length}`}
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -933,7 +941,14 @@ export function RescueCard({
           {/* SAFETY notes + one combined confirm — from the shared cardShared
               module so the copy matches the public /r card exactly (no drift).
               The confirm is an acknowledgment; it no longer hard-blocks responding. */}
-          <div className="mx-5 mt-5"><SafetyNotes /></div>
+          <div className="mx-5 mt-5">
+            <button type="button" onClick={() => setShowSafety((v) => !v)} aria-expanded={showSafety}
+              className="flex w-full items-center justify-between rounded-2xl border border-[#EDE5D8] bg-[#FBF7EC] px-4 py-3 text-left transition active:scale-[0.99]">
+              <span className="text-[12.5px] font-semibold text-[#6B5832]">AI observations, not a diagnosis — safety and limits</span>
+              <span className="text-[12px] font-bold text-[#8A5A0E]">{showSafety ? "Hide" : "Why?"}</span>
+            </button>
+            {showSafety && <div className="mt-3"><SafetyNotes /></div>}
+          </div>
           <ConfirmGate ok={respondOk} onToggle={() => setRespondOk((v) => !v)} className="mx-5 mt-4 w-[calc(100%-2.5rem)]" />
 
           {/* How the pack responds — pills respond on tap. */}
