@@ -238,11 +238,14 @@ export function NetworkResponses({
               : (meta.label + (r.detail ? ` · ${r.detail}` : ""));
             return (
               <li key={r.id} className="flex items-center gap-2.5 rounded-xl border border-[#EDE5D8] bg-white px-3 py-2">
-                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: meta.dot }} />
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ background: meta.dot }}>{initials(r.responder_name)}</span>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[13px] font-semibold text-foreground/90">{r.responder_name}</div>
                   <div className="truncate text-[12px] text-muted-foreground">{sub}</div>
                 </div>
+                {meta.chip && (
+                  <span className="shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-bold text-white" style={{ background: meta.dot }}>{meta.chip}</span>
+                )}
                 <span className="shrink-0 text-[11px] text-muted-foreground">{relTime(r.created_at)}</span>
               </li>
             );
