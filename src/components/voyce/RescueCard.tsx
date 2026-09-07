@@ -956,6 +956,7 @@ export function RescueCard({
           {reportId && (
             <div className="mt-5 border-t border-[#EDE5D8]">
               <NetworkResponses subjectType="report" subjectId={reportId} animalName={shareName(data)}
+                showJoinCta={false}
                 onAction={(kind) => { if (kind === "share") setShowShare(true); }} />
             </div>
           )}
