@@ -1,3 +1,4 @@
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import type { Assessment } from "@/lib/analyze.functions";
 import { createSharedReport, updateSharedReport, mergeReporterAdded, type ReporterAdded } from "@/lib/share.functions";
 import { MISSIONS, animalWord, type MissionId } from "@/lib/missions";
