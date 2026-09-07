@@ -445,7 +445,7 @@ export function NetworkResponses({
               <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
                 {isSam
                   ? <>Anyone nearby can help — even small things move {who} toward safety. <span className="italic">(Pick what fits — all optional.)</span></>
-                  : <>As the first to accept, you're the <span className="font-semibold text-foreground/80">lead</span>. What else does {who} still need to get all the way to safety? <span className="italic">(Optional — you can just commit.)</span></>}
+                  : <>Thank you for stepping up for {who}. What else do they still need to get all the way to safety? The pack carries the rest together. <span className="italic">(Optional — you can just commit.)</span></>}
               </p>
 
               {/* Good Samaritan: what can you do right now? */}
