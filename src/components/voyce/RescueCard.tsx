@@ -825,11 +825,12 @@ export function RescueCard({
             {chips.length > 0 && <div className="mt-3 border-t border-[#EDE5D8]" />}
 
             {chips.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-1.5">
+              <div className="mt-3 grid grid-cols-2 gap-2">
                 {chips.map((c) => (
-                  <span key={c.label} className="inline-flex items-center gap-1 rounded-full border border-[#EDE5D8] bg-white px-2.5 py-0.5 text-[11.5px] text-foreground/80">
-                    <span className="text-muted-foreground">{c.label}:</span><span className="font-medium text-foreground/90">{c.value}</span>
-                  </span>
+                  <div key={c.label} className="rounded-xl bg-[#FAF1DF] px-3 py-2.5">
+                    <div className="text-[10.5px] font-medium uppercase tracking-[0.04em] text-[#977A45]">{c.label}</div>
+                    <div className="mt-0.5 text-[14px] font-semibold text-[#2A1C0A]">{c.value}</div>
+                  </div>
                 ))}
               </div>
             )}
