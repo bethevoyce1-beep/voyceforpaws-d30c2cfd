@@ -137,6 +137,49 @@ async function downscaleDataUrl(
   });
 }
 
+// Auto-brighten a dark photo so the AI (and the viewer) can actually see the
+// animal. A web app can't turn on the iPhone's camera flash (iOS blocks it),
+// so if a capture comes in dark we lighten it in software. Non-data inputs
+// (bundled samples) pass through. Never throws — returns the original on any
+// failure or if the photo is already bright enough.
+async function autoBrighten(dataUrl: string, maxDim = 1600): Promise<string> {
+  if (!dataUrl.startsWith("data:")) return dataUrl;
+  return await new Promise<string>((resolve) => {
+    try {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          let w = img.naturalWidth || img.width;
+          let h = img.naturalHeight || img.height;
+          const largest = Math.max(w, h);
+          if (largest > maxDim) { const s = maxDim / largest; w = Math.round(w * s); h = Math.round(h * s); }
+          const canvas = document.createElement("canvas");
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { resolve(dataUrl); return; }
+          ctx.drawImage(img, 0, 0, w, h);
+          const imgData = ctx.getImageData(0, 0, w, h);
+          const px = imgData.data;
+          let sum = 0;
+          for (let i = 0; i < px.length; i += 4) sum += 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+          const avg = sum / (px.length / 4);
+          if (avg >= 70) { resolve(dataUrl); return; }
+          const boost = Math.min(2.4, 125 / Math.max(18, avg));
+          for (let i = 0; i < px.length; i += 4) {
+            px[i] = Math.min(255, px[i] * boost);
+            px[i + 1] = Math.min(255, px[i + 1] * boost);
+            px[i + 2] = Math.min(255, px[i + 2] * boost);
+          }
+          ctx.putImageData(imgData, 0, 0);
+          resolve(canvas.toDataURL("image/jpeg", 0.85));
+        } catch { resolve(dataUrl); }
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    } catch { resolve(dataUrl); }
+  });
+}
+
 // Pick the best available photo for an ACS animal — the scraper doesn't
 // populate thumb/photos yet, so this is often null and the ACS card / picker
 // fall back to a graceful placeholder.
@@ -270,7 +313,7 @@ function Home() {
         // "Load failed". Sample images (non data: URLs) pass through untouched.
         // The full-res `captured` is kept for on-screen display; only `small`
         // feeds the hash and the AI request.
-        const small = await downscaleDataUrl(dataUrl);
+        const small = await downscaleDataUrl(dataUrl, 1024, 0.78);
         // Anti-scam Tier 2 (July 5, 2026): real captures carry a perceptual
         // hash (30-day dedup) and time-on-page. Sample photos are exempt —
         // they're the demo flow and repeat by design.
@@ -337,7 +380,10 @@ function Home() {
       // Sample photos are bundled assets (not data: URLs) — the demo flow is
       // exempt from the anti-scam hash/timing checks.
       const isSample = !src.startsWith("data:");
-      const dataUrl = await toDataUrl(src);
+      let dataUrl = await toDataUrl(src);
+      // A web app can't control the iPhone flash, so brighten a dark capture in
+      // software before it's shown, saved, and read by the AI.
+      if (!isSample) dataUrl = await autoBrighten(dataUrl);
       setCaptured(dataUrl);
       setCaptureMeta(meta ?? null);
       setCapturedIsSample(isSample);
