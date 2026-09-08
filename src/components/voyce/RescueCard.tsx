@@ -127,6 +127,14 @@ async function shrinkDataUrl(dataUrl: string, maxDim = 1400, quality = 0.82): Pr
   }
 }
 
+// Stable placeholder case number (VFP-####) derived from the report time, so
+// the same card always shows the same number. TODO: swap for a real case id.
+function caseNo(seed: string): string {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return "VFP-" + String(h % 10000).padStart(4, "0");
+}
+
 // Every fact as a pill, shown up top — nothing tucked away. Includes the report
 // facts (Case #, AI confidence, Reported by, Date) that used to hide behind the
 // "Case" pill, so the card reads at a glance like the flyer.
@@ -869,20 +877,27 @@ export function RescueCard({
 
             <div className="mt-3 border-t border-[#EDE5D8]" />
 
-            {/* Detail pills — tap to expand, right under Voyce's read */}
+            {/* Detail pills — folded into one "AI details" expander so the
+                card stays calm; the report facts sit right above so the Type,
+                AI confidence, reporter, and date are never lost. */}
             <div className="mt-3">
               <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">More on this animal</div>
+
+              {/* Facts strip — nothing important tucked away */}
+              <div className="mb-2 flex flex-wrap gap-x-3 gap-y-1 text-[11.5px] text-muted-foreground">
+                <span>Case #: <span className="font-semibold text-foreground/80">{caseNo(reportedAt)}</span></span>
+                <span>Type: <span className="font-semibold text-foreground/80">{caseTypeLabel(data, mission)}</span></span>
+                {data.ai_confidence && <span>AI confidence: <span className="font-semibold text-foreground/80">{cap(String(data.ai_confidence))}</span></span>}
+                {reporterName.trim() && <span>Reported by: <span className="font-semibold text-foreground/80">{reporterName.trim()}</span></span>}
+                <span>Photo taken: <span className="font-semibold text-foreground/80">{takenStr}</span></span>
+              </div>
+
               <div className="flex flex-wrap gap-1.5">
-                {pills.map((p) => {
-                  const on = openPill === p.id;
-                  return (
-                    <button key={p.id} type="button" onClick={() => setOpenPill(on ? null : p.id)} aria-expanded={on}
-                      className="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition active:scale-95"
-                      style={on ? { background: "#1A1611", color: "#FFDF3B", borderColor: "#1A1611" } : { background: "#fff", color: "#6B5832", borderColor: "#E3DAC4" }}>
-                      <span>{p.icon}</span><span>{p.label}</span>
-                    </button>
-                  );
-                })}
+                <button type="button" onClick={() => setOpenPill(openPill === "ai" ? null : "ai")} aria-expanded={openPill === "ai"}
+                  className="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition active:scale-95"
+                  style={openPill === "ai" ? { background: "#1A1611", color: "#FFDF3B", borderColor: "#1A1611" } : { background: "#fff", color: "#6B5832", borderColor: "#E3DAC4" }}>
+                  <span>🔎</span><span>{openPill === "ai" ? "Hide AI details" : "AI details"}</span>
+                </button>
                 {!hasMissed && (
                   <button type="button" onClick={() => setShowMissed(true)}
                     className="inline-flex items-center gap-1 rounded-full border border-dashed px-3 py-1.5 text-[12.5px] font-semibold transition active:scale-95"
@@ -896,9 +911,14 @@ export function RescueCard({
                   <span>⚑</span><span>Doesn't look right</span>
                 </button>
               </div>
-              {openPill && (
-                <div className="mt-3 rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3.5">
-                  {pills.find((p) => p.id === openPill)!.render()}
+              {openPill === "ai" && (
+                <div className="mt-3 space-y-3 rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3.5">
+                  {pills.map((p) => (
+                    <div key={p.id}>
+                      <div className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-[#977A45]">{p.icon} {p.label}</div>
+                      <div className="mt-1">{p.render()}</div>
+                    </div>
+                  ))}
                 </div>
               )}
 
