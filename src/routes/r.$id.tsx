@@ -78,6 +78,14 @@ function formatWeight(w: string): string {
 }
 
 
+// Stable placeholder case number (VFP-####) from the report time — mirrors the
+// in-app card. TODO: swap for a real case id.
+function caseNo(seed: string): string {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return "VFP-" + String(h % 10000).padStart(4, "0");
+}
+
 function animalName(d: Assessment): string {
   const breed = d.breed && !/unknown|mixed/i.test(d.breed) ? d.breed : "";
   const s = (breed || d.species || "animal").trim();
@@ -125,18 +133,12 @@ function headline(d: Assessment, mission: string | undefined, tk: keyof typeof T
 // (Imported from cardShared so it stays identical to the in-app card.)
 
 function facts(d: Assessment): { label: string; value: string }[] {
-  const dateStr = d.reportedAt ? new Date(d.reportedAt).toLocaleDateString() : "";
   return [
     { label: "Species", value: d.species },
     { label: "Breed", value: d.breed },
     { label: "Age", value: d.age },
     { label: "Size", value: d.size },
     { label: "Weight", value: formatWeight(d.weight) },
-    { label: "Color", value: d.color },
-    { label: "Case #", value: d.caseId ?? "" },
-    { label: "AI confidence", value: d.ai_confidence ? cap(d.ai_confidence) : "" },
-    { label: "Reported by", value: (d as { reporterName?: string }).reporterName || "Reporter" },
-    { label: "Date", value: dateStr },
   ].filter((c) => c.value && !/^unknown$/i.test(String(c.value))) as { label: string; value: string }[];
 }
 
@@ -176,6 +178,8 @@ function SharePage() {
   const { id } = Route.useParams();
   const [idx, setIdx] = useState(0);
   const [openPill, setOpenPill] = useState<string | null>(null);
+  const [showAllSeen, setShowAllSeen] = useState(false);
+  const [showSafety, setShowSafety] = useState(false);
   // One combined confirm that the reader saw the AI limits + safety notes.
   // Soft-gates the "how the pack responds" actions below — mirrors the in-app card.
   const [respondOk, setRespondOk] = useState(false);
@@ -405,11 +409,12 @@ function SharePage() {
             ) : null}
 
             {chips.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-1.5">
+              <div className="mt-3 grid grid-cols-2 gap-2">
                 {chips.map((c) => (
-                  <span key={c.label} className="inline-flex items-center gap-1 rounded-full border border-[#EDE5D8] bg-white px-2.5 py-0.5 text-[11.5px] text-foreground/80">
-                    <span className="text-muted-foreground">{c.label}:</span><span className="font-medium">{c.value}</span>
-                  </span>
+                  <div key={c.label} className="rounded-xl bg-[#FAF1DF] px-3 py-2.5">
+                    <div className="text-[10.5px] font-bold uppercase tracking-wide text-[#977A45]">{c.label}</div>
+                    <div className="text-[14px] font-semibold text-[#2A1C0A]">{c.value}</div>
+                  </div>
                 ))}
               </div>
             )}
@@ -436,33 +441,49 @@ function SharePage() {
               <div className="mt-3">
                 <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">What Voyce saw</div>
                 <div className="flex flex-wrap gap-1.5">
-                  {seenChips.map((c, i) => (
+                  {(showAllSeen ? seenChips : seenChips.slice(0, 3)).map((c, i) => (
                     <span key={i} className="rounded-full border border-[#F3E5B6] bg-[#FFF6D6] px-2.5 py-1 text-[12px] text-[#3A2A07]">{c}</span>
                   ))}
+                  {seenChips.length > 3 && (
+                    <button type="button" onClick={() => setShowAllSeen((v) => !v)}
+                      className="rounded-full border border-[#E3DAC4] bg-white px-2.5 py-1 text-[12px] font-semibold text-[#8A5A0E] transition active:scale-95">
+                      {showAllSeen ? "Show less" : `See all ${seenChips.length}`}
+                    </button>
+                  )}
                 </div>
               </div>
             )}
 
 
-            {/* More on this animal — tap-to-open pills, same as the in-app card */}
+            {/* More on this animal — one "AI details" expander + facts line, to
+                match the in-app card. */}
             {pills.length > 0 && (
               <div className="mt-3">
                 <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">More on this animal</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {pills.map((p) => {
-                    const on = openPill === p.id;
-                    return (
-                      <button key={p.id} type="button" onClick={() => setOpenPill(on ? null : p.id)} aria-expanded={on}
-                        className="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition active:scale-95"
-                        style={on ? { background: "#1A1611", color: "#FFDF3B", borderColor: "#1A1611" } : { background: "#fff", color: "#6B5832", borderColor: "#E3DAC4" }}>
-                        <span>{p.icon}</span><span>{p.label}</span>
-                      </button>
-                    );
-                  })}
+
+                <div className="mb-2 flex flex-wrap gap-x-3 gap-y-1 text-[11.5px] text-muted-foreground">
+                  <span>Case #: <span className="font-semibold text-foreground/80">{d.caseId || caseNo(reportedAt)}</span></span>
+                  <span>Type: <span className="font-semibold text-foreground/80">{caseTypeLabel(d, mission)}</span></span>
+                  {d.ai_confidence && <span>AI confidence: <span className="font-semibold text-foreground/80">{cap(String(d.ai_confidence))}</span></span>}
+                  <span>Reported by: <span className="font-semibold text-foreground/80">{(d as { reporterName?: string }).reporterName || "Reporter"}</span></span>
+                  {takenStr && <span>Photo taken: <span className="font-semibold text-foreground/80">{takenStr}</span></span>}
                 </div>
-                {openPill && (
-                  <div className="mt-3 rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3.5">
-                    {pills.find((p) => p.id === openPill)!.render()}
+
+                <div className="flex flex-wrap gap-1.5">
+                  <button type="button" onClick={() => setOpenPill(openPill === "ai" ? null : "ai")} aria-expanded={openPill === "ai"}
+                    className="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition active:scale-95"
+                    style={openPill === "ai" ? { background: "#1A1611", color: "#FFDF3B", borderColor: "#1A1611" } : { background: "#fff", color: "#6B5832", borderColor: "#E3DAC4" }}>
+                    <span>🔎</span><span>{openPill === "ai" ? "Hide AI details" : "AI details"}</span>
+                  </button>
+                </div>
+                {openPill === "ai" && (
+                  <div className="mt-3 space-y-3 rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3.5">
+                    {pills.map((p) => (
+                      <div key={p.id}>
+                        <div className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-[#977A45]">{p.icon} {p.label}</div>
+                        <div className="mt-1">{p.render()}</div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -488,9 +509,14 @@ function SharePage() {
           </div>
         </article>
 
-        {/* SAFETY notes + one combined confirm — from the shared cardShared
-            module so the copy matches the in-app card exactly (no drift). */}
-        <div className="mt-5"><SafetyNotes /></div>
+        {/* SAFETY notes — collapsed behind a tap (matches the in-app card),
+            from the shared cardShared module so the copy can't drift. */}
+        <button type="button" onClick={() => setShowSafety((v) => !v)} aria-expanded={showSafety}
+          className="mt-5 flex w-full items-center justify-between gap-2 rounded-2xl border border-[#EDE5D8] bg-white px-4 py-3 text-left transition active:scale-[0.99]">
+          <span className="text-[12.5px] font-semibold text-[#6B5832]">⚠️ AI observations, not a diagnosis — safety and limits</span>
+          <span className="shrink-0 text-[12px] font-bold text-[#8A5A0E]">{showSafety ? "Hide" : "Why?"}</span>
+        </button>
+        {showSafety && <div className="mt-3"><SafetyNotes /></div>}
         <ConfirmGate ok={respondOk} onToggle={() => setRespondOk((v) => !v)} className="mt-4 w-full" />
 
         {/* How the pack responds — shared live ripple, soft-gated by the confirm above */}
