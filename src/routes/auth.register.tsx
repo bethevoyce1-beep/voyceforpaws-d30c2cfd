@@ -1,11 +1,22 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { signUpEmail, signInWithProvider } from "@/lib/auth";
+import { signUpEmail, signInWithProvider, authClient } from "@/lib/auth";
 import { VoyceMark } from "@/components/voyce/VoyceMark";
 
 // Join the Pack — account sign-up. Optional to use the app, but required to
 // report an animal (keeps the network trusted). Guests can "just look" instead.
 export const Route = createFileRoute("/auth/register")({ component: Register });
+
+// The ways a member can help — saved with their sign-up so we alert them for
+// the right animals. Optional; someone can join just to follow along.
+const ROLES: { id: string; icon: string; label: string }[] = [
+  { id: "rescuer",   icon: "🐾", label: "Rescuer" },
+  { id: "foster",    icon: "🏠", label: "Foster" },
+  { id: "vet",       icon: "🩺", label: "Vet" },
+  { id: "shelter",   icon: "🏛", label: "Shelter" },
+  { id: "volunteer", icon: "🙌", label: "Volunteer" },
+  { id: "animal_lover", icon: "💛", label: "Animal lover" },
+];
 
 function Register() {
   const nav = useNavigate();
@@ -15,6 +26,12 @@ function Register() {
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // Alert preferences folded into sign-up (all optional).
+  const [zip, setZip] = useState("");
+  const [roles, setRoles] = useState<string[]>([]);
+  const [phone, setPhone] = useState("");
+  const [wantText, setWantText] = useState(false);
+  const [smsConsent, setSmsConsent] = useState(false);
 
   const submit = async () => {
     setErr(null);
@@ -22,10 +39,28 @@ function Register() {
       setErr("Enter your name, a valid email, and a password of at least 8 characters.");
       return;
     }
+    if (wantText && !phone.trim()) { setErr("Add a phone number for text alerts, or uncheck it."); return; }
+    if (wantText && !smsConsent) { setErr("Please agree to receive texts, or uncheck text alerts."); return; }
     setBusy(true);
     try {
       const { data, error } = await signUpEmail(name.trim(), email.trim(), pw);
       if (error) { setErr(error.message); return; }
+      // Save the member's alert preferences (best-effort — never blocks the
+      // account). network_signups allows public inserts.
+      try {
+        const channels = wantText && smsConsent ? ["in_app", "text"] : ["in_app"];
+        await authClient().from("network_signups").insert({
+          name: name.trim() || null,
+          email: email.trim().toLowerCase(),
+          zip: zip.trim() || null,
+          phone: phone.trim() || null,
+          roles,
+          source: "auth_register",
+          alert_channels: channels,
+          alert_urgency: "critical",
+          sms_consent: wantText && smsConsent,
+        });
+      } catch { /* prefs are a bonus — ignore failures */ }
       // Zero-friction signup (like Final Fetch): if email confirmation is OFF,
       // sign-up returns a live session — drop them straight into the app. If
       // confirmation is ON there's no session yet, so send them to the
@@ -91,6 +126,44 @@ function Register() {
               className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-[13px] text-[#8A8175]">{show ? "🙈" : "👁"}</button>
           </div>
         </label>
+
+        {/* Alert preferences — so a verified member also gets the right alerts. */}
+        <div className="mt-5 rounded-2xl border border-[#EDE5D8] bg-[#FBF7EC] p-3.5">
+          <div className={label}>How can you help? <span className="font-normal normal-case text-[#8A8175]">(optional)</span></div>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {ROLES.map((r) => {
+              const on = roles.includes(r.id);
+              return (
+                <button key={r.id} type="button"
+                  onClick={() => setRoles((prev) => prev.includes(r.id) ? prev.filter((x) => x !== r.id) : [...prev, r.id])}
+                  className="rounded-full border-2 px-2.5 py-1 text-[12.5px] font-semibold transition active:scale-95"
+                  style={on ? { borderColor: "#FFDF3B", background: "#FFF7D6", color: "#8A5A0E" } : { borderColor: "#E3DAC4", background: "#fff", color: "#6B5832" }}>
+                  {r.icon} {r.label}
+                </button>
+              );
+            })}
+          </div>
+          <label className="mt-3 block">
+            <span className={label}>ZIP <span className="font-normal normal-case text-[#8A8175]">(for nearby alerts)</span></span>
+            <input value={zip} onChange={(e) => setZip(e.target.value)} inputMode="text" autoComplete="postal-code" placeholder="90210" className={input} />
+          </label>
+          <label className="mt-3 flex items-center gap-2.5 text-[13px] text-[#3A2A07]">
+            <input type="checkbox" checked={wantText} onChange={(e) => setWantText(e.target.checked)} className="h-4 w-4 accent-[#C9871A]" />
+            <span>💬 Also text me urgent alerts</span>
+          </label>
+          {wantText && (
+            <>
+              <label className="mt-2 block">
+                <span className={label}>Phone</span>
+                <input value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" inputMode="tel" autoComplete="tel" placeholder="555 555 5555" className={input} />
+              </label>
+              <label className="mt-2 flex items-start gap-2.5 text-[11.5px] leading-snug text-[#6B5832]">
+                <input type="checkbox" checked={smsConsent} onChange={(e) => setSmsConsent(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#C9871A]" />
+                <span>I agree to receive text alerts. Msg &amp; data rates may apply; reply STOP to opt out.</span>
+              </label>
+            </>
+          )}
+        </div>
 
         {err && <p className="mt-3 rounded-xl bg-[#FCE4E4] px-3 py-2 text-[12.5px] font-medium text-[#7E1F1F]">{err}</p>}
 
