@@ -502,7 +502,7 @@ function Home() {
         setStage("shelter");
         break;
       case "join":
-        setShowJoin(true);
+        if (typeof window !== "undefined") window.location.assign("/auth/register");
         break;
     }
   }, []);
@@ -742,7 +742,7 @@ function Home() {
         onClose={() => setShowDonate(false)}
         onJoin={() => {
           setShowDonate(false);
-          setShowJoin(true);
+          if (typeof window !== "undefined") window.location.assign("/auth/register");
         }}
       />
     </DonateContext.Provider>
