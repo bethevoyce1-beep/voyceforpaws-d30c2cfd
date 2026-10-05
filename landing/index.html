@@ -780,6 +780,8 @@ section#how.sec-alt{background:linear-gradient(180deg,#FAF7F0 0%,#F7F2E7 100%)}
 .pv-pill{background:#EEF0F2 !important;border-color:rgba(20,25,35,.08) !important;color:#434a52 !important}
 </style>
 <style id="sh-rotate-css">.sh-rotate{position:relative}.sh-rotate .sh-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.1s ease}.sh-rotate .sh-img.on{opacity:1}</style>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<style>.vsm-more>summary::-webkit-details-marker{display:none}.vsm-more>summary::marker{content:''}.vsm-more[open]>summary .vsm-chev{transform:rotate(180deg)}.vsm-chev{display:inline-block;transition:transform .18s}</style>
 </head>
 <body>
 <div class="intro-overlay" id="intro-overlay">
@@ -1859,7 +1861,7 @@ function voyceJoin(e){
         '<div class="vsm-field"><label class="vsm-label">Contact email <span class="vsm-opt">(email or phone required)</span></label><input class="vsm-input" name="contact_email" type="email" placeholder="you@yourshelter.org"></div>'+
         '<div class="vsm-field"><label class="vsm-label">Contact phone <span class="vsm-opt">(or email above)</span></label><input class="vsm-input" name="contact_phone" type="tel" placeholder="(555) 123-4567"></div>'+
         '<div class="vsm-field"><label class="vsm-label">ZIP code <span class="vsm-opt">so we know where the network is growing</span></label><input class="vsm-input" name="zip_code" required placeholder="e.g. 78201" pattern="[0-9]{5}(-[0-9]{4})?" title="5-digit ZIP or 5+4 format"></div>'+
-        '<div class="vsm-consent vsm-consent-clean"><input type="checkbox" id="vsmConsent" name="consent" required disabled><div class="vsm-consent-text">I agree to the <a href="javascript:void(0)" onclick="vsmOpenLegal(\'both\')" id="vsmLinkBoth">Privacy Policy and Terms of Use</a>.</div></div>'+
+        '<div class="vsm-consent vsm-consent-clean" id="vsmConsentRow" onclick="vsmConsentRowClick(event)"><input type="checkbox" id="vsmConsent" name="consent" required disabled><div class="vsm-consent-text" id="vsmConsentText">I agree to the <a href="javascript:void(0)" onclick="vsmOpenLegal(\'both\')" id="vsmLinkBoth">Privacy Policy and Terms of Use</a>.</div></div>'+
         '<div class="vsm-error" id="vsmErr" style="display:none"></div>'+
         '<button class="vsm-submit" type="submit" id="vsmBtn">Add shelter to the network &rarr;</button>'+
       '</form>';
@@ -1875,7 +1877,7 @@ function voyceJoin(e){
         '<div class="vsm-field"><label class="vsm-label">Contact email</label><input class="vsm-input" name="contact_email" type="email" required placeholder="you@rescue.org"></div>'+
         '<div class="vsm-field"><label class="vsm-label">Animals pulled per month <span class="vsm-opt">(optional)</span></label><input class="vsm-input" name="animals_per_month" type="number" min="0" placeholder="e.g. 25"></div>'+
         '<div class="vsm-field"><label class="vsm-label">Capacity / criteria filters <span class="vsm-opt">(optional)</span></label><textarea class="vsm-textarea" name="capacity_filters" placeholder="e.g. medium-large dogs, no behavioral, transport from TX/OK"></textarea></div>'+
-        '<div class="vsm-consent vsm-consent-clean"><input type="checkbox" id="vsmConsent" name="consent" required disabled><div class="vsm-consent-text">I agree to the <a href="javascript:void(0)" onclick="vsmOpenLegal(\'both\')" id="vsmLinkBoth">Privacy Policy and Terms of Use</a>.</div></div>'+
+        '<div class="vsm-consent vsm-consent-clean" id="vsmConsentRow" onclick="vsmConsentRowClick(event)"><input type="checkbox" id="vsmConsent" name="consent" required disabled><div class="vsm-consent-text" id="vsmConsentText">I agree to the <a href="javascript:void(0)" onclick="vsmOpenLegal(\'both\')" id="vsmLinkBoth">Privacy Policy and Terms of Use</a>.</div></div>'+
         '<div class="vsm-error" id="vsmErr" style="display:none"></div>'+
         '<button class="vsm-submit" type="submit" id="vsmBtn">Join the rescue network &rarr;</button>'+
       '</form>';
@@ -1912,12 +1914,14 @@ function voyceJoin(e){
     return [
       '<div class="vsm-kicker">Join the Voyce Pack</div>',
       '<div class="vsm-title">Join the people who save them all.</div>',
-      '<p class="vsm-sub">Become part of the pack (network) that answers when animals need help &mdash; injured strays, lost pets, shelter dogs, and more.</p>',
+      '<p class="vsm-sub">Get an alert the moment an animal near you needs help &mdash; an injured stray, a lost pet, a shelter dog running out of time. Then help however you can.</p>',
       '<form onsubmit="vsmStep1(event)">',
         '<div class="vsm-field"><label class="vsm-label">Email</label><input class="vsm-input" name="email" type="email" required placeholder="you@email.com"></div>',
         '<div class="vsm-field"><label class="vsm-label">ZIP code</label><input class="vsm-input" name="zip" required placeholder="e.g. 78201" inputmode="numeric" oninput="vsmZipFill(this.value)"></div>',
-        '<div class="vsm-field"><label class="vsm-label">State <span class="vsm-opt">(auto-fills from ZIP)</span></label><select class="vsm-input" name="state" id="vsmS1State" onchange="this.setAttribute(\'data-touched\',\'1\')">'+stateOptsHtml()+'</select></div>',
-        '<div class="vsm-field"><label class="vsm-label">How can you help? <span class="vsm-opt">everyone can do something — pick any (optional)</span></label>',
+        '<div class="vsm-field" id="vsmStateRow" style="display:none"><label class="vsm-label">State <span class="vsm-opt">(from your ZIP &mdash; change it if it\'s wrong)</span></label><select class="vsm-input" name="state" id="vsmS1State" onchange="this.setAttribute(\'data-touched\',\'1\')">'+stateOptsHtml()+'</select></div>',
+        '<p style="margin:2px 0 10px;font-size:12.5px;line-height:1.45;color:var(--slate)">&#9889; Just your <b>email &amp; ZIP</b> is all it takes &mdash; everything below is optional.</p>',
+        '<details class="vsm-more" open style="margin:2px 0 4px;border-top:1px solid #EFE9DC;border-bottom:1px solid #EFE9DC">'+'<summary style="cursor:pointer;list-style:none;padding:11px 2px;font-size:13.5px;font-weight:700;color:#C48D15">'+'How can you help? <span style="font-weight:500;color:var(--slate)">&mdash; optional</span> <span class="vsm-chev">&#9662;</span>'+'</summary>',
+        '<div class="vsm-field">',
           '<div class="vsm-role-pills" id="vsmRolePrimary">',
             primaryPill('🐾 I just want to follow along for now','Animal Lover'),
             primaryPill('❤️ I can adopt','Adopter'),
@@ -1941,10 +1945,13 @@ function voyceJoin(e){
             +'<strong>&#128062; Run a rescue?</strong><br>No rush &mdash; you can just finish joining the Pack below to follow along and get to know us. When you&rsquo;re ready, '
             +'<a href="register-rescue.html" target="_blank" rel="noopener" style="color:#C48D15;font-weight:700;text-decoration:underline">register your rescue &rarr;</a> so Voyce brings your urgent animals to nearby fosters and adopters.</div>',
         '</div>',
-        '<p style="margin:4px 0 0;font-size:12px;line-height:1.45;color:var(--slate)">&#9889; Just your <b>email &amp; ZIP</b> is all it takes. Everything else is optional &mdash; and after you join you can set up alerts now <b>or have us email you a link to finish later</b>.</p>',
-        '<div class="vsm-consent vsm-consent-clean"><input type="checkbox" id="vsmConsent" name="consent" required><div class="vsm-consent-text">I agree to the <a href="javascript:void(0)" onclick="vsmOpenLegal(\'both\')">Privacy Policy and Terms of Use</a>.</div></div>',
+        '</details>',
+        '<label style="display:flex;gap:10px;align-items:flex-start;margin:10px 0 2px;padding:11px 13px;border:1px solid rgba(201,141,21,.28);background:rgba(201,141,21,.07);border-radius:12px;font-size:13px;line-height:1.45;color:#4a4033;cursor:pointer"><input type="checkbox" id="vsmBeta" name="beta_tester" style="margin-top:2px;width:16px;height:16px;accent-color:#C48D15;flex:none"><span>&#129514; <b>Help test Voyce before launch.</b> Add me to the early testing team.</span></label>',
+        '<div class="vsm-consent vsm-consent-clean" id="vsmConsentRow" onclick="vsmConsentRowClick(event)"><input type="checkbox" id="vsmConsent" name="consent" required><div class="vsm-consent-text" id="vsmConsentText">I agree to the <a href="javascript:void(0)" onclick="vsmOpenLegal(\'both\')">Privacy Policy and Terms of Use</a>.</div></div>',
+        '<div id="vsmTurnstile" style="margin:12px 0 2px"></div>',
         '<div class="vsm-error" id="vsmErr" style="display:none"></div>',
         '<button class="vsm-submit" type="submit" id="vsmBtn">Join the Pack &rarr;</button>',
+        '<button type="button" onclick="vsmClose()" style="display:block;margin:10px auto 0;background:none;border:none;color:var(--slate);font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px">Not now</button>',
       '</form>'
     ].join('');
   }
@@ -2035,6 +2042,53 @@ function voyceJoin(e){
   window.vsmMoreRoles=function(btn){ var m=document.getElementById('vsmRoleMore'); if(m){ m.style.display='flex'; } if(btn){ btn.style.display='none'; } };
   window.vsm2Where=function(btn,mode){ var sib=btn.parentNode.querySelectorAll('.vsm-role-pill'); for(var i=0;i<sib.length;i++) sib[i].classList.remove('on'); btn.classList.add('on'); var w=document.getElementById('vsm2StateWrap'); if(w) w.style.display=(mode==='mine')?'':'none'; };
   window.vsmLoadCount=function(){ if(typeof sb==='undefined'||!sb) return; try{ sb.rpc('network_pack_count').then(function(res){ if(res&&!res.error&&typeof res.data==='number'&&res.data>0){ var c=document.getElementById('vsmCount'); if(c){ c.textContent=res.data.toLocaleString(); var wrap=document.getElementById('vsmCountWrap'); if(wrap) wrap.style.display=''; } } }); }catch(e){} };
+  var VSM_JOIN_URL='https://okmukfrhvqkxphzueqww.supabase.co/functions/v1/join-pack';
+  var VSM_TS_SITEKEY='0x4AAAAAAFNSlTfPv8VHL-ko';
+  window.vsmTsToken=''; window.vsmTsWidget=null;
+  window.vsmTsTries=0;
+  window.vsmRenderTurnstile=function(){
+    window.vsmTsToken=''; window.vsmTsWidget=null; window.vsmTsTries=0;
+    function note(msg){
+      var e=document.getElementById('vsmErr');
+      if(!e) return;
+      if(msg===''){ e.style.display='none'; e.textContent=''; return; }
+      e.textContent=msg; e.style.display='';
+    }
+    function render(){
+      var el=document.getElementById('vsmTurnstile');
+      if(!el || !window.turnstile) return;
+      el.innerHTML='';
+      try{
+        window.vsmTsWidget=window.turnstile.render('#vsmTurnstile',{
+          sitekey:VSM_TS_SITEKEY, theme:'light',
+          callback:function(t){ window.vsmTsToken=t; note(''); },
+          'expired-callback':function(){
+            // Tokens go stale after a few minutes. Quietly get a fresh one
+            // rather than failing when they finally press the button.
+            window.vsmTsToken='';
+            try{ if(window.turnstile && window.vsmTsWidget!=null) window.turnstile.reset(window.vsmTsWidget); }catch(_e){}
+          },
+          'error-callback':function(){
+            window.vsmTsToken='';
+            // Retry on its own before telling anyone anything. Most failures
+            // here are a slow or momentarily blocked network, not a dead end.
+            if(window.vsmTsTries < 3){
+              window.vsmTsTries++;
+              note('Checking you\u2019re human\u2026 one moment.');
+              setTimeout(render, 1500 * window.vsmTsTries);
+            } else {
+              note('The security check isn\u2019t loading. Please refresh the page and try again.');
+            }
+          }
+        });
+      }catch(_e){}
+    }
+    if(window.turnstile){ render(); return; }
+    var n=0, iv=setInterval(function(){
+      if(window.turnstile){ clearInterval(iv); render(); }
+      else if(++n>75){ clearInterval(iv); note('The security check isn\u2019t loading. Please refresh the page and try again.'); }
+    },200);
+  };
   window.vsmStep1=function(e){
     e.preventDefault(); var form=e.target;
     var email=(form.email && form.email.value||'').trim();
@@ -2042,6 +2096,7 @@ function voyceJoin(e){
     var stv=(form.state && form.state.value||'').trim();
     var roleEl=document.getElementById('vsmRoleVal'); var role=roleEl?roleEl.value:'';
     var consent=document.getElementById('vsmConsent');
+    var betaEl=document.getElementById('vsmBeta'); var beta=!!(betaEl&&betaEl.checked);
     var err=document.getElementById('vsmErr');
     function fail(m){ if(err){ err.textContent=m; err.style.display=''; } }
     if(!email){ return fail('Please enter your email.'); }
@@ -2049,15 +2104,19 @@ function voyceJoin(e){
     if(consent && !consent.checked){ return fail('Please agree to the Privacy Policy and Terms.'); }
     var btn=document.getElementById('vsmBtn'); if(btn){ btn.disabled=true; btn.textContent='Joining…'; }
     function uuid(){ return (window.crypto&&crypto.randomUUID)?crypto.randomUUID():('x'+Date.now()+'-'+Math.random().toString(16).slice(2)); }
-    var id=uuid(), token=uuid(), nowIso=new Date().toISOString();
-    var record={ id:id, unsubscribe_token:token, email:email, zip:zip, state:stv||null, role:role||null, source:'network', consent_privacy:true, consent_terms:true, consent_at:nowIso, created_at:nowIso, alert_channels:['in_app','email'], alert_statuses:['immediate','b6spt','office_crit','outside_crit','euthanasia','scheduled'] };
-    vsmCtx={ id:id, token:token, role:role, state:stv };
+    var payload={ email:email, zip:zip, state:stv||null, role:role||null, source:'network',
+      beta_tester:beta, consent:true, turnstileToken:(window.vsmTsToken||'') };
     function go(){ var b=document.getElementById('vsmBody'); if(b) b.innerHTML=networkStep2(); vsmLoadCount(); try{ window.vsmAlertSync&&vsmAlertSync(); window.vsmSyncWhen&&vsmSyncWhen(); window.vsmSyncStates&&vsmSyncStates(); window.vsmStateCount&&vsmStateCount(); }catch(_e){} if(window.trackEvent) window.trackEvent('vsm_step1',{ role: role||null }); }
-    if(typeof sb==='undefined'||!sb){ go(); return; }
-    sb.from('network_signups').insert([record]).then(function(res){
-      if(res && res.error){ if(btn){ btn.disabled=false; btn.textContent='Try again'; } fail(res.error.message||'Something went wrong. Please try again.'); }
-      else { go(); }
-    }).catch(function(){ if(btn){ btn.disabled=false; btn.textContent='Try again'; } fail('Something went wrong. Please try again.'); });
+    function again(m){ if(btn){ btn.disabled=false; btn.textContent='Try again'; } try{ if(window.turnstile&&window.vsmTsWidget!=null) window.turnstile.reset(window.vsmTsWidget); }catch(_e){} window.vsmTsToken=''; fail(m); }
+    if(!payload.turnstileToken){ return again('Just a moment \u2014 still checking you\u2019re human. Try again in a few seconds.'); }
+    fetch(VSM_JOIN_URL,{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) })
+      .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ return { ok:r.ok, j:j }; }); })
+      .then(function(res){
+        if(!res.ok || !res.j || !res.j.ok){ return again((res.j&&res.j.error)||'Something went wrong. Please try again.'); }
+        vsmCtx={ id:null, token:res.j.token, role:role, state:stv };
+        go();
+      })
+      .catch(function(){ again('Something went wrong. Please try again.'); });
   };
   window.vsmStep2=function(e){
     e.preventDefault();
@@ -2097,7 +2156,12 @@ function voyceJoin(e){
     return '';
   };
   window.vsmZipFill=function(zip){
-    var st=window.vsmZipState(zip); if(!st) return;
+    var st=window.vsmZipState(zip);
+    var row=document.getElementById('vsmStateRow');
+    // Show the state the moment the ZIP resolves, so people can see we read it
+    // right. Buried in an optional section, a wrong match goes unnoticed.
+    if(row) row.style.display = st ? '' : 'none';
+    if(!st) return;
     var sel=document.getElementById('vsmS1State');
     if(sel && !sel.getAttribute('data-touched')){ sel.value=st; }
   };
@@ -2430,7 +2494,30 @@ function voyceJoin(e){
       cb.checked = both;             // reading both checks it automatically
       cb.dispatchEvent(new Event('change', { bubbles: true }));
     }
+    // Say out loud what the gate wants. Without this the box just sits there
+    // unclickable with no reason given, which reads as a broken form.
+    var txt = document.getElementById('vsmConsentText');
+    if (txt) {
+      txt.innerHTML = both
+        ? '<b style="color:#C48D15">&#10003;</b> You&rsquo;ve read the <a href="javascript:void(0)" onclick="event.stopPropagation();vsmOpenLegal(\'both\')">Privacy Policy and Terms of Use</a>.'
+        : '&#128196; Read the <a href="javascript:void(0)" onclick="event.stopPropagation();vsmOpenLegal(\'both\')"><b>Privacy Policy and Terms of Use</b></a> to continue &rarr;';
+    }
+    var row = document.getElementById('vsmConsentRow');
+    if (row) {
+      row.style.cursor = both ? 'default' : 'pointer';
+      row.style.padding = '11px 13px';
+      row.style.borderRadius = '12px';
+      row.style.border = '1px solid ' + (both ? '#EAE6DE' : 'rgba(201,141,21,.38)');
+      row.style.background = both ? '#FAF8F5' : 'rgba(201,141,21,.09)';
+    }
   }
+  // Clicking anywhere on the row opens the documents while consent is locked.
+  window.vsmConsentRowClick = function(e){
+    var t = e && e.target;
+    if (t && (t.tagName === 'A' || t.id === 'vsmConsent')) return;
+    var cb = document.getElementById('vsmConsent');
+    if (cb && cb.disabled) vsmOpenLegal('both');
+  };
   window.vsmOpenLegal = function(which){
     var legal = document.getElementById('vsmLegalModal');
     var titleEl = document.getElementById('vsmLegalTitle');
@@ -2480,6 +2567,9 @@ function voyceJoin(e){
     else if (type === 'chooser') html = chooserForm();
     else                          html = networkForm(prefRole);
     body.innerHTML = html;
+
+    if (type !== 'shelter' && type !== 'rescue' && type !== 'chooser') { try { window.vsmRenderTurnstile && window.vsmRenderTurnstile(); } catch(_e){} }
+    try { var __n = body; while (__n) { if (__n.scrollTop) __n.scrollTop = 0; __n = __n.parentElement; } } catch(_e){}
     vsmResetLegalState();
     if (type !== 'shelter' && type !== 'rescue' && type !== 'chooser' && prefRole) {
       setTimeout(function(){
@@ -2779,5 +2869,6 @@ function voyceJoin(e){
 </script>
 
 <script>(function(){var g=document.querySelectorAll(".sh-rotate .sh-img");if(g.length<2)return;var i=0;setInterval(function(){g[i].classList.remove("on");i=(i+1)%g.length;g[i].classList.add("on");},5000);})();</script>
+<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "f657b5596f7d4938b873c49010d31f4d"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>

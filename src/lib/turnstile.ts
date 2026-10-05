@@ -1,5 +1,5 @@
 // Cloudflare Turnstile — site key is public by design.
-export const TURNSTILE_SITE_KEY = "0x4AAAAAADscO1BBFP1pq1TT";
+export const TURNSTILE_SITE_KEY = "0x4AAAAAAFNSlTfPv8VHL-ko";
 
 type TurnstileApi = {
   render: (

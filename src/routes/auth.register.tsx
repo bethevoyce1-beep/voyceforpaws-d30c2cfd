@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { authClient, signInWithProvider } from "@/lib/auth";
 import { VoyceMark } from "@/components/voyce/VoyceMark";
+import { TURNSTILE_SITE_KEY, loadTurnstile } from "@/lib/turnstile";
 
 // =============================================================
 // Join the Pack — the ONE unified sign-up used by both the app and the website
@@ -14,6 +15,8 @@ import { VoyceMark } from "@/components/voyce/VoyceMark";
 // The full breed list + ZIP→state map are extracted from the landing page so the
 // two stay identical.
 // =============================================================
+
+const JOIN_PACK_URL = "https://okmukfrhvqkxphzueqww.supabase.co/functions/v1/join-pack";
 
 export const Route = createFileRoute("/auth/register")({ component: Register });
 
@@ -123,7 +126,32 @@ function Register() {
   const [role, setRole] = useState("");
   const [consent, setConsent] = useState(false);
   // The created signup's id + token, so step 2 can finish it.
-  const [ctx, setCtx] = useState<{ id: string; token: string } | null>(null);
+  // id is null when the signup merged into an existing row server-side; the
+  // token is what finish_network_signup matches on.
+  const [ctx, setCtx] = useState<{ id: string | null; token: string } | null>(null);
+  const [betaTester, setBetaTester] = useState(false);
+  const [tsToken, setTsToken] = useState("");
+  const tsBox = useRef<HTMLDivElement | null>(null);
+  const tsWidget = useRef<string | null>(null);
+
+  // Cloudflare Turnstile on step 1. The signup goes through the join-pack
+  // function, which refuses anything without a valid token.
+  useEffect(() => {
+    if (step !== 1) return;
+    let cancelled = false;
+    loadTurnstile()
+      .then((ts) => {
+        if (cancelled || !tsBox.current || tsWidget.current) return;
+        tsWidget.current = ts.render(tsBox.current, {
+          sitekey: TURNSTILE_SITE_KEY,
+          callback: (t: string) => setTsToken(t),
+          "expired-callback": () => setTsToken(""),
+          "error-callback": () => setTsToken(""),
+        });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [step]);
   // Step 2
   const [cats, setCats] = useState<Record<string, boolean>>({ injured: true, lost: true, shelter: true });
   const [species, setSpecies] = useState<string[]>([]);
@@ -202,7 +230,6 @@ function Register() {
     if (!consent) return setErr("Please agree to the Privacy Policy and Terms.");
     setBusy(true);
     try {
-      const id = uuid(), token = uuid(), nowIso = new Date().toISOString();
       // Verified account: passwordless magic link (matches the site's "email me
       // a link" style). Sends a confirmation link; account is created pending.
       try {
@@ -211,15 +238,25 @@ function Register() {
           options: { shouldCreateUser: true, emailRedirectTo: `${window.location.origin}/auth/login`, data: { name: name.trim() } },
         });
       } catch { /* don't block joining the list if the mailer hiccups */ }
-      // Lead + preferences record (public insert allowed).
-      await authClient().from("network_signups").insert([{
-        id, unsubscribe_token: token, email: email.trim().toLowerCase(), zip: zip.trim(),
-        name: name.trim() || null, state: state || null, role: role || null, source: "network",
-        consent_privacy: true, consent_terms: true, consent_at: nowIso, created_at: nowIso,
-        alert_channels: ["in_app", "email"],
-        alert_statuses: ["immediate", "b6spt", "office_crit", "outside_crit", "euthanasia", "scheduled"],
-      }]);
-      setCtx({ id, token });
+      // The signup row is written by the join-pack function, which verifies the
+      // Turnstile token first. The page no longer writes to the table itself.
+      const res = await fetch(JOIN_PACK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(), zip: zip.trim(),
+          name: name.trim() || null, state: state || null, role: role || null,
+          source: "network", beta_tester: betaTester, consent: true,
+          turnstileToken: tsToken,
+        }),
+      });
+      const out = await res.json().catch(() => ({} as { ok?: boolean; token?: string; error?: string }));
+      if (!res.ok || !out?.ok || !out?.token) {
+        try { if (window.turnstile && tsWidget.current) window.turnstile.reset(tsWidget.current); } catch { /* ignore */ }
+        setTsToken("");
+        throw new Error(out?.error || "Something went wrong — please try again.");
+      }
+      setCtx({ id: null, token: out.token });
       setStep(2);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Something went wrong — please try again.");
@@ -332,6 +369,13 @@ function Register() {
               <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#C9871A]" />
               <span>I agree to the <a href="/privacy" target="_blank" className="underline">Privacy Policy</a> and <a href="/terms" target="_blank" className="underline">Terms of Use</a>.</span>
             </label>
+
+            <label className="mt-4 flex items-start gap-2.5 rounded-2xl border-[1.5px] border-[#EAE6DE] bg-[#FAF8F5] px-3.5 py-2.5 text-[12.5px] leading-snug text-[#4A4033]">
+              <input type="checkbox" checked={betaTester} onChange={(e) => setBetaTester(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#C9871A]" />
+              <span>🧪 <strong>Help test Voyce before launch.</strong> Add me to the early testing team.</span>
+            </label>
+
+            <div ref={tsBox} className="mt-4" />
 
             {err && <p className="mt-3 rounded-xl bg-[#FCE4E4] px-3 py-2 text-[12.5px] font-medium text-[#7E1F1F]">{err}</p>}
             <button type="button" onClick={submit1} disabled={busy}
