@@ -47,6 +47,12 @@ Classification precedence (the right-side banner text beats a possibly-stale ken
      "euthanized on {future date}"                  -> scheduled (Euthanasia date set)
   9. otherwise (incl. "euthanized after {date}")    -> atrisk
 
+PDF LAYOUT NOTE (Sept 2026): ACS reorganised the per-animal block. The kennel
+left the animal-ID line and moved into its own labelled section, the stats
+header changed shape, and the euthanasia banner was reworded. The parsing below
+accepts BOTH the old and the current layouts so historical records still read
+correctly — see VAL_RE, parse_stats() and EUTH_BY_RE.
+
 Env vars:
   SUPABASE_URL                (optional; host auto-detected/fixed)
   SUPABASE_SERVICE_ROLE_KEY   (required)
@@ -102,17 +108,38 @@ SPECIES = {
 }
 
 DEMO_RE = re.compile(r"^\(([A-Z])\)\s*Estimated Age\s+(.*)$")
-VAL_RE = re.compile(r"^(A\d{6})(?!\d)\s+(\d{1,2}/\d{1,2}/\d{4})\s+(\S+)")
+# The kennel used to be the third token on the animal-ID line
+# ("A826358 09/16/2026 S4041"). ACS moved it into its own labelled block in
+# Sept 2026, so that token is simply absent now and requiring it meant due_out
+# and kennel were BOTH discarded. Optional keeps old records parsing too.
+VAL_RE = re.compile(r"^(A\d{6})(?!\d)\s+(\d{1,2}/\d{1,2}/\d{4})(?:\s+(\S+))?")
 ID_RE = re.compile(r"\b(A\d{6})(?!\d)")
 EUTH_ON_RE = re.compile(r"euthanized on\s+(\d{1,2}/\d{1,2}/\d{4})", re.I)
 EUTH_TODAY_RE = re.compile(r"euthanized today", re.I)
 EUTH_AFTER_RE = re.compile(r"euthanized after\s+(\d{1,2}/\d{1,2}/\d{4})", re.I)
+# ACS's current wording for the deadline. The banner reads
+#   "I need to leave with an approved transfer (rescue) partner, foster, or
+#    adopter by 10/07/2026 or I may be euthanized."
+# and wraps across lines in the extracted text, so this is matched against the
+# whole block rather than a single line. This is ACS's OWN published date — we
+# never infer or round a euthanasia date from anything else.
+EUTH_BY_RE = re.compile(
+    r"by\s+(\d{1,2}/\d{1,2}/\d{4})\s+or\s+I\s+may\s+be\s+euthanized", re.I
+)
 # The right-side euthanasia banner clause for a dog, stored verbatim as
 # status_text so drop-off reconciliation can tell a confirmed death
 # ("was/has been euthanized", "euthanized today") from a mere risk warning
 # ("could be euthanized after {date}").
 EUTH_TEXT_RE = re.compile(r"[^.\n]*euthaniz[^.\n]*", re.I)
-SIZEHDR_RE = re.compile(r"^(Size|Weight)\s+Days At Shelter\s+At Risk Since", re.I)
+# The stats block header. ACS has published it in several shapes:
+#   "Size Days At Shelter At Risk Since"            (old)
+#   "Weight Days At Shelter At Risk Since"          (old)
+#   "Kennel Size Days At Shelter"                   (current)
+#   "Kennel Weight Days At Shelter Heartworm Test"  (current)
+# so the columns are read by NAME instead of by fixed position.
+COLS_RE = re.compile(
+    r"Kennel|Size|Weight|Days At Shelter|At Risk Since|Heartworm Test", re.I
+)
 
 OG_RE = re.compile(r'property=["\']og:image["\'][^>]*content=["\']([^"\']+)', re.I)
 OG_RE2 = re.compile(r'content=["\']([^"\']+)["\'][^>]*property=["\']og:image["\']', re.I)
@@ -220,6 +247,34 @@ def split_demo(rest):
     return age_raw, color, breed
 
 
+def parse_stats(hdr_line, val_line):
+    """Map an ACS stats header to its value line by column NAME.
+
+    Returns a dict keyed by lowercased column name, or None when the line is
+    not a stats header (so ordinary prose such as "Kennel Presentation:" is
+    ignored).
+
+    Values are filled from the RIGHT because every column except Kennel is a
+    single token and Kennel is always leftmost — which means a kennel
+    containing a space, like "RESCUE OFC", still lands intact instead of
+    shunting every other column along by one.
+    """
+    cols = [c.lower() for c in COLS_RE.findall(hdr_line or "")]
+    if "days at shelter" not in cols:
+        return None
+    toks = (val_line or "").split()
+    out = {}
+    for col in reversed(cols):
+        if col == "kennel":
+            continue
+        if not toks:
+            break
+        out[col] = toks.pop()
+    if "kennel" in cols and toks:
+        out["kennel"] = " ".join(toks)
+    return out
+
+
 def classify(kennel, euth_on, euth_today, block_text):
     """Return (status_key, public_status).
 
@@ -321,17 +376,19 @@ def parse_rows(raw_text):
         if not aid:
             continue
 
-        weight = days = risk = None
+        # Stats block. Read by column name so the Sept 2026 reshuffle (Kennel
+        # moving in, At Risk Since dropping out, Heartworm Test appearing)
+        # doesn't silently blank these out again. kennel may already have been
+        # set from the old-style ID line; the stats block supplies it otherwise.
+        weight = days = risk = heartworm = None
         for j in range(i + 1, min(n, i + 8)):
-            hm = SIZEHDR_RE.match(lines[j].strip())
-            if hm:
-                vals = lines[j + 1].split() if j + 1 < n else []
-                if hm.group(1).lower() == "weight" and vals:
-                    weight = to_int(vals[0])
-                if len(vals) >= 2:
-                    days = to_int(vals[1])
-                if len(vals) >= 3:
-                    risk = parse_date_iso(vals[2])
+            st = parse_stats(lines[j].strip(), lines[j + 1] if j + 1 < n else "")
+            if st:
+                kennel = kennel or st.get("kennel")
+                weight = to_int(st.get("weight"))
+                days = to_int(st.get("days at shelter"))
+                risk = parse_date_iso(st.get("at risk since"))
+                heartworm = st.get("heartworm test")
                 break
 
         name = None
@@ -349,6 +406,14 @@ def parse_rows(raw_text):
         b_end = max(b_end, i + 1)
         block_text = "\n".join(lines[b_start:b_end])
         euth_today = bool(EUTH_TODAY_RE.search(block_text))
+        # Current ACS wording: "...adopter by {date} or I may be euthanized."
+        # It wraps across lines, so it is only findable in the whole block, not
+        # in the line-by-line scan above. Treated the same as the older
+        # "euthanized on {date}" — it is the shelter's own published deadline.
+        if not euth_on:
+            _by = EUTH_BY_RE.search(block_text)
+            if _by:
+                euth_on = _by.group(1)
         euth_on_iso = parse_date_iso(euth_on)
         # Capacity "could be euthanized after {date}" stays At risk (NOT a firm
         # euthanasia day). Surface the date on the card labeled "Euth after {date}".
@@ -442,7 +507,7 @@ def parse_rows(raw_text):
             "risk_since": risk,
             "euth_date": euth_date,
             "due_out": due_out,
-            "heartworm": None,
+            "heartworm": heartworm,
             "story": story,
             "status_text": status_text,
             "pet_search_url": f"https://webapp1.sanantonio.gov/PetSearch/Default.aspx?id={aid}",
@@ -626,6 +691,16 @@ def main():
     for r in rows:
         counts[r["status_key"]] = counts.get(r["status_key"], 0) + 1
     log(f"Status breakdown: {counts}")
+    # Field-capture heartbeat. ACS changed the PDF layout in Sept 2026 and the
+    # parser kept returning rows with every one of these blank for five weeks
+    # while the job stayed green. Log the fill rates so a repeat shows up in the
+    # run output instead of being noticed months later.
+    if rows:
+        _fill = {
+            f: sum(1 for r in rows if r.get(f) not in (None, ""))
+            for f in ("kennel", "due_out", "days", "weight", "euth_date", "heartworm")
+        }
+        log(f"Field capture ({len(rows)} rows): {_fill}")
     write_debug(PDF_URL, page_count, len(rows), raw_text, f"run={started}")
     if not rows:
         log("WARNING: 0 rows parsed. Check acs_pull_debug for raw layout.")
