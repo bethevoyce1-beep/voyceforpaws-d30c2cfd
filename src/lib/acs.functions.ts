@@ -181,7 +181,7 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
   unlisted: {
     key: "unlisted",
     section: "unlisted",
-    label: "At the shelter",
+    label: "New intake · not yet listed",
     meaning: "In the shelter's care but not on its adoption list. The shelter does not publish why.",
     action: "Ask the shelter about them. Adopt, foster, or rescue.",
     rank: 5.5,
@@ -224,7 +224,7 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
   stray_hold: {
     key: "stray_hold",
     section: "stray_hold",
-    label: "Stray hold",
+    label: "New · stray hold",
     meaning: "Recently found. Their owner still has time to claim them.",
     action: "If they are yours, call the shelter. Otherwise watch for the hold to end.",
     rank: 9.5,
@@ -241,7 +241,7 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
   in_foster: {
     key: "in_foster",
     section: "in_foster",
-    label: "In a foster home",
+    label: "In a foster home · unavailable",
     meaning: "In the shelter's care, living in a foster home rather than the kennel.",
     action: "Not on the adoption list. Ask the shelter about them.",
     rank: 9.75,
