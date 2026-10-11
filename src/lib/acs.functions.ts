@@ -2,16 +2,31 @@ import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 
 // ============================================================
-// ACS status model — plain-language, grouped for non-technical users.
+// Shelter status model — plain-language, grouped for non-technical users.
 //
 // The scraper writes a machine `status_key` and (usually) a human
 // `public_status` label. We prefer the stored `public_status` for display and
 // fall back to this mapping by `status_key`. Sections are ordered most-urgent
 // first; `euthanized` renders in its own memorial section at the bottom.
 //
-// `left` = the animal is no longer on ACS's list (outcome unknown). Those rows
-// are EXCLUDED from the app view entirely. Any status_key we don't recognize
-// maps to `unknown` — a visible tripwire so a new ACS format never hides a dog.
+// `left` = the animal is no longer on the shelter's list (outcome unknown).
+// Those rows are EXCLUDED from the app view entirely. Any status_key we don't
+// recognize maps to `unknown` — a visible tripwire so a new shelter format
+// never hides a dog.
+//
+// NOT EVERY SHELTER PUBLISHES THE SAME THINGS, and this table is where that
+// stops being an abstraction. San Antonio prints a per-animal euthanasia date,
+// so its tiers (`immediate`, `scheduled`, `highrisk`) are read off that date.
+// Cleveland never publishes a date, an outcome, or a reason — so a key whose
+// meaning depends on a deadline is simply false there, and the four Cleveland
+// keys below (`pulled`, `unlisted`, `stray_hold`, `in_foster`) describe which
+// of the city's two published lists an animal is on, and where the city says
+// it sleeps. Nothing more.
+//
+// Each entry's `meaning` is shown to the public as a statement of fact about a
+// real animal. Before reusing a key for a new shelter, read its `meaning` out
+// loud and ask whether that shelter actually publishes what it claims. If it
+// doesn't, add a key rather than borrowing one.
 // ============================================================
 
 export type AcsStatusKey =
@@ -22,7 +37,11 @@ export type AcsStatusKey =
   | "immediate"
   | "scheduled"
   | "highrisk"
+  | "pulled"
   | "atrisk"
+  | "unlisted"
+  | "stray_hold"
+  | "in_foster"
   | "office"
   | "adopthold"
   | "adoption"
@@ -42,7 +61,11 @@ export type AcsSectionId =
   | "critical_today"
   | "on_the_clock"
   | "high_risk"
+  | "off_adoption_list"
   | "urgent"
+  | "unlisted"
+  | "stray_hold"
+  | "in_foster"
   | "office"
   | "acs_adoption_hold"
   | "rescue_hold"
@@ -125,6 +148,20 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
     action: "Foster, rescue, or adopt as soon as possible.",
     rank: 4.5,
   },
+  // Cleveland. The shelter advertised this animal for adoption, then stopped,
+  // and it is still in the shelter's custody at the kennel. Cleveland publishes
+  // no euthanasia dates and no outcomes, so this transition is the strongest
+  // warning the city gives. It is read by comparing two published lists: the
+  // animal is absent from Adoptable Pets but present, as "Animal in Custody",
+  // on the Found Pets list.
+  pulled: {
+    key: "pulled",
+    section: "off_adoption_list",
+    label: "Off the adoption list",
+    meaning: "The shelter took them off its adoption list but still has them. No reason is published.",
+    action: "Ask the shelter about them. Adopt, foster, or rescue.",
+    rank: 4.6,
+  },
   atrisk: {
     key: "atrisk",
     section: "urgent",
@@ -132,6 +169,22 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
     meaning: "Could be euthanized if the shelter fills.",
     action: "Adopt, foster, or share.",
     rank: 5,
+  },
+  // Cleveland. Past any stray hold, and never put on the adoption list. Not a
+  // withdrawal - see `pulled` for that - the shelter simply has not listed
+  // them, and publishes no reason either way. Reported by the city as "Animal
+  // in Custody", like every other animal it holds.
+  //
+  // NOT NAMED `in_custody`: every animal on this board is in the shelter's
+  // custody, the 117 on the adoption list included. A key by that name reads
+  // like the umbrella and means a subset of 29.
+  unlisted: {
+    key: "unlisted",
+    section: "unlisted",
+    label: "New intake · not yet listed",
+    meaning: "In the shelter's care but not on its adoption list. The shelter does not publish why.",
+    action: "Ask the shelter about them. Adopt, foster, or rescue.",
+    rank: 5.5,
   },
   office: {
     key: "office",
@@ -164,6 +217,34 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
     meaning: "An ACS foster hold is in place.",
     action: "Share as backup in case the hold falls through.",
     rank: 9,
+  },
+  // Cleveland. Inside the legal window for an owner to reclaim a stray. The
+  // hold end is DERIVED - Ohio Revised Code 955.16 gives three days - because
+  // the city publishes an intake date but never a hold end. Say so when shown.
+  stray_hold: {
+    key: "stray_hold",
+    section: "stray_hold",
+    label: "New · stray hold",
+    meaning: "Recently found. Their owner still has time to claim them.",
+    action: "If they are yours, call the shelter. Otherwise watch for the hold to end.",
+    rank: 9.5,
+  },
+  // Cleveland. Living in a foster home rather than the kennel, and not on the
+  // adoption list. Distinct from `foster` above, which is San Antonio's formal
+  // foster HOLD - a placement in progress. This is simply where the animal
+  // sleeps, read from the city's own Location field.
+  //
+  // Only for animals NOT on the adoption list. A fostered animal that IS
+  // listed stays under `atrisk`, because adoptable is the fact a reader can
+  // act on; that it sleeps in a foster home is shown on the card instead.
+  // Today that is 34 animals here, against 13 under this key.
+  in_foster: {
+    key: "in_foster",
+    section: "in_foster",
+    label: "In a foster home · unavailable",
+    meaning: "In the shelter's care, living in a foster home rather than the kennel.",
+    action: "Not on the adoption list. Ask the shelter about them.",
+    rank: 9.75,
   },
   watch: {
     key: "watch",
@@ -221,7 +302,11 @@ export function normalizeStatusKey(raw: string | null | undefined): AcsStatusKey
     k === "immediate" ||
     k === "scheduled" ||
     k === "highrisk" ||
+    k === "pulled" ||
     k === "atrisk" ||
+    k === "unlisted" ||
+    k === "stray_hold" ||
+    k === "in_foster" ||
     k === "office" ||
     k === "adopthold" ||
     k === "adoption" ||
