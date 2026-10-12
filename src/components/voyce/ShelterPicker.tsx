@@ -31,7 +31,10 @@ const PAPER = "#FAF7F1";
 const INK = "#1A1611";
 
 type Props = {
-  onPick: (animal: AcsAnimal) => void;
+  // The picked animal travels with its shelter's own wording. Without it the
+  // detail view falls back to the shared table, whose `meaning` for `atrisk`
+  // asserts a euthanasia date — true in San Antonio, false in Cleveland.
+  onPick: (animal: AcsAnimal, guide?: Record<string, ShelterPill> | null) => void;
   onBack: () => void;
   onTakePhoto: () => void;
 };
@@ -435,7 +438,7 @@ function RowTimerBadge({ a }: { a: AcsAnimal }) {
   );
 }
 
-function AnimalRow({ a, onPick, onFollow, shelterName, guide }: { a: AcsAnimal; onPick: (a: AcsAnimal) => void; onFollow: (a: AcsAnimal) => void; shelterName: string; guide?: Record<string, ShelterPill> | null }) {
+function AnimalRow({ a, onPick, onFollow, shelterName, guide }: { a: AcsAnimal; onPick: (a: AcsAnimal, guide?: Record<string, ShelterPill> | null) => void; onFollow: (a: AcsAnimal) => void; shelterName: string; guide?: Record<string, ShelterPill> | null }) {
   const [showNote, setShowNote] = useState(false);
   const meta = metaOf(a);
   const section = SECTION_BY_ID[meta.section];
@@ -466,7 +469,7 @@ function AnimalRow({ a, onPick, onFollow, shelterName, guide }: { a: AcsAnimal; 
       style={{ borderLeft: `4px solid ${section.accent}` }}
     >
       <button
-        onClick={() => onPick(a)}
+        onClick={() => onPick(a, guide)}
         className="group flex w-full items-start gap-3 rounded-xl p-2.5 text-left transition hover:-translate-y-px hover:shadow-md active:scale-[0.99]"
       >
         <PhotoThumb a={a} />
