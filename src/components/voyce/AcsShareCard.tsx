@@ -6,10 +6,13 @@ import {
   ACS_STATUS_MODEL,
   normalizeStatusKey,
   statusLabel,
+  pillFor,
+  urgentFor,
   followAnimal,
   savePushSubscription,
   type AcsAnimal,
   type AcsStatusKey,
+  type ShelterPill,
 } from "@/lib/acs.functions";
 import {
   deadlineForAnimal,
@@ -593,9 +596,11 @@ function RescuePullForm({ animal }: { animal: AcsAnimal }) {
 export function AcsShareCard({
   animal,
   onContinue,
+  guide,
 }: {
   animal: AcsAnimal;
   onContinue: () => void;
+  guide?: Record<string, ShelterPill> | null;
 }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRole, setModalRole] = useState<NetworkRole | undefined>();
@@ -615,7 +620,9 @@ export function AcsShareCard({
 
   const statusKey = normalizeStatusKey(animal.status_key);
   const statusMeta = statusKey === "left" ? ACS_STATUS_MODEL.atrisk : ACS_STATUS_MODEL[statusKey];
-  const badgeLabel = statusLabel(animal);
+  const pill = pillFor(animal, guide);
+  const badgeLabel = pill.label;
+  const urgent = urgentFor(animal, guide);
   const chipColor = statusColor(statusKey === "left" ? "atrisk" : statusKey);
 
   // Time-critical statuses show the countdown / in-progress timer block.
@@ -829,10 +836,27 @@ export function AcsShareCard({
               <span className="font-bold" style={{ color: chipColor }}>
                 {badgeLabel}:
               </span>{" "}
-              {statusMeta.meaning}{" "}
-              <span className="text-[#6B7280]">{statusMeta.action}</span>
+              {pill.means}{" "}
+              <span className="text-[#6B7280]">{pill.action ?? statusMeta.action}</span>
             </p>
           </div>
+
+          {urgent ? (
+            <div
+              className="mx-5 mt-2 rounded-xl border-l-[4px] px-3.5 py-2.5"
+              style={{ background: "rgba(209,72,72,0.08)", borderColor: "#D14848" }}
+            >
+              <p className="text-[12.5px] leading-snug text-[#4B1212]">
+                <span className="font-bold" style={{ color: "#7E1F1F" }}>
+                  {urgent.label}:
+                </span>{" "}
+                {urgent.note ?? `Flagged as urgent by ${urgent.source}.`}{" "}
+                <span className="text-[#6B7280]">
+                  This is {urgent.source}&rsquo;s assessment, not the shelter&rsquo;s.
+                </span>
+              </p>
+            </div>
+          ) : null}
 
           {/* ===== TIME LEFT ===== */}
           {showTimer && (

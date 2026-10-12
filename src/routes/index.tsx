@@ -32,6 +32,7 @@ import {
   ACS_STATUS_MODEL,
   statusLabel,
   type AcsAnimal,
+  type ShelterPill,
 } from "@/lib/acs.functions";
 import { BrandHeader } from "@/components/voyce/BrandHeader";
 import { MISSIONS, isWildSpecies, type MissionId } from "@/lib/missions";
@@ -292,6 +293,9 @@ function Home() {
   const [animalIndex, setAnimalIndex] = useState(0);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [acsAnimal, setAcsAnimal] = useState<AcsAnimal | null>(null);
+  // The picked animal's shelter wording, carried from the board so the detail
+  // card renders the shelter's own words instead of the shared fallback table.
+  const [acsGuide, setAcsGuide] = useState<Record<string, ShelterPill> | null>(null);
   const [reportDetails, setReportDetails] = useState<ReportDetailsData | null>(null);
   const [aiPending, setAiPending] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -578,11 +582,12 @@ function Home() {
           <ShelterPicker
             onBack={() => setStage("mission")}
             onTakePhoto={() => handleTab("report")}
-            onPick={(animal: AcsAnimal) => {
+            onPick={(animal: AcsAnimal, guide?: Record<string, ShelterPill> | null) => {
               setMission("at-risk-shelter");
               setCaptured(acsPhoto(animal));
               setAssessment(assessmentFromAcs(animal));
               setAcsAnimal(animal);
+              setAcsGuide(guide ?? null);
               setStage("share");
             }}
           />
@@ -605,7 +610,7 @@ function Home() {
         stage === "share")
     ) {
       return withBack(
-        <AcsShareCard animal={acsAnimal} onContinue={() => setStage("timeline")} />
+        <AcsShareCard animal={acsAnimal} onContinue={() => setStage("timeline")} guide={acsGuide} />
       );
     }
 
@@ -683,6 +688,7 @@ function Home() {
         <AcsShareCard
           animal={acsAnimal}
           onContinue={() => setStage("timeline")}
+          guide={acsGuide}
         />
       );
     }
