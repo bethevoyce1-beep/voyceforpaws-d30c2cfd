@@ -411,6 +411,13 @@ export type AcsAnimal = {
   status: string | null;
   status_key: string | null;
   public_status: string | null;
+  /**
+   * This one animal's situation, in a sentence. Where `public_status` is the
+   * pill every animal in that state shares, this is what is true of THIS one:
+   * "we emailed the shelter about this dog on Oct 12 and have not been told
+   * anything." It is how one pill can cover several situations honestly.
+   */
+  status_text: string | null;
   story: string | null;
   pet_search_url: string | null;
   thumb: string | null;
@@ -440,6 +447,23 @@ export type ShelterPill = {
   means: string;
   note?: string;
   action?: string;
+  /**
+   * Show this state's animals UNDER another state's chip, naming that state's
+   * status_key. The animals keep their own status_key, their own section, their
+   * own heading and their own explanation — they just stop having a chip of
+   * their own.
+   *
+   * Cleveland: `pulled` sets this to `unknown`. A dog off the adoption list and
+   * a dog gone from every list are different facts and the headings still say
+   * so, but a reader looking for "we don't know" should find both in one place.
+   */
+  merge_into?: string | null;
+  /**
+   * Heading above this state's group of cards, when it should differ from the
+   * pill. Needed wherever `merge_into` is set: several states then share one
+   * pill name, and the heading is the only place left to say them apart.
+   */
+  section_title?: string | null;
   /**
    * Optional shorter label for the filter chip row only. Card badges and
    * section headers always use `label`. Cleveland's full wording
@@ -516,6 +540,7 @@ const SELECT_COLUMNS = [
   "status",
   "status_key",
   "public_status",
+  "status_text",
   "story",
   "pet_search_url",
   "thumb",
@@ -691,6 +716,7 @@ export const listAcsAnimals = createServerFn({ method: "GET" })
         status: (row.status as string | null) ?? null,
         status_key: (row.status_key as string | null) ?? null,
         public_status: (row.public_status as string | null) ?? null,
+        status_text: (row.status_text as string | null) ?? null,
         story: (row.story as string | null) ?? null,
         pet_search_url: (row.pet_search_url as string | null) ?? null,
         thumb: (row.thumb as string | null) ?? null,

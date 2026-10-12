@@ -309,6 +309,16 @@ const SECTION_STATUS_KEYS: Partial<Record<AcsSectionId, string[]>> = (() => {
   return m;
 })();
 
+// status_key -> its section. The inverse of the map above, for reading
+// `merge_into` (which a shelter writes in status_key terms, because that is
+// the vocabulary it knows — sections are ours).
+const SECTION_OF_STATUS_KEY: Record<string, AcsSectionId> = Object.fromEntries(
+  Object.entries(ACS_STATUS_MODEL).map(([key, meta]) => [
+    key,
+    (meta as AcsStatusMeta).section,
+  ]),
+);
+
 // SOS pills — the urgency ladder in one row. The four act-now statuses pulse;
 // "Euthanasia date set" and "At risk" carry a static dot. Each maps to a single
 // section and is not repeated in the lower chip row. Card badges + section
@@ -578,6 +588,15 @@ function AnimalRow({ a, onPick, onFollow, shelterName, guide }: { a: AcsAnimal; 
             )}
           </div>
           {spec && <div className="truncate text-[12px] text-muted-foreground">{spec}</div>}
+          {/* This animal's own situation, where the pill covers several. One
+              "Unknown" pill can hold a dog off the adoption list, a dog gone
+              from every list, and a dog we have emailed the shelter about —
+              but only if each card says which it is. */}
+          {(a.status_text ?? "").trim() && (
+            <div className="mt-1 text-[11px] leading-snug" style={{ color: "#6B5832" }}>
+              {a.status_text}
+            </div>
+          )}
           {typeof a.days === "number" && (
             <div className="mt-0.5 text-[11px]" style={{ color: GOLD_DEEP }}>
               {a.days} days at shelter
@@ -812,6 +831,29 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
   const guideScoped =
     !!shelterGuide && Object.keys(shelterGuide).length > 0;
 
+  // Sections this shelter folds into another section's chip. Cleveland shows
+  // "off the adoption list" under the Unknown chip: the dogs keep their own
+  // heading and their own explanation, they just stop having a chip of their
+  // own. Keyed section -> the section whose chip swallows it.
+  const mergedInto = ((): Partial<Record<AcsSectionId, AcsSectionId>> => {
+    const m: Partial<Record<AcsSectionId, AcsSectionId>> = {};
+    if (!shelterGuide) return m;
+    for (const [key, p] of Object.entries(shelterGuide)) {
+      const target = p?.merge_into;
+      if (!target) continue;
+      const from = SECTION_OF_STATUS_KEY[key];
+      const to = SECTION_OF_STATUS_KEY[target];
+      if (from && to && from !== to) m[from] = to;
+    }
+    return m;
+  })();
+
+  // Every section displayed under this one's chip, itself included.
+  const sectionsUnder = (id: AcsSectionId): AcsSectionId[] => [
+    id,
+    ...(Object.keys(mergedInto) as AcsSectionId[]).filter((k) => mergedInto[k] === id),
+  ];
+
   const sectionPill = (id: AcsSectionId): ShelterPill | null => {
     if (!shelterGuide || !guideScoped) return null;
     for (const key of SECTION_STATUS_KEYS[id] ?? []) {
@@ -848,9 +890,13 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
     return c.label;
   };
 
-  const visibleSos = SOS_PILLS.filter((p) => sectionShown(p.section));
+  const visibleSos = SOS_PILLS.filter(
+    (p) => sectionShown(p.section) && !mergedInto[p.section],
+  );
   const visibleChips = CHIPS.filter(
-    (c) => c.sections === "all" || c.sections.some((sid) => sectionShown(sid)),
+    (c) =>
+      c.sections === "all" ||
+      c.sections.some((sid) => sectionShown(sid) && !mergedInto[sid]),
   );
 
   // Headline tiles. A shelter can define its own in `shelters.stat_tiles`;
@@ -884,9 +930,11 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
   const activeSections: AcsSectionId[] | "all" = urgentOnly
     ? "all"
     : sosPill
-      ? [sosPill.section]
+      ? sectionsUnder(sosPill.section)
       : activeChip
-        ? activeChip.sections
+        ? activeChip.sections === "all"
+          ? "all"
+          : activeChip.sections.flatMap(sectionsUnder)
         : "all";
   const visibleSections = SECTIONS.filter((s) => {
     if (activeSections !== "all" && !activeSections.includes(s.id)) return false;
@@ -901,11 +949,14 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
   // Per-chip counts (reflect the current search). Every pill shows, even at 0.
   const chipCount = (c: ChipDef): number => {
     if (c.sections === "all") return activeCount;
-    return c.sections.reduce((n, sid) => n + (grouped.get(sid)?.length ?? 0), 0);
+    return c.sections
+      .flatMap(sectionsUnder)
+      .reduce((n, sid) => n + (grouped.get(sid)?.length ?? 0), 0);
   };
 
-  // SOS pill count = its single mapped section.
-  const sosCount = (p: SosPill): number => grouped.get(p.section)?.length ?? 0;
+  // SOS pill count = its mapped section, plus anything folded under it.
+  const sosCount = (p: SosPill): number =>
+    sectionsUnder(p.section).reduce((n, sid) => n + (grouped.get(sid)?.length ?? 0), 0);
 
   // Freshness heartbeat: "checked X ago" from the scraper's last run. Amber
   // warning only when a successful check hasn't happened in over 3 hours.
@@ -1207,7 +1258,9 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
               // fills", which Cleveland has never published. Where the shelter
               // has its own words, they win here too — not just on the badge.
               const sp = sectionPill(s.id);
-              const title = sp?.label ?? s.title;
+              // Where several states share one pill, the heading is the only
+              // place left to tell them apart — so it wins over the pill name.
+              const title = sp?.section_title ?? sp?.label ?? s.title;
               const action = sp?.means ?? s.action;
               return (
                 <section key={s.id} aria-label={title}>
