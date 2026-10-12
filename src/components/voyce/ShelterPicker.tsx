@@ -791,6 +791,9 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
   // Deliberately NOT driven off a zero count. `grouped` is built from the
   // search-filtered list, so hiding chips at 0 would collapse the row on every
   // keystroke and could remove the chip that is currently selected.
+  // Server-side per-status_key counts. NOT filtered by the search box, which
+  // is what makes them safe to drive chip visibility from.
+  const counts = (d?.counts ?? {}) as Record<string, number | undefined>;
   const shelterGuide = d?.status_guide ?? null;
   const guideScoped =
     !!shelterGuide && Object.keys(shelterGuide).length > 0;
@@ -804,9 +807,16 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
     return null;
   };
 
-  // A section belongs on this board if the shelter has words for it.
+  // A section belongs on this board if the shelter has words for it — OR if
+  // it actually holds animals. The second half is a safety net: Cleveland had
+  // ten dogs sitting in `following_up` before anyone wrote wording for that
+  // state, and without this they would have been unreachable by any filter.
+  // No animal should ever be un-filterable because of a gap in a guide.
   const sectionShown = (id: AcsSectionId): boolean =>
-    !guideScoped || sectionPill(id) !== null;
+    !guideScoped || sectionPill(id) !== null || sectionHasAnimals(id);
+
+  const sectionHasAnimals = (id: AcsSectionId): boolean =>
+    (SECTION_STATUS_KEYS[id] ?? []).some((k) => (counts[k] ?? 0) > 0);
 
   // Chip text: the shelter's `short` if it set one, else its full label, else
   // the built-in. Card badges and section headers always use the full label —
@@ -830,9 +840,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
   );
 
   // Headline tiles. A shelter can define its own in `shelters.stat_tiles`;
-  // otherwise the built-in San Antonio three. These counts come from the
-  // server and are NOT search-filtered, which is correct for a headline.
-  const counts = (d?.counts ?? {}) as Record<string, number | undefined>;
+  // otherwise the built-in San Antonio three.
   const statTiles: { label: string; value: number }[] = d?.stat_tiles?.length
     ? d.stat_tiles.map((t) => ({
         label: t.label,
