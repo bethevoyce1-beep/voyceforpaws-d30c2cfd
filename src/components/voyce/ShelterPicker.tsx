@@ -110,6 +110,18 @@ const SECTIONS: SectionDef[] = [
     badgeText: "#7A2E0B",
     accent: "#E8590C",
   },
+  // Cleveland. The shelter advertised this dog, then stopped, and still has it.
+  // Deliberately OUTSIDE the red/orange euthanasia ramp above: that ladder means
+  // a published euthanasia date, and Cleveland publishes none. Violet reads as
+  // "look at this" without asserting a deadline nobody set.
+  {
+    id: "off_adoption_list",
+    title: "Off the adoption list · still at the shelter",
+    action: "Taken off the shelter's adoption list but still in the shelter's custody, at the kennel. The shelter does not publish a reason — ask them about these dogs.",
+    badgeBg: "#EDE4F8",
+    badgeText: "#4C1D95",
+    accent: "#7C3AED",
+  },
   {
     id: "urgent",
     title: "At risk",
@@ -117,6 +129,16 @@ const SECTIONS: SectionDef[] = [
     badgeBg: "#FDE68A",
     badgeText: "#78350F",
     accent: "#F59E0B",
+  },
+  // Cleveland. Past any stray hold, never put on the adoption list. Nobody can
+  // adopt them and nothing counts down, which is what makes them easy to lose.
+  {
+    id: "unlisted",
+    title: "New intake · not yet listed",
+    action: "In the shelter's care, past any stray hold, and not yet on the adoption list. The shelter does not publish why.",
+    badgeBg: "#E6EBF1",
+    badgeText: "#334155",
+    accent: "#64748B",
   },
   {
     id: "office",
@@ -149,6 +171,29 @@ const SECTIONS: SectionDef[] = [
     badgeBg: "#C7F9E5",
     badgeText: "#065F46",
     accent: "#10B981",
+  },
+  // Cleveland. Inside the owner-reclaim window. The hold end is DERIVED from
+  // Ohio Revised Code 955.16, not published by the city — so it is the earliest
+  // the hold could end, never a promise.
+  {
+    id: "stray_hold",
+    title: "New · stray hold",
+    action: "Recently found — their owner still has time to claim them, so they cannot be adopted yet.",
+    badgeBg: "#CFF6FA",
+    badgeText: "#155E75",
+    accent: "#06B6D4",
+  },
+  // Cleveland. In a foster home AND not on the adoption list. Animals who are
+  // fostered and ALSO listed stay under "At risk" — adoptable is the fact a
+  // reader can act on, and hiding them here would drop them out of the view
+  // people browse to adopt.
+  {
+    id: "in_foster",
+    title: "In a foster home · unavailable",
+    action: "In the shelter's care, living in a foster home rather than the kennel, and not on the adoption list.",
+    badgeBg: "#D6F2EC",
+    badgeText: "#115E59",
+    accent: "#14B8A6",
   },
   {
     id: "foster_pending",
@@ -214,6 +259,11 @@ const ACTIVE_STATUS_KEYS: ReadonlySet<string> = new Set([
   "scheduled",
   "highrisk",
   "atrisk",
+    // Cleveland: in the kennel and nobody can adopt them. `stray_hold` is
+    // deliberately NOT here (legally protected, owner may still come) and
+    // neither is `in_foster` (safe, in a home).
+  "pulled",
+  "unlisted",
 ]);
 
 // Filter chips — the "other / outcome" statuses (holds, secured, memoriam,
@@ -229,6 +279,10 @@ const CHIPS: ChipDef[] = [
   { id: "memoriam", label: "In Memoriam", sections: ["in_memoriam"] },
   { id: "followup", label: "Following up with ACS", sections: ["following_up"] },
   { id: "unknown", label: "Unknown", sections: ["unknown"] },
+  { id: "pulled", label: "Off the adoption list", sections: ["off_adoption_list"] },
+  { id: "unlisted", label: "New intake", sections: ["unlisted"] },
+  { id: "strayhold", label: "Stray hold", sections: ["stray_hold"] },
+  { id: "infoster", label: "In foster", sections: ["in_foster"] },
 ];
 
 // SOS pills — the urgency ladder in one row. The four act-now statuses pulse;
