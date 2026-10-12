@@ -5,11 +5,14 @@ import {
   ACS_STATUS_MODEL,
   normalizeStatusKey,
   statusLabel,
+  pillFor,
+  urgentFor,
   type AcsAnimal,
   type AcsListResult,
   type AcsSectionId,
   type AcsStatusMeta,
   type AcsShelter,
+  type ShelterPill,
 } from "@/lib/acs.functions";
 import {
   deadlineForAnimal,
@@ -432,11 +435,21 @@ function RowTimerBadge({ a }: { a: AcsAnimal }) {
   );
 }
 
-function AnimalRow({ a, onPick, onFollow, shelterName }: { a: AcsAnimal; onPick: (a: AcsAnimal) => void; onFollow: (a: AcsAnimal) => void; shelterName: string }) {
+function AnimalRow({ a, onPick, onFollow, shelterName, guide }: { a: AcsAnimal; onPick: (a: AcsAnimal) => void; onFollow: (a: AcsAnimal) => void; shelterName: string; guide?: Record<string, ShelterPill> | null }) {
   const [showNote, setShowNote] = useState(false);
   const meta = metaOf(a);
   const section = SECTION_BY_ID[meta.section];
-  const badge = statusLabel(a);
+  // The shelter's own wording wins over the shared table. ACS_STATUS_MODEL is
+  // shared across shelters and its `meaning` for `atrisk` talks about a
+  // euthanasia date — true in San Antonio, an assertion nobody has made in
+  // Cleveland. See pillFor() in acs.functions.ts.
+  const pill = pillFor(a, guide);
+  const badge = pill.label;
+  // Flagged urgent by a named outside source (Cleveland: CLE Pups). Rides
+  // BESIDE the status pill, never over it — these animals are usually still on
+  // the adoption list and replacing their pill would drop them out of the view
+  // people browse to adopt.
+  const urgent = urgentFor(a, guide);
   const spec = specLine(a);
   const note = (a.story ?? "").trim();
   const euth = (a.euth_date ?? "").trim();
@@ -458,12 +471,23 @@ function AnimalRow({ a, onPick, onFollow, shelterName }: { a: AcsAnimal; onPick:
       >
         <PhotoThumb a={a} />
         <div className="min-w-0 flex-1">
-          <span
-            className="mb-1 inline-block rounded-full px-2 py-0.5 text-[9.5px] font-bold leading-tight tracking-wide"
-            style={{ background: section.badgeBg, color: section.badgeText }}
-          >
-            {badge}
-          </span>
+          <div className="mb-1 flex flex-wrap items-center gap-1">
+            <span
+              className="inline-block rounded-full px-2 py-0.5 text-[9.5px] font-bold leading-tight tracking-wide"
+              style={{ background: section.badgeBg, color: section.badgeText }}
+            >
+              {badge}
+            </span>
+            {urgent ? (
+              <span
+                className="inline-block rounded-full px-2 py-0.5 text-[9.5px] font-bold leading-tight tracking-wide"
+                style={{ background: "rgba(209,72,72,0.12)", color: "#7E1F1F" }}
+                title={urgent.note ?? undefined}
+              >
+                {urgent.label}
+              </span>
+            ) : null}
+          </div>
           <div className="flex flex-wrap items-baseline gap-x-1.5">
             <span className="font-serif text-[15px] font-semibold leading-tight" style={{ color: INK }}>
               {a.name}
@@ -549,7 +573,7 @@ function AnimalRow({ a, onPick, onFollow, shelterName }: { a: AcsAnimal; onPick:
           </button>
         )}
         <span className="ml-auto text-[10.5px] italic text-muted-foreground">
-          {meta.meaning}
+          {pill.means}
         </span>
       </div>
 
@@ -980,7 +1004,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
                   </div>
                   <div className="space-y-2">
                     {rows.map((a) => (
-                      <AnimalRow key={a.id} a={a} onPick={onPick} onFollow={setFollowTarget} shelterName={shelterName} />
+                      <AnimalRow key={a.id} a={a} onPick={onPick} onFollow={setFollowTarget} shelterName={shelterName} guide={d?.status_guide} />
                     ))}
                   </div>
                 </section>
