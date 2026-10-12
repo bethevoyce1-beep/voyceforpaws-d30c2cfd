@@ -440,7 +440,25 @@ export type ShelterPill = {
   means: string;
   note?: string;
   action?: string;
+  /**
+   * Optional shorter label for the filter chip row only. Card badges and
+   * section headers always use `label`. Cleveland's full wording
+   * ("Off the adoption list - still at the shelter") is correct on a card and
+   * long in a chip; set `short` in shelters.status_guide to shorten the chip
+   * without touching what a reader sees on the animal.
+   */
+  short?: string | null;
 };
+
+/**
+ * One of the three headline numbers on a shelter's board, from
+ * `shelters.stat_tiles`. A tile's value is the sum of `counts` across every
+ * status_key it lists.
+ *
+ * NULL in the database means "use the built-in San Antonio tiles". That is
+ * every shelter but Cleveland today, so their boards are unaffected.
+ */
+export type ShelterStatTile = { label: string; keys: string[] };
 
 export type AcsListResult = {
   animals: AcsAnimal[];
@@ -463,6 +481,12 @@ export type AcsListResult = {
   risk_label: string | null;
   risk_blurb: string | null;
   risk_note: string | null;
+  /**
+   * The shelter's own three headline tiles, or null to use the defaults.
+   * San Antonio's defaults (CRITICAL / DATE SET / IN MEMORIAM) count statuses
+   * Cleveland does not publish, so they read 0 there and always would.
+   */
+  stat_tiles: ShelterStatTile[] | null;
 };
 
 // A shelter the board can switch between.
@@ -601,10 +625,11 @@ export const listAcsAnimals = createServerFn({ method: "GET" })
     let risk_label: string | null = null;
     let risk_blurb: string | null = null;
     let risk_note: string | null = null;
+    let stat_tiles: ShelterStatTile[] | null = null;
     try {
       const { data: sh } = await sb
         .from("shelters")
-        .select("name, short_name, status_guide, about_text, risk_label, risk_blurb, risk_note")
+        .select("name, short_name, status_guide, about_text, risk_label, risk_blurb, risk_note, stat_tiles")
         .eq("shelter_id", slug)
         .limit(1);
       if (Array.isArray(sh) && sh[0]) {
@@ -613,6 +638,7 @@ export const listAcsAnimals = createServerFn({ method: "GET" })
           status_guide?: Record<string, ShelterPill> | null;
           about_text?: string | null; risk_label?: string | null;
           risk_blurb?: string | null; risk_note?: string | null;
+          stat_tiles?: ShelterStatTile[] | null;
         };
         shelter_name = (s.short_name && s.short_name.trim()) || s.name || shelter_name;
         status_guide = s.status_guide ?? {};
@@ -620,6 +646,10 @@ export const listAcsAnimals = createServerFn({ method: "GET" })
         risk_label = s.risk_label ?? null;
         risk_blurb = s.risk_blurb ?? null;
         risk_note = s.risk_note ?? null;
+        stat_tiles =
+          Array.isArray(s.stat_tiles) && s.stat_tiles.length > 0
+            ? s.stat_tiles
+            : null;
       }
     } catch {
       // Name is best-effort.
@@ -741,6 +771,7 @@ export const listAcsAnimals = createServerFn({ method: "GET" })
       risk_label,
       risk_blurb,
       risk_note,
+      stat_tiles,
     };
   });
 

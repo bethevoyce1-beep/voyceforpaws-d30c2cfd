@@ -285,6 +285,26 @@ const CHIPS: ChipDef[] = [
   { id: "infoster", label: "In foster", sections: ["in_foster"] },
 ];
 
+// Which status_keys feed each section. Derived from ACS_STATUS_MODEL rather
+// than written out by hand, so a status added to the model can never fall out
+// of sync with this map. (`sectionOf` re-routes a couple of keys at render
+// time — office_crit into `urgent`, highrisk into `on_the_clock` — but that
+// only moves an animal between sections this map already covers.)
+//
+// Used to answer one question per section: has this shelter written its own
+// words for anything that lands here? If not, the section is not part of the
+// vocabulary this shelter publishes, and its chip does not belong on the board.
+const SECTION_STATUS_KEYS: Partial<Record<AcsSectionId, string[]>> = (() => {
+  const m: Partial<Record<AcsSectionId, string[]>> = {};
+  for (const [key, meta] of Object.entries(ACS_STATUS_MODEL)) {
+    const sid = (meta as AcsStatusMeta).section;
+    const arr = m[sid] ?? [];
+    arr.push(key);
+    m[sid] = arr;
+  }
+  return m;
+})();
+
 // SOS pills — the urgency ladder in one row. The four act-now statuses pulse;
 // "Euthanasia date set" and "At risk" carry a static dot. Each maps to a single
 // section and is not repeated in the lower chip row. Card badges + section
@@ -757,8 +777,88 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
     return map;
   }, [matched]);
 
-  const sosPill = SOS_PILLS.find((p) => p.id === chip) ?? null;
-  const activeChip = CHIPS.find((c) => c.id === chip) ?? null;
+  // ---- The shelter's own vocabulary ------------------------------------
+  //
+  // A shelter that has written a `status_guide` decides BOTH which filters its
+  // board shows AND what they are called. Cleveland publishes no euthanasia
+  // dates and has no B6-SPT or OUTSIDE3 kennel, so San Antonio's urgency
+  // ladder is not merely empty on its board — it is wrong on its board, and it
+  // asserts a risk the city never published.
+  //
+  // An empty guide keeps today's behaviour exactly: every section, every
+  // hardcoded label. That is San Antonio, Columbiana, Franklin and Scioto.
+  //
+  // Deliberately NOT driven off a zero count. `grouped` is built from the
+  // search-filtered list, so hiding chips at 0 would collapse the row on every
+  // keystroke and could remove the chip that is currently selected.
+  const shelterGuide = d?.status_guide ?? null;
+  const guideScoped =
+    !!shelterGuide && Object.keys(shelterGuide).length > 0;
+
+  const sectionPill = (id: AcsSectionId): ShelterPill | null => {
+    if (!shelterGuide || !guideScoped) return null;
+    for (const key of SECTION_STATUS_KEYS[id] ?? []) {
+      const p = shelterGuide[key];
+      if (p?.label) return p;
+    }
+    return null;
+  };
+
+  // A section belongs on this board if the shelter has words for it.
+  const sectionShown = (id: AcsSectionId): boolean =>
+    !guideScoped || sectionPill(id) !== null;
+
+  // Chip text: the shelter's `short` if it set one, else its full label, else
+  // the built-in. Card badges and section headers always use the full label —
+  // `short` only ever shortens a chip.
+  const pillText = (p: ShelterPill | null, fallback: string): string =>
+    ((p?.short || p?.label || fallback) ?? fallback).trim() || fallback;
+
+  const sosLabel = (p: SosPill): string => pillText(sectionPill(p.section), p.label);
+  const chipLabel = (c: ChipDef): string => {
+    if (c.sections === "all") return c.label;
+    for (const sid of c.sections) {
+      const sp = sectionPill(sid);
+      if (sp) return pillText(sp, c.label);
+    }
+    return c.label;
+  };
+
+  const visibleSos = SOS_PILLS.filter((p) => sectionShown(p.section));
+  const visibleChips = CHIPS.filter(
+    (c) => c.sections === "all" || c.sections.some((sid) => sectionShown(sid)),
+  );
+
+  // Headline tiles. A shelter can define its own in `shelters.stat_tiles`;
+  // otherwise the built-in San Antonio three. These counts come from the
+  // server and are NOT search-filtered, which is correct for a headline.
+  const counts = (d?.counts ?? {}) as Record<string, number | undefined>;
+  const statTiles: { label: string; value: number }[] = d?.stat_tiles?.length
+    ? d.stat_tiles.map((t) => ({
+        label: t.label,
+        value: (t.keys ?? []).reduce((n, k) => n + (counts[k] ?? 0), 0),
+      }))
+    : [
+        {
+          label: "CRITICAL",
+          value:
+            (counts.euthanasia ?? 0) +
+            (counts.b6spt ?? 0) +
+            (counts.outside_crit ?? 0) +
+            (counts.immediate ?? 0),
+        },
+        {
+          label: "DATE SET",
+          value: (counts.scheduled ?? 0) + (counts.highrisk ?? 0),
+        },
+        { label: "IN MEMORIAM", value: counts.euthanized ?? 0 },
+      ];
+
+  // Resolved against the VISIBLE lists: if a chip is selected and then hidden
+  // (switching to a shelter that does not publish it), the filter falls back
+  // to "all" rather than silently filtering by a chip with no button.
+  const sosPill = visibleSos.find((p) => p.id === chip) ?? null;
+  const activeChip = visibleChips.find((c) => c.id === chip) ?? null;
   const activeSections: AcsSectionId[] | "all" = sosPill
     ? [sosPill.section]
     : activeChip
@@ -885,21 +985,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
 
         {/* Stats row */}
         <div className="mb-4 grid grid-cols-3 gap-2">
-          {[
-            {
-              label: "CRITICAL",
-              value:
-                (d?.counts.euthanasia ?? 0) +
-                (d?.counts.b6spt ?? 0) +
-                (d?.counts.outside_crit ?? 0) +
-                (d?.counts.immediate ?? 0),
-            },
-            {
-              label: "DATE SET",
-              value: (d?.counts.scheduled ?? 0) + (d?.counts.highrisk ?? 0),
-            },
-            { label: "IN MEMORIAM", value: d?.counts.euthanized ?? 0 },
-          ].map((s) => (
+          {statTiles.map((s) => (
             <div key={s.label} className="rounded-xl px-2 py-3 text-center" style={{ background: "#1A1611" }}>
               <div className="font-serif text-[22px] font-bold leading-none" style={{ color: GOLD }}>
                 {s.value}
@@ -940,10 +1026,16 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
           </button>
         </div>
 
-        {/* SOS pills — the urgency ladder. Act-now four pulse; date-set + at-risk static. */}
-        <div className="mb-1 text-[10px] font-bold tracking-[0.14em] text-muted-foreground">SOS</div>
+        {/* SOS pills — the urgency ladder. Act-now four pulse; date-set + at-risk static.
+            The "SOS" caption is San Antonio's framing: it is dropped for a
+            shelter that publishes its own vocabulary, where the surviving pill
+            is a capacity statement rather than a countdown. */}
+        {visibleSos.length > 0 && !guideScoped && (
+          <div className="mb-1 text-[10px] font-bold tracking-[0.14em] text-muted-foreground">SOS</div>
+        )}
+        {visibleSos.length > 0 && (
         <div className="mb-3 flex flex-wrap gap-1.5" role="tablist" aria-label="Filter by SOS status">
-          {SOS_PILLS.map((p) => {
+          {visibleSos.map((p) => {
             const active = chip === p.id;
             return (
               <button
@@ -963,7 +1055,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
                   style={{ background: p.dot }}
                   aria-hidden
                 />
-                <span>{p.label}</span>
+                <span>{sosLabel(p)}</span>
                 {d && (
                   <span
                     className="rounded-full px-1.5 text-[10px] font-bold leading-[1.45] tabular-nums"
@@ -980,15 +1072,19 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
             );
           })}
         </div>
+        )}
 
-        {/* Legend — spell out the shelter kennel codes for the public */}
-        <p className="mb-3 text-[10.5px] leading-snug text-muted-foreground">
-          <span className="font-semibold">B6-SPT</span> = euthanasia-prep kennel · <span className="font-semibold">OUTSIDE3</span> = outdoor kennel, marked for euthanasia
-        </p>
+        {/* Legend — spell out the shelter kennel codes for the public. These
+            are San Antonio kennel names; shown only where those kennels exist. */}
+        {(sectionShown("critical_now") || sectionShown("critical_outside")) && (
+          <p className="mb-3 text-[10.5px] leading-snug text-muted-foreground">
+            <span className="font-semibold">B6-SPT</span> = euthanasia-prep kennel · <span className="font-semibold">OUTSIDE3</span> = outdoor kennel, marked for euthanasia
+          </p>
+        )}
 
         {/* Filter chips — the other / outcome statuses */}
         <div className="mb-4 flex flex-wrap gap-1.5" role="tablist" aria-label="Filter animals by status">
-          {CHIPS.map((c) => {
+          {visibleChips.map((c) => {
             const active = c.id === chip;
             return (
               <button
@@ -1003,7 +1099,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
                     : { background: "#FFFFFF", color: "#6B5832", border: "1px solid #E3DAC4" }
                 }
               >
-                <span>{c.label}</span>
+                <span>{chipLabel(c)}</span>
                 {d && (
                   <span
                     className="rounded-full px-1.5 text-[10px] font-bold leading-[1.45] tabular-nums"
@@ -1045,19 +1141,27 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
           <div className="space-y-6">
             {visibleSections.map((s) => {
               const rows = grouped.get(s.id) ?? [];
+              // The header and its one-line instruction are claims about the
+              // animals below. SECTIONS holds San Antonio's: the `urgent`
+              // header reads "At risk ... could be euthanized if the shelter
+              // fills", which Cleveland has never published. Where the shelter
+              // has its own words, they win here too — not just on the badge.
+              const sp = sectionPill(s.id);
+              const title = sp?.label ?? s.title;
+              const action = sp?.means ?? s.action;
               return (
-                <section key={s.id} aria-label={s.title}>
+                <section key={s.id} aria-label={title}>
                   <div className="mb-2">
                     <div className="flex items-baseline justify-between gap-2">
                       <h2
                         className="font-serif text-[15px] font-bold leading-tight"
                         style={{ color: s.accent }}
                       >
-                        {s.title}
+                        {title}
                       </h2>
                       <span className="text-[11px] font-semibold text-muted-foreground">{rows.length}</span>
                     </div>
-                    <p className="text-[11.5px] leading-snug text-muted-foreground">{s.action}</p>
+                    <p className="text-[11.5px] leading-snug text-muted-foreground">{action}</p>
                   </div>
                   <div className="space-y-2">
                     {rows.map((a) => (
