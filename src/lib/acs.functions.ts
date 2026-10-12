@@ -337,6 +337,59 @@ export function statusLabel(a: Pick<AcsAnimal, "public_status" | "status_key">):
   return ACS_STATUS_MODEL[key].label;
 }
 
+
+/**
+ * The words to show for an animal's pill: the shelter's own first, the shared
+ * table only as a fallback.
+ *
+ * Why the order matters. ACS_STATUS_MODEL is shared across every shelter, and
+ * its `meaning` for `atrisk` reads "Could be euthanized if the shelter fills."
+ * That is true in San Antonio, which publishes a capacity euthanasia date. It
+ * is an assertion nobody has made in Cleveland, which publishes no dates and
+ * no outcomes at all - there, the same key means "the city is advertising this
+ * dog for adoption" and the shelter has written exactly that in status_guide.
+ *
+ * `meaning` is shown to the public as a statement of fact about a real animal,
+ * so where a shelter has said what its own words mean, those win.
+ */
+export function pillFor(
+  a: Pick<AcsAnimal, "public_status" | "status_key">,
+  guide: Record<string, ShelterPill> | null | undefined,
+): ShelterPill {
+  const key = normalizeStatusKey(a.status_key);
+  const own = guide?.[key];
+  if (own?.label) return own;
+  const stored = (a.public_status ?? "").trim();
+  if (key === "left") {
+    return { label: stored || "No longer listed", means: "No longer on the shelter's list." };
+  }
+  const meta = ACS_STATUS_MODEL[key];
+  return { label: stored || meta.label, means: meta.meaning, action: meta.action };
+}
+
+/**
+ * The urgent overlay, if a named source has flagged this animal.
+ *
+ * Deliberately separate from the pill. These animals are usually still ON the
+ * adoption list, and swapping their pill for "Urgent" would drop them out of
+ * the view people browse to adopt - the same error that nearly hid 34 dogs who
+ * were in foster care AND adoptable. Render this beside the pill, never over
+ * it, and always with `source`: it is a volunteer group's judgement, not the
+ * shelter's, and a reader is entitled to weigh it as such.
+ */
+export function urgentFor(
+  a: Pick<AcsAnimal, "urgent_flag" | "urgent_source" | "urgent_note">,
+  guide?: Record<string, ShelterPill> | null,
+): { label: string; source: string; note: string | null } | null {
+  if (!a.urgent_flag) return null;
+  const source = (a.urgent_source ?? "").trim() || "a rescue group";
+  return {
+    label: guide?.urgent?.label ?? `Urgent · flagged by ${source}`,
+    source,
+    note: a.urgent_note ?? guide?.urgent?.note ?? null,
+  };
+}
+
 // ============================================================
 // Row + result types — mirror the real acs_animals table.
 // ============================================================
@@ -366,9 +419,28 @@ export type AcsAnimal = {
   list_date: string | null;
   last_listed_at: string | null;
   updated_at: string | null;
+  // Cleveland and any other shelter that publishes custody rather than dates.
+  intake_date: string | null;
+  hold_until: string | null;
+  custody_location: string | null;
+  // Flagged urgent by a named outside source (Cleveland: CLE Pups). Rides
+  // ALONGSIDE status_key - these animals are usually still on the adoption
+  // list, and replacing their pill would hide them from anyone searching to
+  // adopt. Always render the source with it; it is not the shelter's word.
+  urgent_flag: boolean;
+  urgent_source: string | null;
+  urgent_note: string | null;
 };
 
 export type AcsCounts = Partial<Record<Exclude<AcsStatusKey, "left">, number>>;
+
+/** One pill, in the shelter's own words. See `shelters.status_guide`. */
+export type ShelterPill = {
+  label: string;
+  means: string;
+  note?: string;
+  action?: string;
+};
 
 export type AcsListResult = {
   animals: AcsAnimal[];
@@ -377,6 +449,20 @@ export type AcsListResult = {
   shelter_name: string;
   last_pulled_at: string | null;
   last_checked_at: string | null;
+  /**
+   * Per-shelter wording for each status_key, from shelters.status_guide.
+   *
+   * ACS_STATUS_MODEL below is the fallback, and it is a SHARED table - its
+   * `meaning` for `atrisk` talks about a euthanasia date, which is true in San
+   * Antonio and false in Cleveland. Where a shelter has written its own words,
+   * those are the honest ones and they win. Render from this first.
+   */
+  status_guide: Record<string, ShelterPill>;
+  /** The shelter's own description of itself and of what it does not publish. */
+  about_text: string | null;
+  risk_label: string | null;
+  risk_blurb: string | null;
+  risk_note: string | null;
 };
 
 // A shelter the board can switch between.
@@ -414,6 +500,12 @@ const SELECT_COLUMNS = [
   "list_date",
   "last_listed_at",
   "updated_at",
+  "intake_date",
+  "hold_until",
+  "custody_location",
+  "urgent_flag",
+  "urgent_source",
+  "urgent_note",
 ].join(", ");
 
 // The Supabase project URL + publishable (anon) key are NOT secret — the
@@ -502,17 +594,32 @@ export const listAcsAnimals = createServerFn({ method: "GET" })
 
     if (error) throw new Error(error.message);
 
-    // Shelter display name from the shelters table (falls back gracefully).
+    // Shelter display name + the shelter's own wording (falls back gracefully).
     let shelter_name = "San Antonio ACS";
+    let status_guide: Record<string, ShelterPill> = {};
+    let about_text: string | null = null;
+    let risk_label: string | null = null;
+    let risk_blurb: string | null = null;
+    let risk_note: string | null = null;
     try {
       const { data: sh } = await sb
         .from("shelters")
-        .select("name, short_name")
+        .select("name, short_name, status_guide, about_text, risk_label, risk_blurb, risk_note")
         .eq("shelter_id", slug)
         .limit(1);
       if (Array.isArray(sh) && sh[0]) {
-        const s = sh[0] as { name?: string; short_name?: string | null };
+        const s = sh[0] as {
+          name?: string; short_name?: string | null;
+          status_guide?: Record<string, ShelterPill> | null;
+          about_text?: string | null; risk_label?: string | null;
+          risk_blurb?: string | null; risk_note?: string | null;
+        };
         shelter_name = (s.short_name && s.short_name.trim()) || s.name || shelter_name;
+        status_guide = s.status_guide ?? {};
+        about_text = s.about_text ?? null;
+        risk_label = s.risk_label ?? null;
+        risk_blurb = s.risk_blurb ?? null;
+        risk_note = s.risk_note ?? null;
       }
     } catch {
       // Name is best-effort.
@@ -562,6 +669,12 @@ export const listAcsAnimals = createServerFn({ method: "GET" })
         list_date: (row.list_date as string | null) ?? null,
         last_listed_at: (row.last_listed_at as string | null) ?? null,
         updated_at: (row.updated_at as string | null) ?? null,
+        intake_date: (row.intake_date as string | null) ?? null,
+        hold_until: (row.hold_until as string | null) ?? null,
+        custody_location: (row.custody_location as string | null) ?? null,
+        urgent_flag: row.urgent_flag === true,
+        urgent_source: (row.urgent_source as string | null) ?? null,
+        urgent_note: (row.urgent_note as string | null) ?? null,
       };
     });
 
@@ -623,6 +736,11 @@ export const listAcsAnimals = createServerFn({ method: "GET" })
       shelter_name,
       last_pulled_at: last,
       last_checked_at,
+      status_guide,
+      about_text,
+      risk_label,
+      risk_blurb,
+      risk_note,
     };
   });
 
