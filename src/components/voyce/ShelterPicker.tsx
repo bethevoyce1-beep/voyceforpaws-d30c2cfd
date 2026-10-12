@@ -245,10 +245,11 @@ const SECTION_BY_ID = SECTIONS.reduce<Record<AcsSectionId, SectionDef>>(
   {} as Record<AcsSectionId, SectionDef>,
 );
 
-// Statuses that mean an animal is STILL NEEDING HELP. The "All" total counts
-// only these — outcomes and limbo (secured, euthanized/In Memoriam,
-// following_up, unknown, left) are deliberately excluded so "All" reflects the
-// live at-risk workload, not the historical roster. `highrisk` is the legacy
+// Statuses that mean an animal is STILL IN THE SHELTER'S CARE. The "All"
+// total counts only these — outcomes and limbo (secured, euthanized/In
+// Memoriam, following_up, unknown, left) are deliberately excluded so "All"
+// reflects who the shelter is still responsible for, not the historical
+// roster. `highrisk` is the legacy
 // alias of `scheduled` (both = "Euthanasia date set") and is kept here.
 const ACTIVE_STATUS_KEYS: ReadonlySet<string> = new Set([
   "euthanasia",
@@ -259,11 +260,15 @@ const ACTIVE_STATUS_KEYS: ReadonlySet<string> = new Set([
   "scheduled",
   "highrisk",
   "atrisk",
-    // Cleveland: in the kennel and nobody can adopt them. `stray_hold` is
-    // deliberately NOT here (legally protected, owner may still come) and
-    // neither is `in_foster` (safe, in a home).
+  // Cleveland. The test is "is this animal still in the shelter's care",
+  // not "can you adopt it today" — a dog on a stray hold and a dog in a
+  // foster home are both still City Dogs' responsibility, and both still
+  // need somewhere to go when the hold ends or the foster returns them.
+  // Only `unknown` is excluded, because those animals are gone.
   "pulled",
   "unlisted",
+  "stray_hold",
+  "in_foster",
 ]);
 
 // Filter chips — the "other / outcome" statuses (holds, secured, memoriam,
