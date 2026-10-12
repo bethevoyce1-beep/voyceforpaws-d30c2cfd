@@ -294,6 +294,10 @@ const CHIPS: ChipDef[] = [
 // Used to answer one question per section: has this shelter written its own
 // words for anything that lands here? If not, the section is not part of the
 // vocabulary this shelter publishes, and its chip does not belong on the board.
+// The urgent filter's id. Not a section: `urgent_flag` is set by a human at an
+// outside rescue group, and rides alongside whatever the shelter says.
+const URGENT_CHIP_ID = "urgent_flag";
+
 const SECTION_STATUS_KEYS: Partial<Record<AcsSectionId, string[]>> = (() => {
   const m: Partial<Record<AcsSectionId, string[]>> = {};
   for (const [key, meta] of Object.entries(ACS_STATUS_MODEL)) {
@@ -765,17 +769,27 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
     [matched],
   );
 
+  // The urgent filter is a FLAG, not a status: a dog an outside group has
+  // named is still on the adoption list, still on stray hold, or wherever the
+  // shelter has it. So it cuts ACROSS sections rather than being one of them,
+  // and it narrows the rows inside whichever sections those dogs fall in.
+  const urgentOnly = chip === URGENT_CHIP_ID;
+  const scoped = urgentOnly ? matched.filter((a) => a.urgent_flag) : matched;
+
+  // Unfiltered by search, so the chip does not appear and vanish as you type.
+  const urgentTotal = (d?.animals ?? []).filter((a) => a.urgent_flag).length;
+
   // Group the (search-filtered) animals into sections.
   const grouped = useMemo(() => {
     const map = new Map<AcsSectionId, AcsAnimal[]>();
-    for (const a of matched) {
+    for (const a of scoped) {
       const sid = sectionOf(a);
       const arr = map.get(sid) ?? [];
       arr.push(a);
       map.set(sid, arr);
     }
     return map;
-  }, [matched]);
+  }, [scoped]);
 
   // ---- The shelter's own vocabulary ------------------------------------
   //
@@ -867,11 +881,13 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
   // to "all" rather than silently filtering by a chip with no button.
   const sosPill = visibleSos.find((p) => p.id === chip) ?? null;
   const activeChip = visibleChips.find((c) => c.id === chip) ?? null;
-  const activeSections: AcsSectionId[] | "all" = sosPill
-    ? [sosPill.section]
-    : activeChip
-      ? activeChip.sections
-      : "all";
+  const activeSections: AcsSectionId[] | "all" = urgentOnly
+    ? "all"
+    : sosPill
+      ? [sosPill.section]
+      : activeChip
+        ? activeChip.sections
+        : "all";
   const visibleSections = SECTIONS.filter((s) => {
     if (activeSections !== "all" && !activeSections.includes(s.id)) return false;
     return (grouped.get(s.id)?.length ?? 0) > 0;
@@ -1092,6 +1108,42 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
 
         {/* Filter chips — the other / outcome statuses */}
         <div className="mb-4 flex flex-wrap gap-1.5" role="tablist" aria-label="Filter animals by status">
+          {/* Urgent — shown only where an outside group has actually flagged
+              someone. It sits first because it is the only thing on the board
+              that a person chose to tell us, and it reads in whatever words
+              the shelter's guide gives it ("At risk · urgent" for Cleveland). */}
+          {urgentTotal > 0 && (
+            <button
+              role="tab"
+              aria-selected={chip === URGENT_CHIP_ID}
+              onClick={() => setChip(URGENT_CHIP_ID)}
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold transition active:scale-95"
+              style={
+                chip === URGENT_CHIP_ID
+                  ? { background: GOLD, color: "#3A2A07" }
+                  : { background: "#FFFFFF", color: "#8A5A12", border: "1px solid #E8C98A" }
+              }
+            >
+              <span
+                className="inline-block h-2 w-2 flex-none rounded-full motion-safe:animate-pulse"
+                style={{ background: "#F59E0B" }}
+                aria-hidden
+              />
+              <span>{shelterGuide?.urgent?.label ?? "Urgent"}</span>
+              {d && (
+                <span
+                  className="rounded-full px-1.5 text-[10px] font-bold leading-[1.45] tabular-nums"
+                  style={
+                    chip === URGENT_CHIP_ID
+                      ? { background: "rgba(58,42,7,0.18)", color: "#3A2A07" }
+                      : { background: "#FBEFD6", color: "#8A5A12" }
+                  }
+                >
+                  {matched.filter((x) => x.urgent_flag).length}
+                </span>
+              )}
+            </button>
+          )}
           {visibleChips.map((c) => {
             const active = c.id === chip;
             return (
