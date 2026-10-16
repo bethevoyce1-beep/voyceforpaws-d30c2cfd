@@ -393,13 +393,25 @@ def parse_rows(raw_text):
 
         name = None
         story = None
-        for k in range(i + 1, min(n, i + 14)):
-            if lines[k].strip().lower().startswith("evaluation notes"):
-                cand = lines[k - 1].strip()
-                if cand and not ID_RE.search(cand) and not cand[0].isdigit():
-                    name = cand
-                story = collect_story(lines, k + 1, n)
-                break
+        # The name is printed on the line just above the FIRST notes heading.
+        # Most records lead with "Evaluation Notes", but some (young puppies,
+        # medical intakes) have only "Vet Exam Notes". Anchoring on Evaluation
+        # Notes alone left those names blank — PUPPY 2 / 5 / 6 (A829980,
+        # A829984, A829985) rendered as "Unnamed" on 16 Oct 2026, and GOBLIN,
+        # SEIGFRIED and MARLEY on 11 Oct. The story still comes only from
+        # Evaluation Notes; vet notes are not published as the animal's story.
+        next_demo = demo_idx[pos + 1] if pos + 1 < len(demo_idx) else n
+        for k in range(i + 1, min(n, i + 14, next_demo)):
+            head = lines[k].strip().lower()
+            is_eval = head.startswith("evaluation notes")
+            if is_eval or head.startswith("vet exam notes"):
+                if name is None:
+                    cand = lines[k - 1].strip()
+                    if cand and not ID_RE.search(cand) and not cand[0].isdigit():
+                        name = cand
+                if is_eval:
+                    story = collect_story(lines, k + 1, n)
+                    break
 
         b_start = max(0, i - 6)
         b_end = (demo_idx[pos + 1] - 6) if pos + 1 < len(demo_idx) else n
