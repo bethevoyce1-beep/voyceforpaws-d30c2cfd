@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
 
 export type NetworkRole = "rescuer" | "foster" | "vet" | "shelter" | "animal_lover" | "volunteer" | "wildlife_rehabilitator";
 
@@ -38,26 +37,14 @@ function isEmail(s: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 }
 
-// The Supabase project URL + publishable (anon) key are NOT secret — the
-// landing page ships them in plain HTML. network_signups has a public INSERT
-// policy ("Public can join network"), so the publishable key is all we need;
-// no hosting service-role secret required.
-const FALLBACK_SUPABASE_URL = "https://okmukfrhvqkxphzueqww.supabase.co";
-const FALLBACK_SUPABASE_PUBLISHABLE_KEY =
-  "sb_publishable_e_OWsyXVeFqgV6EVGAKKTw_sgEV2cTN";
+// SECURITY: network_signups no longer accepts inserts from the public
+// (anon) key. Signups are written ONLY here, on the server, after the
+// Turnstile human check passes, using the service-role admin client.
+// Requires SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY in the host env.
 
-function publicClient() {
-  const url = process.env.SUPABASE_URL || FALLBACK_SUPABASE_URL;
-  const key =
-    process.env.SUPABASE_PUBLISHABLE_KEY || FALLBACK_SUPABASE_PUBLISHABLE_KEY;
-  return createClient(url, key, {
-    auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
-  });
-}
-
-// Best-effort mirror into MailerLite so the founder is notified and the mailing
-// list grows. Turns on automatically once MAILERLITE_API_KEY is set in the
-// host env; skips silently otherwise, and NEVER fails the signup.
+// Best-effort mirror into MailerLite so the newsletter list grows.
+// Turns on automatically once MAILERLITE_API_KEY is set in the host env;
+// skips silently otherwise, and NEVER fails the signup.
 async function syncToMailerLite(sub: {
   email: string;
   name?: string;
@@ -135,7 +122,9 @@ export const submitNetworkSignup = createServerFn({ method: "POST" })
     if (!isEmail(email) || email.length > 255) throw new Error("Invalid email");
     if (!zip || zip.length > 16) throw new Error("Invalid ZIP");
     // Roles are optional — supporters can join with no role selected.
-    if (!turnstileToken) throw new Error("Missing verification");
+    if (!turnstileToken || turnstileToken.length > 4096) {
+      throw new Error("Missing verification");
+    }
 
     return {
       name,
@@ -155,27 +144,32 @@ export const submitNetworkSignup = createServerFn({ method: "POST" })
     };
   })
   .handler(async ({ data }) => {
-    // Verify Turnstile server-side
+    // Verify Turnstile server-side. FAIL CLOSED: if the secret is missing,
+    // refuse the signup rather than silently skipping the human check.
     const secret = process.env.TURNSTILE_SECRET_KEY;
-    if (secret) {
-      const form = new URLSearchParams();
-      form.set("secret", secret);
-      form.set("response", data.turnstileToken);
-      const res = await fetch(
-        "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-        { method: "POST", body: form },
-      );
-      const json = (await res.json()) as { success?: boolean };
-      if (!json?.success) throw new Error("Verification failed");
+    if (!secret) {
+      console.error("[voyce] TURNSTILE_SECRET_KEY is not set — refusing signup");
+      throw new Error("Signups are temporarily unavailable. Please try again later.");
     }
+    const form = new URLSearchParams();
+    form.set("secret", secret);
+    form.set("response", data.turnstileToken);
+    const res = await fetch(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      { method: "POST", body: form },
+    );
+    const json = (await res.json()) as { success?: boolean };
+    if (!json?.success) throw new Error("Verification failed");
 
     // Only keep SMS as a channel if the member actually consented to texts.
     const channels = data.smsConsent
       ? data.alertChannels
       : data.alertChannels.filter((c) => c !== "text");
 
-    const sb = publicClient();
-    const { error } = await sb.from("network_signups").insert({
+    // Server-only admin client (loaded inside the handler so the service-role
+    // key never ships to the browser bundle).
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("network_signups").insert({
       name: data.name ?? null,
       email: data.email,
       zip: data.zip || null,
@@ -191,7 +185,10 @@ export const submitNetworkSignup = createServerFn({ method: "POST" })
       alert_per_day: data.alertPerDay,
       sms_consent: data.smsConsent,
     });
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error("[voyce] signup insert failed:", error.message);
+      throw new Error("Could not complete signup. Please try again.");
+    }
 
     // Mirror to MailerLite (best-effort; never blocks the signup).
     await syncToMailerLite({ email: data.email, name: data.name, city: data.city });
