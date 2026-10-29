@@ -63,7 +63,7 @@ const ACS = {
   phone: "(210) 207-6669",
   phoneTel: "+12102076669",
   adoptionsEmail: "acsadoptions@sanantonio.gov",
-  fosterEmail: "acsfosters@sanantonio.gov",
+  fosterEmail: "acsfoster@sanantonio.gov",
   address: "4710 State Hwy 151, San Antonio, TX 78227",
   mapsUrl:
     "https://www.google.com/maps/dir/?api=1&destination=4710+State+Hwy+151+San+Antonio+TX+78227",
@@ -159,12 +159,42 @@ function titleCase(s: string): string {
   return s.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase());
 }
 
-/** "4y" → "4-year-old", "10m" → "10-month-old"; leaves anything else alone. */
+/**
+ * "4y" → "4-year-old", "10m" → "10-month-old", "3y 3m" → "3-year, 3-month-old".
+ * Leaves anything it doesn't recognise alone.
+ */
 function humanAge(age: string): string {
+  const both = /^(\d+)\s*y(?:rs?)?\s*,?\s*(\d+)\s*m(?:os?|onths?)?$/i.exec(age.trim());
+  if (both) return `${both[1]}-year, ${both[2]}-month-old`;
   return age
     .replace(/(\d+)\s*y(?:rs?)?\b/i, "$1-year-old")
     .replace(/(\d+)\s*m(?:os?|onths?)?\b/i, "$1-month-old")
     .trim();
+}
+
+/**
+ * The parser strips the species word off the end of ACS's breed ("… BLEND DOG"),
+ * so read species back from the breed itself. Cat breeds on ACS's list are the
+ * domestic coat types plus named cat breeds; anything we can't place is
+ * "unknown" so the card never states a species it isn't sure of.
+ */
+type Species = "dog" | "cat" | "unknown";
+const CAT_BREED_RE =
+  /\b(DOMESTIC\s+(SH|MH|LH|SHORTHAIR|MEDIUM\s*HAIR|LONGHAIR)|SIAMESE|MAINE\s+COON|PERSIAN|BENGAL|RAGDOLL|RUSSIAN\s+BLUE|HIMALAYAN|BOMBAY|BALINESE|BURMESE|TONKINESE|ABYSSINIAN|SPHYNX|MANX|SNOWSHOE|TURKISH\s+(VAN|ANGORA)|EXOTIC\s+SH|AMERICAN\s+SH|BRITISH\s+SH|SCOTTISH\s+FOLD|NORWEGIAN\s+FOREST|CAT|KITTEN)\b/i;
+function speciesOf(a: AcsAnimal): Species {
+  const b = (a.breed || "").trim();
+  if (!b) return "unknown";
+  if (CAT_BREED_RE.test(b)) return "cat";
+  // Every other ACS breed on the capacity list has been a dog breed.
+  return "dog";
+}
+
+/** ACS's coat abbreviations, spelled out for prose ("DOMESTIC SH" → "Domestic Shorthair"). */
+function proseBreed(breed: string): string {
+  return titleCase(breed)
+    .replace(/\bSh\b/g, "Shorthair")
+    .replace(/\bMh\b/g, "Medium Hair")
+    .replace(/\bLh\b/g, "Longhair");
 }
 
 /**
@@ -191,7 +221,8 @@ function behavioralFromNotes(story: string): string {
 function buildRescueStory(a: AcsAnimal): string {
   const name = titleCase(a.name);
   const age = humanAge((a.age || a.age_raw || "").trim());
-  const breed = a.breed ? titleCase(a.breed) : "dog";
+  const sp = speciesOf(a);
+  const breed = a.breed ? proseBreed(a.breed) : sp === "unknown" ? "pet" : sp;
   const who = `${name} is ${age ? `a ${age} ` : "a "}${breed} at San Antonio ACS.`;
   const waited =
     typeof a.days === "number"
@@ -239,7 +270,13 @@ function parseAcsNotes(raw: string): { date: string | null; text: string }[] {
 // Live euthanasia timer — countdown for dated statuses; a pulsing
 // "in progress" state for b6spt / euthanasia (they're in the room now).
 // ============================================================
-function EuthTimer({ animal, variant }: { animal: AcsAnimal; variant: "chip" | "block" }) {
+function EuthTimer({
+  animal,
+  variant,
+}: {
+  animal: AcsAnimal;
+  variant: "chip" | "block" | "overlay";
+}) {
   const key = normalizeStatusKey(animal.status_key);
   const inProgress = key === "b6spt" || key === "euthanasia";
   const target = useMemo(() => (inProgress ? null : deadlineForAnimal(animal)), [animal, inProgress]);
@@ -250,6 +287,48 @@ function EuthTimer({ animal, variant }: { animal: AcsAnimal; variant: "chip" | "
     : urgencyFor(msLeft);
   const countdown = hasTarget ? formatCountdown(msLeft) : null;
   const pulse = chip.pulse ? "motion-safe:animate-pulse" : "";
+
+  // Sits across the bottom of the hero photo: compact, but still the first
+  // thing you read. The urgency colour rides on the left edge.
+  if (variant === "overlay") {
+    return (
+      <div
+        className={`absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 px-3 pb-2.5 pt-8 ${pulse}`}
+        style={{ background: "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0) 100%)" }}
+        role="status"
+        aria-live="polite"
+      >
+        <div
+          className="rounded-lg border-l-[3px] bg-black/35 px-2.5 py-1 backdrop-blur-[2px]"
+          style={{ borderColor: chip.bg }}
+        >
+          <p className="text-[9px] font-extrabold uppercase tracking-[0.1em] text-white/80">
+            {hasTarget ? "Time left" : chip.label}
+          </p>
+          {hasTarget ? (
+            <p className="font-mono text-[17px] font-extrabold leading-tight tabular-nums text-white">
+              ⏳ {countdown}
+            </p>
+          ) : (
+            <p className="text-[12px] font-bold leading-tight text-white">
+              {key === "euthanasia" ? "In the euthanasia room now" : "In a euthanasia-prep kennel"}
+            </p>
+          )}
+        </div>
+        <p className="pb-0.5 text-right text-[9.5px] font-semibold leading-tight text-white/85">
+          ACS deadline
+          {target ? (
+            <>
+              <br />
+              {formatDeadlineClock(target)}
+            </>
+          ) : null}
+          <br />
+          <span className="font-normal text-white/65">confirm with ACS</span>
+        </p>
+      </div>
+    );
+  }
 
   if (variant === "chip") {
     return (
@@ -700,6 +779,7 @@ export function AcsShareCard({
   const listDateStr = usDate(animal.list_date);
   const rescueStory = buildRescueStory(animal);
   const spay = spayText(animal.sex);
+  const species = speciesOf(animal);
 
   const facts: { label: string; value: string; warn?: boolean }[] = [
     { label: "Breed", value: animal.breed || "—" },
@@ -720,21 +800,27 @@ export function AcsShareCard({
     { label: "Heartworm", value: "Confirm with ACS" },
     { label: "Microchip", value: "Confirm with ACS" },
     { label: "Vaccines", value: "Confirm with ACS" },
-    { label: "FeLV / FIV", value: "N/A (canine)" },
+    // FeLV/FIV is a cat test; only call it N/A when we're sure this is a dog.
+    { label: "FeLV / FIV", value: species === "dog" ? "N/A (canine)" : "Confirm with ACS" },
   ];
 
   // Quick-link pills shown up top by the address — small, clear, like View map.
   const quickLinks: { href: string; label: string; bg: string; fg: string }[] = [
     { href: ACS.mapsUrl, label: "📍 View map", bg: "#EEF3FB", fg: "#1E40AF" },
     { href: acsDeepLink, label: "🏛 ACS listing", bg: "#FFF6DA", fg: "#7A5A0A" },
-    { href: pdfDeepLink, label: "📋 ACS PDF · this dog", bg: "#FFF6DA", fg: "#7A5A0A" },
+    {
+      href: pdfDeepLink,
+      label: `📋 ACS PDF · this ${species === "unknown" ? "pet" : species}`,
+      bg: "#FFF6DA",
+      fg: "#7A5A0A",
+    },
   ];
 
   return (
     <div style={{ minHeight: "100dvh", background: PAPER }}>
       <BrandHeader />
 
-      <div className="mx-auto w-full max-w-[440px] px-4 pb-10 pt-3" style={{ color: INK }}>
+      <div className="mx-auto w-full max-w-[400px] px-4 pb-10 pt-3" style={{ color: INK }}>
         {/* AI advisory — folded in from the report view */}
         <div className="mb-3 flex items-start gap-2 rounded-xl bg-[#FEF6E0] px-3.5 py-2.5 ring-1 ring-[#F3E5B6]">
           <span className="text-[14px] leading-none">⚠️</span>
@@ -772,9 +858,14 @@ export function AcsShareCard({
                 </span>
               </div>
             )}
-            <span className="absolute bottom-3 left-3 rounded-full bg-black/80 px-2.5 py-0.5 text-[10px] font-bold text-white shadow-lg">
+            <span
+              className={`absolute left-3 rounded-full bg-black/75 px-2.5 py-0.5 text-[10px] font-bold text-white shadow-lg ${
+                showTimer ? "top-3" : "bottom-3"
+              }`}
+            >
               🕒 {daysText(animal)}
             </span>
+            {showTimer && <EuthTimer animal={animal} variant="overlay" />}
             <span
               className="absolute right-3 top-3 rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.08em] text-white shadow-lg"
               style={{ background: chipColor }}
@@ -784,8 +875,8 @@ export function AcsShareCard({
           </div>
 
           {/* ===== NAME BLOCK ===== */}
-          <div className="px-5 pb-1 pt-5">
-            <h2 className="font-serif text-[28px] font-bold leading-[1.05] tracking-tight" style={{ color: INK }}>
+          <div className="px-5 pb-1 pt-4">
+            <h2 className="font-serif text-[24px] font-bold leading-[1.05] tracking-tight" style={{ color: INK }}>
               {NAME}
             </h2>
             <p className="mt-1 text-[12px] font-semibold" style={{ color: GOLD_DEEP }}>
@@ -811,14 +902,14 @@ export function AcsShareCard({
                 <b>{ACS.fullName}</b> · {ACS.address}
               </span>
             </div>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-2 flex flex-wrap gap-1.5">
               {quickLinks.map((q) => (
                 <a
                   key={q.label}
                   href={q.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-bold active:scale-95"
+                  className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-bold active:scale-95"
                   style={{ background: q.bg, color: q.fg }}
                 >
                   {q.label}
@@ -858,53 +949,48 @@ export function AcsShareCard({
             </div>
           ) : null}
 
-          {/* ===== TIME LEFT ===== */}
-          {showTimer && (
-            <div className="mx-5 mt-4">
-              <EuthTimer animal={animal} variant="block" />
-            </div>
-          )}
+          {/* Time left now rides on the hero photo (EuthTimer variant="overlay"). */}
 
           {/* ===== CAN YOU HELP? action chips ===== */}
-          <p className="mx-5 mb-2 mt-5 text-[13px] font-bold" style={{ color: INK }}>
+          <p className="mx-5 mb-2 mt-4 text-[13px] font-bold" style={{ color: INK }}>
             Can you help {animal.name}?
           </p>
-          <div className="mx-5 grid grid-cols-3 gap-2">
+          <div className="mx-5 grid grid-cols-3 gap-1.5">
             <button
               onClick={() => openModal("foster")}
-              className="flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[12px] font-bold active:scale-95"
+              className="flex items-center justify-center gap-1 rounded-lg py-1.5 text-[11px] font-bold active:scale-95"
               style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_DEEP} 100%)`, color: GOLD_INK }}
             >
               🏠 Foster
             </button>
             <a
               href={adoptMailto}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-[#D9D2C2] bg-white py-2.5 text-[12px] font-bold text-[#1A1611] active:scale-95"
+              className="flex items-center justify-center gap-1 rounded-lg border border-[#D9D2C2] bg-white py-1.5 text-[11px] font-bold text-[#1A1611] active:scale-95"
             >
               💛 Adopt
             </a>
             <button
               onClick={() => openModal("rescuer")}
-              className="flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[12px] font-bold text-white active:scale-95"
+              className="flex items-center justify-center gap-1 rounded-lg py-1.5 text-[11px] font-bold text-white active:scale-95"
               style={{ background: `linear-gradient(135deg, ${RED1} 0%, ${RED2} 100%)` }}
             >
               🤝 Rescue pull
             </button>
             <button
               onClick={() => openModal("animal_lover")}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-[#D9D2C2] bg-white py-2.5 text-[12px] font-bold text-[#1A1611] active:scale-95"
+              className="flex items-center justify-center gap-1 rounded-lg border border-[#D9D2C2] bg-white py-1.5 text-[11px] font-bold text-[#1A1611] active:scale-95"
             >
               💵 Pledge
             </button>
             <button
               onClick={() => setOtherOpen(true)}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-[#D9D2C2] bg-white py-2.5 text-[12px] font-bold text-[#1A1611] active:scale-95"
+              className="flex items-center justify-center gap-1 rounded-lg border border-[#D9D2C2] bg-white py-1.5 text-[11px] font-bold text-[#1A1611] active:scale-95"
             >
               ⋯ Other
             </button>
             <button
               onClick={() => setShareOpen(true)}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-[#D9D2C2] bg-white py-2.5 text-[12px] font-bold text-[#1A1611] active:scale-95"
+              className="flex items-center justify-center gap-1 rounded-lg border border-[#D9D2C2] bg-white py-1.5 text-[11px] font-bold text-[#1A1611] active:scale-95"
             >
               📤 Share
             </button>
@@ -913,7 +999,7 @@ export function AcsShareCard({
           <div className="mx-5 mt-2">
             <button
               onClick={() => setFollowOpen(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border py-2.5 text-[12.5px] font-bold active:scale-95"
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg border py-1.5 text-[11px] font-bold active:scale-95"
               style={{ borderColor: "#C9871A", background: "#FFF7D6", color: "#7A5A0A" }}
             >
               🔔 Follow {animal.name} — get notified if their status changes
