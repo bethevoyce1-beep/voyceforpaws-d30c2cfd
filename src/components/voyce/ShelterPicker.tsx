@@ -195,6 +195,16 @@ const SECTIONS: SectionDef[] = [
     badgeText: "#115E59",
     accent: "#14B8A6",
   },
+  // San Antonio. Off the capacity list, but ACS's own listing page still
+  // shows the animal in a kennel at the shelter ("I'm located at: ACS Campus").
+  {
+    id: "still_at_acs",
+    title: "Still at ACS · off the at-risk list",
+    action: "Off ACS's at-risk list, but ACS's listing still shows them at the shelter. Adopt, foster, or rescue: email ACS with their ID.",
+    badgeBg: "#FEF3C7",
+    badgeText: "#92400E",
+    accent: "#F59E0B",
+  },
   {
     id: "foster_pending",
     title: "Foster Pending",
@@ -222,7 +232,7 @@ const SECTIONS: SectionDef[] = [
   {
     id: "following_up",
     title: "Following up with ACS",
-    action: "Dropped off ACS's list with no posted outcome — we've emailed ACS to ask what happened.",
+    action: "Off ACS's list, and ACS has removed their listing page. ACS doesn't publish what happened.",
     badgeBg: "#E0E7FF",
     badgeText: "#3730A3",
     accent: "#6366F1",
@@ -269,6 +279,28 @@ const ACTIVE_STATUS_KEYS: ReadonlySet<string> = new Set([
   "unlisted",
   "stray_hold",
   "in_foster",
+  // San Antonio: off the capacity list but ACS's listing still shows them in
+  // a kennel at the shelter, so still ACS's responsibility.
+  "at_acs",
+]);
+
+// Sections that "All" does NOT show. Their animals are off the shelter's
+// at-risk list and ACS's own pages say where they are (a foster home, a
+// pending foster, or listing removed), so they appear only when someone taps
+// that chip. "All" then shows who still needs help, and anything left over
+// under Unknown is what still needs sorting.
+const HIDDEN_FROM_ALL: ReadonlySet<AcsSectionId> = new Set<AcsSectionId>([
+  "acs_foster_hold",
+  "foster_pending",
+  "following_up",
+]);
+
+// Statuses read off an animal's ACS listing page after it left the capacity
+// list (see resolve_unknowns() in acs-pull/pull_acs.py).
+const FROM_LISTING_KEYS: ReadonlySet<string> = new Set([
+  "foster_care",
+  "foster_family_pending",
+  "at_acs",
 ]);
 
 // Filter chips — the "other / outcome" statuses (holds, secured, memoriam,
@@ -279,6 +311,7 @@ const CHIPS: ChipDef[] = [
   { id: "adoption", label: "ACS Adoption Hold", sections: ["acs_adoption_hold"] },
   { id: "rescue", label: "ACS Rescue Hold", sections: ["rescue_hold"] },
   { id: "foster", label: "ACS Foster Hold", sections: ["acs_foster_hold"] },
+  { id: "stillacs", label: "Still at ACS", sections: ["still_at_acs"] },
   { id: "pending", label: "Foster Pending", sections: ["foster_pending"] },
   { id: "secured", label: "Secured", sections: ["secured"] },
   { id: "memoriam", label: "In Memoriam", sections: ["in_memoriam"] },
@@ -548,13 +581,19 @@ function AnimalRow({ a, onPick, onFollow, shelterName, guide }: { a: AcsAnimal; 
   const urgent = urgentFor(a, guide);
   const spec = specLine(a);
   const note = (a.story ?? "").trim();
-  const euth = (a.euth_date ?? "").trim();
+  const fromListing = FROM_LISTING_KEYS.has(normalizeStatusKey(a.status_key));
+  const euth = fromListing ? "" : (a.euth_date ?? "").trim();
   const hasContext = !!note || !!euth;
   const hasTimer = showsTimer(a);
 
-  const dueOut = fmtDay(a.due_out);
-  const riskSince = fmtDay(a.risk_since);
-  const euthDay = fmtDay(a.euth_date);
+  // Filed from the animal's ACS listing page after it left the capacity list.
+  // Its old capacity-list sentence and dates ("could be euthanized after
+  // 08/24") are stale for these, so the card says where ACS's listing puts the
+  // animal now instead.
+  const dueOut = fromListing ? null : fmtDay(a.due_out);
+  const riskSince = fromListing ? null : fmtDay(a.risk_since);
+  const euthDay = fromListing ? null : fmtDay(a.euth_date);
+  const kennel = fromListing ? null : a.kennel;
 
   return (
     <div
@@ -588,8 +627,8 @@ function AnimalRow({ a, onPick, onFollow, shelterName, guide }: { a: AcsAnimal; 
             <span className="font-serif text-[15px] font-semibold leading-tight" style={{ color: INK }}>
               {a.name}
             </span>
-            {a.kennel && (
-              <span className="text-[10.5px] text-muted-foreground">· kennel {a.kennel}</span>
+            {kennel && (
+              <span className="text-[10.5px] text-muted-foreground">· kennel {kennel}</span>
             )}
           </div>
           {spec && <div className="truncate text-[12px] text-muted-foreground">{spec}</div>}
@@ -597,12 +636,16 @@ function AnimalRow({ a, onPick, onFollow, shelterName, guide }: { a: AcsAnimal; 
               "Unknown" pill can hold a dog off the adoption list, a dog gone
               from every list, and a dog we have emailed the shelter about —
               but only if each card says which it is. */}
-          {(a.status_text ?? "").trim() && (
+          {fromListing ? (
+            <div className="mt-1 text-[11px] leading-snug" style={{ color: "#6B5832" }}>
+              ACS listing: {(a.custody_location ?? "").trim() || pill.means}
+            </div>
+          ) : (a.status_text ?? "").trim() ? (
             <div className="mt-1 text-[11px] leading-snug" style={{ color: "#6B5832" }}>
               {a.status_text}
             </div>
-          )}
-          {typeof a.days === "number" && (
+          ) : null}
+          {!fromListing && typeof a.days === "number" && (
             <div className="mt-0.5 text-[11px]" style={{ color: GOLD_DEEP }}>
               {a.days} days at shelter
             </div>
@@ -619,11 +662,11 @@ function AnimalRow({ a, onPick, onFollow, shelterName, guide }: { a: AcsAnimal; 
       </button>
 
       {/* ACS date chips — kennel + due out + at-risk-since + euth date */}
-      {(a.kennel || dueOut || riskSince || euthDay) && (
+      {(kennel || dueOut || riskSince || euthDay) && (
         <div className="flex flex-wrap gap-1.5 px-2.5 pb-1">
-          {a.kennel && (
+          {kennel && (
             <span className="rounded-md bg-[#F3EFE4] px-1.5 py-0.5 text-[10px] font-semibold text-[#6B5832]">
-              Kennel {a.kennel}
+              Kennel {kennel}
             </span>
           )}
           {dueOut && (
@@ -943,6 +986,8 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
         : "all";
   const visibleSections = SECTIONS.filter((s) => {
     if (activeSections !== "all" && !activeSections.includes(s.id)) return false;
+    // The urgent filter cuts across sections, so it keeps every section.
+    if (activeSections === "all" && !urgentOnly && HIDDEN_FROM_ALL.has(s.id)) return false;
     return (grouped.get(s.id)?.length ?? 0) > 0;
   });
 
