@@ -42,11 +42,14 @@ export type AcsStatusKey =
   | "unlisted"
   | "stray_hold"
   | "in_foster"
+  | "at_acs"
   | "office"
   | "adopthold"
   | "adoption"
   | "foster"
+  | "foster_care"
   | "watch"
+  | "foster_family_pending"
   | "secured"
   | "euthanized"
   | "following_up"
@@ -66,6 +69,7 @@ export type AcsSectionId =
   | "unlisted"
   | "stray_hold"
   | "in_foster"
+  | "still_at_acs"
   | "office"
   | "acs_adoption_hold"
   | "rescue_hold"
@@ -186,6 +190,17 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
     action: "Ask the shelter about them. Adopt, foster, or rescue.",
     rank: 5.5,
   },
+  // San Antonio, from the ACS listing ("I'm located at: ACS Campus ..."): off
+  // the capacity list but still in a kennel at the shelter. Still in ACS's
+  // care, so it counts under "All".
+  at_acs: {
+    key: "at_acs",
+    section: "still_at_acs",
+    label: "Still at ACS · off the at-risk list",
+    meaning: "Off ACS's at-risk list, but ACS's listing still shows them at the shelter.",
+    action: "Adopt, foster, or rescue: email ACS with their ID.",
+    rank: 5.6,
+  },
   office: {
     key: "office",
     section: "office",
@@ -246,6 +261,20 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
     action: "Not on the adoption list. Ask the shelter about them.",
     rank: 9.75,
   },
+  // San Antonio, from the animal's ACS PetSearch page after it leaves the
+  // capacity list ("I'm located at: Foster Care"). Filed under the ACS Foster
+  // Hold chip, but a different fact from `foster` above: `foster` is a hold
+  // printed on the capacity list, this is where ACS's own listing says the
+  // animal lives now. ACS still lists these animals for adoption, so they are
+  // NOT Secured. See resolve_unknowns() in acs-pull/pull_acs.py.
+  foster_care: {
+    key: "foster_care",
+    section: "acs_foster_hold",
+    label: "ACS Foster Hold",
+    meaning: "Living with an ACS foster family, per ACS's listing. Still available for adoption.",
+    action: "Email ACS Foster (acsfoster@sanantonio.gov) to meet them or adopt.",
+    rank: 9.1,
+  },
   watch: {
     key: "watch",
     section: "foster_pending",
@@ -253,6 +282,16 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
     meaning: "A family is coming, but it isn't confirmed yet.",
     action: "Keep watching in case plans change.",
     rank: 10,
+  },
+  // San Antonio, from the ACS listing: "Foster Family Pending - I may have a
+  // foster home soon, but I'm still available for adoption."
+  foster_family_pending: {
+    key: "foster_family_pending",
+    section: "foster_pending",
+    label: "Foster Pending",
+    meaning: "ACS's listing says a foster family may take them soon. Still available for adoption.",
+    action: "Email ACS Adoptions (acsadoptions@sanantonio.gov) to adopt or ask.",
+    rank: 10.1,
   },
   secured: {
     key: "secured",
@@ -274,8 +313,8 @@ export const ACS_STATUS_MODEL: Record<Exclude<AcsStatusKey, "left">, AcsStatusMe
     key: "following_up",
     section: "following_up",
     label: "Following up with ACS",
-    meaning: "Dropped off ACS's list with no posted outcome — we've asked ACS what happened.",
-    action: "Awaiting ACS's reply.",
+    meaning: "Off ACS's list, and ACS has removed their listing page. ACS doesn't publish what happened.",
+    action: "Ask ACS with their ID if you know them.",
     rank: 12.5,
   },
   unknown: {
@@ -307,11 +346,14 @@ export function normalizeStatusKey(raw: string | null | undefined): AcsStatusKey
     k === "unlisted" ||
     k === "stray_hold" ||
     k === "in_foster" ||
+    k === "at_acs" ||
     k === "office" ||
     k === "adopthold" ||
     k === "adoption" ||
     k === "foster" ||
+    k === "foster_care" ||
     k === "watch" ||
+    k === "foster_family_pending" ||
     k === "secured" ||
     k === "euthanized" ||
     k === "following_up" ||
@@ -747,6 +789,17 @@ export const listAcsAnimals = createServerFn({ method: "GET" })
     // vanished from ACS without a written outcome. Those must stay visible
     // regardless of when they were last listed, so they can be chased down
     // (email ACS) and resolved, instead of silently disappearing from the board.
+    //
+    // Same for the states read off an animal's ACS listing after it leaves the
+    // capacity list (in foster care, foster pending, still at the campus).
+    // Their list_date is by definition older than today's, and they are the
+    // answer to an Unknown, so they must stay reachable under their chips.
+    const KEEP_WHEN_OFF_LIST: ReadonlySet<string> = new Set([
+      "unknown",
+      "foster_care",
+      "foster_family_pending",
+      "at_acs",
+    ]);
     const newestListDate = visibleAll.reduce<string | null>((acc, a) => {
       if (!a.list_date) return acc;
       return !acc || a.list_date > acc ? a.list_date : acc;
@@ -755,7 +808,7 @@ export const listAcsAnimals = createServerFn({ method: "GET" })
       ? visibleAll.filter(
           (a) =>
             a.list_date === newestListDate ||
-            normalizeStatusKey(a.status_key) === "unknown",
+            KEEP_WHEN_OFF_LIST.has(normalizeStatusKey(a.status_key)),
         )
       : visibleAll;
 
