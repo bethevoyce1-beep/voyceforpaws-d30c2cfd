@@ -279,19 +279,19 @@ const ACTIVE_STATUS_KEYS: ReadonlySet<string> = new Set([
   "unlisted",
   "stray_hold",
   "in_foster",
-  // San Antonio: off the capacity list but ACS's listing still shows them in
-  // a kennel at the shelter, so still ACS's responsibility.
-  "at_acs",
 ]);
 
 // Sections that "All" does NOT show. Their animals are off the shelter's
 // at-risk list and ACS's own pages say where they are (a foster home, a
-// pending foster, or listing removed), so they appear only when someone taps
-// that chip. "All" then shows who still needs help, and anything left over
-// under Unknown is what still needs sorting.
+// pending foster, still in a kennel with no deadline, or listing removed), so
+// they appear only when someone taps that chip. "All" then shows who is on
+// ACS's at-risk list now, and anything left over under Unknown is what still
+// needs sorting. If ACS lists one of them again, the pull re-files it from the
+// capacity list and it returns to "All" with its new date.
 const HIDDEN_FROM_ALL: ReadonlySet<AcsSectionId> = new Set<AcsSectionId>([
   "acs_foster_hold",
   "foster_pending",
+  "still_at_acs",
   "following_up",
 ]);
 
