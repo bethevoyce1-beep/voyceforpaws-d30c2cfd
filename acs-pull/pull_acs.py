@@ -114,6 +114,10 @@ DEMO_RE = re.compile(r"^\(([A-Z])\)\s*Estimated Age\s+(.*)$")
 # and kennel were BOTH discarded. Optional keeps old records parsing too.
 VAL_RE = re.compile(r"^(A\d{6})(?!\d)\s+(\d{1,2}/\d{1,2}/\d{4})(?:\s+(\S+))?")
 ID_RE = re.compile(r"\b(A\d{6})(?!\d)")
+BARE_ID_RE = re.compile(r"^A\d{6}$")
+# "Evaluation Notes:", "Vet Exam Notes:", "Medical Notes:" ... on a line of their own.
+NOTES_HDR_RE = re.compile(r"^[A-Za-z /]{0,30}notes:\s*$", re.I)
+NAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9 .'&()/-]*$")
 EUTH_ON_RE = re.compile(r"euthanized on\s+(\d{1,2}/\d{1,2}/\d{4})", re.I)
 EUTH_TODAY_RE = re.compile(r"euthanized today", re.I)
 EUTH_AFTER_RE = re.compile(r"euthanized after\s+(\d{1,2}/\d{1,2}/\d{4})", re.I)
@@ -381,9 +385,11 @@ def parse_rows(raw_text):
         # doesn't silently blank these out again. kennel may already have been
         # set from the old-style ID line; the stats block supplies it otherwise.
         weight = days = risk = heartworm = None
+        stats_at = None
         for j in range(i + 1, min(n, i + 8)):
             st = parse_stats(lines[j].strip(), lines[j + 1] if j + 1 < n else "")
             if st:
+                stats_at = j
                 kennel = kennel or st.get("kennel")
                 weight = to_int(st.get("weight"))
                 days = to_int(st.get("days at shelter"))
@@ -391,14 +397,35 @@ def parse_rows(raw_text):
                 heartworm = st.get("heartworm test")
                 break
 
+        # The name is printed under the photo, which pdfplumber puts on the line
+        # right after the stats values ("Kennel Weight Days At Shelter" /
+        # "CR135 8.40 104" / "BLUE"). Reading it from there works whether the
+        # animal has Evaluation Notes, only Vet Exam Notes, or no notes at all;
+        # the old "line before Evaluation Notes" rule left those animals unnamed.
         name = None
+        if stats_at is not None and stats_at + 2 < n:
+            cand = lines[stats_at + 2].strip()
+            if looks_like_name(cand):
+                name = cand
+
         story = None
-        for k in range(i + 1, min(n, i + 14)):
-            if lines[k].strip().lower().startswith("evaluation notes"):
-                cand = lines[k - 1].strip()
-                if cand and not ID_RE.search(cand) and not cand[0].isdigit():
-                    name = cand
-                story = collect_story(lines, k + 1, n)
+        for k in range(i + 1, min(n, i + 16)):
+            s = lines[k].strip()
+            # Never read into the next animal's block: an animal with no notes
+            # used to pick up the NEXT animal's name and notes (Spooky showed
+            # as "JR" with JR's evaluation, Dutch as "Macy").
+            if BARE_ID_RE.match(s) or DEMO_RE.match(s):
+                break
+            if NOTES_HDR_RE.match(s):
+                if name is None:
+                    cand = lines[k - 1].strip()
+                    if looks_like_name(cand):
+                        name = cand
+                # Evaluation notes keep their old shape (header dropped). Any
+                # other section that comes first, e.g. "Vet Exam Notes:", keeps
+                # its header so the card knows these are medical notes.
+                first = k + 1 if s.lower().startswith("evaluation notes") else k
+                story = collect_story(lines, first, n)
                 break
 
         b_start = max(0, i - 6)
@@ -516,10 +543,20 @@ def parse_rows(raw_text):
     return list(out.values())
 
 
+def looks_like_name(s):
+    """An ACS name line: short, letters first, not an ID, date or section header."""
+    if not s or len(s) > 40 or ID_RE.search(s) or NOTES_HDR_RE.match(s):
+        return False
+    return bool(NAME_RE.match(s))
+
+
 def collect_story(lines, start, n):
     buf = []
     for k in range(start, min(n, start + 120)):
         s = lines[k].strip()
+        # A line that is only an animal ID starts the next animal's block.
+        if BARE_ID_RE.match(s):
+            break
         if VAL_RE.match(s) or DEMO_RE.match(s) or s.endswith("pet will be") or s.endswith("animal will be"):
             break
         if s:
