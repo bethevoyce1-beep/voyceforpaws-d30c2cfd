@@ -621,18 +621,70 @@ def write_debug(pdf_url, page_count, parsed_rows, raw_text, notes):
         log(f"DEBUG WRITE EXCEPTION: {e}")
 
 
+# Where an off-list animal is, read from the "I'm located at" line on its ACS
+# PetSearch page. Each state is ACS's own words, nothing inferred:
+#   "Foster Care" + "Foster Family Pending" -> foster_family_pending
+#   "Foster Care"                           -> foster_care
+#   "ACS Campus ..."                        -> at_acs
+#   "Animal ID not found"                   -> following_up (page removed;
+#                                              ACS does not publish why)
+# Anything else stays where it is and is logged, so a new ACS wording is seen
+# rather than guessed at.
+LISTING_STATES = {
+    "foster_care": "ACS Foster Hold",
+    "foster_family_pending": "Foster Pending",
+    "at_acs": "Still at ACS · off the at-risk list",
+    "following_up": "Following up with ACS",
+}
+RESOLVABLE_KEYS = ("unknown", "following_up") + tuple(
+    k for k in LISTING_STATES if k != "following_up"
+)
+
+
+def _page_text(html):
+    t = re.sub(r"(?is)<(script|style)\b.*?</\1>", " ", html)
+    t = re.sub(r"(?s)<[^>]+>", " ", t)
+    t = t.replace("&nbsp;", " ").replace("&#39;", "'").replace("&rsquo;", "'")
+    return re.sub(r"\s+", " ", t).strip()
+
+
+def listing_state(html):
+    """(status_key or None, location text) from an ACS PetSearch page."""
+    if "Animal ID not found" in html:
+        return "following_up", ""
+    text = _page_text(html)
+    m = re.search(
+        r"I.m located at\s+(.+?)\s+(?:What Makes Me Special|My Story|My adoption includes|Adopt!|$)",
+        text,
+    )
+    loc = (m.group(1).strip() if m else "")[:120]
+    if re.match(r"Foster Care", loc, re.I):
+        if re.search(r"Foster Family Pending", text, re.I):
+            return "foster_family_pending", "Foster Care"
+        return "foster_care", "Foster Care"
+    if re.match(r"ACS Campus", loc, re.I):
+        # "ACS CampusBuilding 3, Kennel 3016" -> "ACS Campus, Building 3, Kennel 3016"
+        return "at_acs", re.sub(r"^ACS Campus\s*", "ACS Campus, ", loc).rstrip(", ")
+    return None, loc
+
+
 def resolve_unknowns():
-    """Follow-up on any dog that dropped off the list without a written outcome.
-    Re-check its ACS PetSearch page and route it where it belongs:
-      * page still live ("Available for adoption") -> still at the shelter -> atrisk
-      * "Animal ID not found"                        -> it has left ACS and the
-        outcome is not published -> following_up (Voyce then asks ACS directly).
-    Runs every pull so nothing sits in limbo. Uses the service key (full access).
+    """Follow-up on any animal that dropped off the list without a written outcome.
+    Re-check its ACS PetSearch page and file it under what ACS's own page says
+    (see LISTING_STATES). Runs every pull, so an animal that leaves the list is
+    sorted within 15 minutes, and an animal already sorted is re-checked in case
+    it moved (foster -> page removed, campus -> foster, and so on).
+
+    Only writes when something changed, so followers are alerted once per real
+    change, not every 15 minutes. Animals ACS lists again are handled by the
+    main pull, which re-files them from the capacity list.
     """
     from datetime import datetime as _dt, timezone as _tz
     try:
         r = requests.get(
-            f"{REST}/acs_animals?status_key=in.(unknown,following_up)&select=id,pet_search_url",
+            f"{REST}/acs_animals?shelter_id=eq.acs_san_antonio"
+            f"&status_key=in.({','.join(RESOLVABLE_KEYS)})"
+            "&select=id,pet_search_url,status_key,custody_location",
             headers=HEADERS, timeout=60,
         )
         if r.status_code >= 300:
@@ -643,7 +695,8 @@ def resolve_unknowns():
         log(f"resolve_unknowns list failed: {e}")
         return {}
     now_iso = _dt.now(_tz.utc).isoformat()
-    counts = {"atrisk": 0, "following_up": 0}
+    counts = {k: 0 for k in LISTING_STATES}
+    counts.update({"unchanged": 0, "unrecognized": 0})
     for row in rows:
         aid = row.get("id")
         if not aid:
@@ -657,14 +710,18 @@ def resolve_unknowns():
             continue
         if not html:
             continue
-        if "Animal ID not found" in html:
-            patch = {"status_key": "following_up", "public_status": "Following up with ACS",
-                     "status": "Following up with ACS", "updated_at": now_iso}
-            counts["following_up"] += 1
-        else:
-            patch = {"status_key": "atrisk", "public_status": "At risk",
-                     "status": "At risk", "updated_at": now_iso}
-            counts["atrisk"] += 1
+        key, loc = listing_state(html)
+        if key is None:
+            counts["unrecognized"] += 1
+            log(f"resolve_unknowns {aid}: unrecognized location {loc!r} - left as {row.get('status_key')}")
+            continue
+        if key == row.get("status_key") and (loc or None) == (row.get("custody_location") or None):
+            counts["unchanged"] += 1
+            continue
+        label = LISTING_STATES[key]
+        patch = {"status_key": key, "public_status": label, "status": label,
+                 "custody_location": loc or None, "updated_at": now_iso}
+        counts[key] += 1
         try:
             up = requests.patch(
                 f"{REST}/acs_animals?id=eq.{aid}",
@@ -711,7 +768,7 @@ def main():
     log(f"acs_apply_pull result: {res}")
 
     # Follow up on anything that dropped off without a written outcome: re-check
-    # the ACS page and route it (still-listed -> At risk; gone -> Following up).
+    # the ACS page and file it by what ACS says (see LISTING_STATES).
     try:
         rc = resolve_unknowns()
         log(f"resolve_unknowns: {rc}")
