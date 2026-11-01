@@ -64,6 +64,15 @@ const ACS = {
   phoneTel: "+12102076669",
   adoptionsEmail: "acsadoptions@sanantonio.gov",
   fosterEmail: "acsfoster@sanantonio.gov",
+  // ACS's PDF: "Confirmed holds can only be placed by emailing
+  // ACSfoster@sanantonio.gov; ACSrescue@sanantonio.gov".
+  rescueEmail: "acsrescue@sanantonio.gov",
+  // New groups: ACS's Rescue Groups page says the rescue application is sent to
+  // any group that contacts ACS Rescue through this form, and links the
+  // qualifications PDF. ACS has no online application of its own.
+  rescueContactForm: "https://us.openforms.com/Form/de25b301-5801-44ec-bd7a-6116cbfdd8eb",
+  rescueQualsPdf: "https://www.sa.gov/files/assets/main/v/1/acs/documents/acs-rfa-f23.pdf",
+  rescueGroupsPage: "https://www.sa.gov/Directory/Departments/ACS/About/Partners/Rescue-Groups",
   address: "4710 State Hwy 151, San Antonio, TX 78227",
   mapsUrl:
     "https://www.google.com/maps/dir/?api=1&destination=4710+State+Hwy+151+San+Antonio+TX+78227",
@@ -177,6 +186,16 @@ function centralDay(d: Date): string {
     month: "short",
     day: "numeric",
   });
+}
+
+/** "2026-07-21" or "07/21/2026" → "Jul 21", the way the list's date pills read. */
+function shortDay(s: string | null | undefined): string | null {
+  const us = usDate(s);
+  if (!us) return null;
+  const m = /^(\d{1,2})\/(\d{1,2})\/\d{4}$/.exec(us);
+  if (!m) return us;
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${months[+m[1] - 1] ?? m[1]} ${+m[2]}`;
 }
 
 /** "Oct 29, 12:30 AM CT" — when an animal was last on ACS's capacity list. */
@@ -562,20 +581,34 @@ function RescuePullForm({ animal }: { animal: AcsAnimal }) {
   const labelCls =
     "text-[11px] font-semibold uppercase tracking-wider text-foreground/60";
 
+  const holdMailto = `mailto:${ACS.rescueEmail}?subject=${encodeURIComponent(
+    `Rescue hold request: ${animal.name} (ID ${animal.id})`,
+  )}&body=${encodeURIComponent(
+    `Hi ACS Rescue team,\n\nWe're an approved ACS rescue partner and would like to place a hold on ${animal.name} (ID ${animal.id}${animal.kennel ? `, kennel ${animal.kennel}` : ""}) for transfer.\n\nRescue:\nContact:\nPhone:\n\nThank you,`,
+  )}`;
+
   return (
     <>
       <SectionLabel>Rescue pull</SectionLabel>
       <div
-        className="mx-5 mb-5 rounded-xl px-4 py-4"
+        className="mx-5 rounded-xl px-4 py-4"
         style={{ background: CREAM, border: `1px solid ${GOLD_DEEP}` }}
       >
         <h3 className="font-serif text-[16px] font-bold" style={{ color: INK }}>
-          🐾 Rescue pull — step up for {animal.name}
+          🤝 Approved ACS partner? Pull {animal.name}
         </h3>
         <p className="mt-1 text-[12px] leading-[1.5]" style={{ color: "#6B5832" }}>
-          For a rescue/organization that can pull this dog — Voyce coordinates; we
-          never contact ACS for you automatically.
+          ACS only confirms holds by email, so email ACS Rescue first — then tell
+          Voyce below so we can coordinate. We never contact ACS for you.
         </p>
+        <a
+          href={holdMailto}
+          className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-xl py-2.5 text-[12.5px] font-bold text-white shadow-sm active:scale-95"
+          style={{ background: `linear-gradient(135deg, ${RED1} 0%, ${RED2} 100%)` }}
+        >
+          ✉️ Email ACS Rescue to place a hold
+        </a>
+        <p className="mt-1 text-center text-[10.5px] text-[#9CA3AF]">{ACS.rescueEmail}</p>
 
         {done ? (
           <div className="mt-3 rounded-xl bg-white px-4 py-6 text-center" style={{ border: `1px solid ${GOLD_DEEP}` }}>
@@ -680,12 +713,147 @@ function RescuePullForm({ animal }: { animal: AcsAnimal }) {
               className="mt-1 w-full rounded-xl px-3 py-2.5 text-center text-[13px] font-bold shadow-sm transition active:scale-95 disabled:opacity-60"
               style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_DEEP} 100%)`, color: GOLD_INK }}
             >
-              {busy ? "Sending…" : "Submit rescue-pull request"}
+              {busy ? "Sending…" : "Tell Voyce you're pulling"}
             </button>
           </div>
         )}
       </div>
     </>
+  );
+}
+
+// ============================================================
+// NewRescuePartner — for a rescue that is NOT yet approved by ACS. ACS has no
+// online application: its Rescue Groups page sends groups to a "Contact ACS
+// Rescue" form (Name, Organization, Email, Phone, Comments) and ACS emails the
+// application back. This mirrors those same five fields and opens an email to
+// ACS Rescue from the rescue's own mail app, so it comes from them, not Voyce.
+// ACS's own form is linked too (it has a reCAPTCHA, so it can't be sent from here).
+// ============================================================
+function NewRescuePartner({ animal }: { animal: AcsAnimal }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [org, setOrg] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [comments, setComments] = useState(
+    `We'd like to apply to become an ACS rescue partner. Please send us the rescue application. We're interested in ${titleCase(animal.name)} (ID ${animal.id}).`,
+  );
+  const [err, setErr] = useState<string | null>(null);
+
+  const inputCls =
+    "mt-1 w-full rounded-xl border border-[#D9D2C2] bg-white px-3 py-2 text-[14px] outline-none focus:border-[#C9871A]";
+  const labelCls = "text-[11px] font-semibold uppercase tracking-wider text-foreground/60";
+
+  const send = () => {
+    setErr(null);
+    if (!name.trim() || !org.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) {
+      setErr("Please add your name, organization, and a valid email.");
+      return;
+    }
+    const body = [
+      `Name: ${name.trim()}`,
+      `Organization: ${org.trim()}`,
+      `Email Address: ${email.trim()}`,
+      `Phone Number: ${phone.trim() || "—"}`,
+      ``,
+      `Comments or Questions:`,
+      comments.trim(),
+    ].join("\n");
+    const href = `mailto:${ACS.rescueEmail}?subject=${encodeURIComponent(
+      `New rescue partner application request: ${org.trim()}`,
+    )}&body=${encodeURIComponent(body)}`;
+    if (typeof window !== "undefined") window.location.href = href;
+  };
+
+  return (
+    <div className="mx-5 mb-5 mt-2.5 rounded-xl bg-white px-4 py-3 ring-1 ring-[#E5DCC5]">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-2 text-left"
+        aria-expanded={open}
+      >
+        <span>
+          <span className="block font-serif text-[15px] font-bold" style={{ color: INK }}>
+            🆕 New rescue? Partner with ACS
+          </span>
+          <span className="block text-[11.5px] leading-snug text-[#6B5832]">
+            Not approved by ACS yet — request ACS&rsquo;s rescue application
+          </span>
+        </span>
+        <span className="text-[16px] text-[#9CA3AF]">{open ? "−" : "+"}</span>
+      </button>
+
+      {open && (
+        <div className="mt-3 space-y-2">
+          <p className="text-[12px] leading-[1.5] text-[#6B5832]">
+            ACS sends its rescue application to groups that contact ACS Rescue. Check the
+            qualifications first, then send your details below.
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            <a
+              href={ACS.rescueQualsPdf}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded-full bg-[#FFF6DA] px-2.5 py-1 text-[10.5px] font-bold text-[#7A5A0A] active:scale-95"
+            >
+              📄 ACS qualifications (PDF)
+            </a>
+            <a
+              href={ACS.rescueGroupsPage}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded-full bg-[#EEF3FB] px-2.5 py-1 text-[10.5px] font-bold text-[#1E40AF] active:scale-95"
+            >
+              🏛 ACS rescue partners page
+            </a>
+          </div>
+
+          <label className="block">
+            <span className={labelCls}>Name *</span>
+            <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="Your name" />
+          </label>
+          <label className="block">
+            <span className={labelCls}>Organization *</span>
+            <input value={org} onChange={(e) => setOrg(e.target.value)} className={inputCls} placeholder="Rescue or organization name" />
+          </label>
+          <label className="block">
+            <span className={labelCls}>Email address *</span>
+            <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" className={inputCls} placeholder="you@rescue.org" />
+          </label>
+          <label className="block">
+            <span className={labelCls}>Phone number</span>
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" className={inputCls} placeholder="(555) 555-5555" />
+          </label>
+          <label className="block">
+            <span className={labelCls}>Comments or questions</span>
+            <textarea value={comments} onChange={(e) => setComments(e.target.value)} rows={4} className={inputCls + " resize-none"} />
+          </label>
+
+          {err && (
+            <p className="text-[12px] font-semibold" style={{ color: RED2 }}>
+              {err}
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={send}
+            className="w-full rounded-xl px-3 py-2.5 text-center text-[13px] font-bold shadow-sm transition active:scale-95"
+            style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_DEEP} 100%)`, color: GOLD_INK }}
+          >
+            ✉️ Send to ACS Rescue
+          </button>
+          <p className="text-center text-[10.5px] leading-snug text-[#9CA3AF]">
+            Opens an email to {ACS.rescueEmail} from your own email app.{" "}
+            <a href={ACS.rescueContactForm} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#7A5A0A] underline">
+              Or use ACS&rsquo;s own form ↗
+            </a>
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -752,6 +920,24 @@ export function AcsShareCard({
       ? { label: `⏳ ${animal.days} day${animal.days === 1 ? "" : "s"} at ACS`, warm: true }
       : null,
   ].filter(Boolean) as { label: string; warm?: boolean }[];
+
+  // ACS's own dates, as the same pills the list shows. Kennel / due out / euth
+  // are capacity-list facts, so animals ACS has since filed elsewhere skip them.
+  const datePills: { label: string; tone: "cream" | "rose" | "red" }[] = fromListing
+    ? []
+    : ([
+        animal.kennel ? { label: `Kennel ${animal.kennel}`, tone: "cream" } : null,
+        shortDay(animal.due_out) ? { label: `Due out ${shortDay(animal.due_out)}`, tone: "cream" } : null,
+        shortDay(animal.risk_since) ? { label: `At risk since ${shortDay(animal.risk_since)}`, tone: "rose" } : null,
+        shortDay(animal.euth_date)
+          ? { label: `Euth ${statusKey === "atrisk" ? "after" : "date"} ${shortDay(animal.euth_date)}`, tone: "red" }
+          : null,
+      ].filter(Boolean) as { label: string; tone: "cream" | "rose" | "red" }[]);
+  const PILL_TONE = {
+    cream: { background: "#F3EFE4", color: "#6B5832" },
+    rose: { background: "#FDECEC", color: "#9A3412" },
+    red: { background: "#FBE3E3", color: "#7F1D1D" },
+  } as const;
 
   const acsDeepLink = animal.pet_search_url || `${ACS.searchPage}?id=${encodeURIComponent(id)}`;
   const pdfDeepLink = animal.list_url || `${ACS.pdfList}#${encodeURIComponent(id)}`;
@@ -920,7 +1106,6 @@ export function AcsShareCard({
             </h2>
             <p className="mt-1 text-[12px] font-semibold" style={{ color: GOLD_DEEP }}>
               ID {id}
-              {fromListing ? "" : ` · kennel ${kennel}`}
             </p>
             {vitalPills.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1">
@@ -931,6 +1116,19 @@ export function AcsShareCard({
                     style={v.warm ? { background: "#FFF1E0", color: "#B4610F" } : { background: "#F3F2EE", color: "#4B5563" }}
                   >
                     {v.label}
+                  </span>
+                ))}
+              </div>
+            )}
+            {datePills.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {datePills.map((d) => (
+                  <span
+                    key={d.label}
+                    className="rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
+                    style={PILL_TONE[d.tone]}
+                  >
+                    {d.label}
                   </span>
                 ))}
               </div>
@@ -1221,6 +1419,7 @@ export function AcsShareCard({
 
           {/* ===== RESCUE PULL REQUEST ===== */}
           <RescuePullForm animal={animal} />
+          <NewRescuePartner animal={animal} />
 
           {/* ===== HOW THE NETWORK IS RESPONDING ===== */}
           <SectionLabel>The pack</SectionLabel>
