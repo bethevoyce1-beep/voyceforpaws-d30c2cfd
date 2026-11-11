@@ -1,4 +1,5 @@
 import type { Assessment } from "@/lib/analyze.functions";
+import type { CaseMeta } from "@/lib/share.functions";
 
 // =============================================================
 // cardShared — ONE source of truth for the rescue card's content pieces that
@@ -43,6 +44,108 @@ export function seenChipsFrom(d: Assessment): string[] {
 
 // Keep cap exported in case a card needs it from the shared module.
 export { cap };
+
+// Make a user-typed URL safe to link: add https:// when there's no scheme, and
+// refuse anything that isn't a plain http(s) link.
+function normHref(u: string): string {
+  const t = (u || "").trim();
+  if (!t) return "";
+  if (/^https?:\/\//i.test(t)) return t;
+  if (/^(mailto:|tel:)/i.test(t)) return t;
+  if (/^[\w.-]+@[\w.-]+\.\w+$/.test(t)) return `mailto:${t}`;
+  return `https://${t.replace(/^\/+/, "")}`;
+}
+
+// CaseMetaBlock — the new "where / who / how to help" panel. Renders ONLY when
+// case_meta has something to show, so a photo-only card is untouched. Lean by
+// design: a big origin line, a compact "Contact <rescue>" row of links, and a
+// small Source link. Used by BOTH the in-app card and the public /r/<id> page
+// so they can't drift.
+export function CaseMetaBlock({ cm, className = "" }: { cm: CaseMeta; className?: string }) {
+  if (!cm) return null;
+  const origin = cm.origin || null;
+  const rescue = cm.rescue || null;
+
+  const originCityState = [origin?.city, origin?.state].filter(Boolean).join(", ");
+  const originLine = [origin?.shelter_name, originCityState].filter(Boolean).join(" · ");
+
+  const rescueLinks: { key: string; label: string; href: string }[] = [];
+  if (rescue) {
+    if (rescue.url) rescueLinks.push({ key: "url", label: "Website", href: normHref(rescue.url) });
+    if (rescue.facebook) rescueLinks.push({ key: "fb", label: "Facebook", href: normHref(rescue.facebook) });
+    const mail = (rescue.email || "").trim();
+    if (mail) rescueLinks.push({ key: "email", label: mail, href: `mailto:${mail}` });
+    const tel = (rescue.phone || "").trim();
+    if (tel) rescueLinks.push({ key: "phone", label: tel, href: `tel:${tel.replace(/[^\d+]/g, "")}` });
+  }
+  const rescueName = (rescue?.name || "").trim();
+  const hasRescue = !!(rescueName || rescueLinks.length);
+
+  const source = (cm.source_url || "").trim();
+  const ask = (cm.ask || "").trim();
+  const deadline = (cm.deadline || "").trim();
+
+  if (!originLine && !hasRescue && !source && !ask && !deadline) return null;
+
+  return (
+    <div className={`rounded-2xl border border-[#EDE5D8] bg-[#FBF7EC] px-4 py-3.5 ${className}`}>
+      {originLine && (
+        <div className="text-[15px] font-bold leading-tight text-[#5A3E12]">
+          <span aria-hidden>📍 </span>At {originLine}
+        </div>
+      )}
+
+      {(ask || deadline) && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {ask && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-[#E8C97A] bg-[#FBF1C8] px-2.5 py-0.5 text-[11.5px] font-bold text-[#7A5A0A]">
+              🙏 {cap(ask)}
+            </span>
+          )}
+          {deadline && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-[#F0C0A0] bg-[#FDECE2] px-2.5 py-0.5 text-[11.5px] font-bold text-[#A8431F]">
+              ⏳ {deadline}
+            </span>
+          )}
+        </div>
+      )}
+
+      {hasRescue && (
+        <div className="mt-3">
+          <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#8A5A0E]">
+            Contact {rescueName || "the rescue"}
+          </div>
+          {rescueLinks.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {rescueLinks.map((l) => (
+                <a
+                  key={l.key}
+                  href={l.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-[#C9871A] bg-white px-3 py-1 text-[12.5px] font-semibold text-[#8A5A0E] no-underline transition active:scale-[0.97]"
+                >
+                  {l.label}
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {source && (
+        <a
+          href={normHref(source)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 inline-block text-[12px] font-semibold text-[#8A5A0E] underline-offset-2 hover:underline"
+        >
+          🔗 Source post
+        </a>
+      )}
+    </div>
+  );
+}
 
 // The three safety notes, in order, read BEFORE responding: Voyce's First Look
 // honest limits, the pre-launch "is this a real animal" contact, and Stay safe

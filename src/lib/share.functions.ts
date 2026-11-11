@@ -28,6 +28,30 @@ export type ReporterAdded = {
   note?: string;        // free text
 } | null;
 
+// Structured "where / who / how to help" metadata on a shared rescue card.
+// Stored in the shared_reports.case_meta jsonb column. Everything is optional —
+// a card with no case_meta renders exactly as before. Populated from a pasted
+// post (see extractPost) or by the reporter; the AI is never allowed to invent
+// any of it.
+export type CaseMeta = {
+  origin?: {
+    shelter_name?: string | null;
+    city?: string | null;
+    state?: string | null;
+    address?: string | null;
+  } | null;
+  rescue?: {
+    name?: string | null;
+    url?: string | null;
+    email?: string | null;
+    facebook?: string | null;
+    phone?: string | null;
+  } | null;
+  source_url?: string | null; // where the original post came from
+  deadline?: string | null;   // e.g. "today", or an ISO date
+  ask?: string | null;        // e.g. "foster", "adopt", "transport"
+} | null;
+
 export type SharedReport = {
   id: string;
   created_at: string;
@@ -40,6 +64,7 @@ export type SharedReport = {
   loc_privacy: "exact" | "area" | "hidden" | string | null;
   views: number;
   reporter_added?: ReporterAdded;
+  case_meta?: CaseMeta;
 };
 
 // Fold the reporter's corrections into the AI assessment so the card's FACTS
@@ -85,6 +110,7 @@ export const createSharedReport = createServerFn({ method: "POST" })
       note?: string;
       locPrivacy?: string;
       editToken?: string;
+      caseMeta?: unknown;
     };
     const priv = o.locPrivacy === "exact" || o.locPrivacy === "hidden" ? o.locPrivacy : "area";
     return {
@@ -96,6 +122,9 @@ export const createSharedReport = createServerFn({ method: "POST" })
       note: o.note ? String(o.note).slice(0, 600) : null,
       locPrivacy: priv,
       editToken: o.editToken ? String(o.editToken).slice(0, 64) : null,
+      // Optional structured case metadata (origin shelter, coordinating rescue,
+      // source URL, deadline, ask). Backward compatible — null when absent.
+      caseMeta: (o.caseMeta ?? null) as Record<string, unknown> | null,
     };
   })
   .handler(async ({ data }): Promise<{ id: string | null; error?: string }> => {
@@ -110,6 +139,7 @@ export const createSharedReport = createServerFn({ method: "POST" })
         note: data.note,
         loc_privacy: data.locPrivacy,
         edit_token: data.editToken,
+        case_meta: data.caseMeta,
       },
     });
     if (error) return { id: null, error: error.message };
@@ -118,22 +148,28 @@ export const createSharedReport = createServerFn({ method: "POST" })
 
 // Save the reporter's corrections onto an already-shared card. Gated by the
 // secret editToken the creator holds — so only they can change their card, and
-// the public /r/<id> page then reflects it for everyone.
+// the public /r/<id> page then reflects it for everyone. Can carry the
+// reporter's corrections and/or updated case metadata; each is applied only
+// when present, so updating one never wipes the other.
 export const updateSharedReport = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => {
-    const o = (input ?? {}) as { id?: string; editToken?: string; reporterAdded?: unknown };
+    const o = (input ?? {}) as { id?: string; editToken?: string; reporterAdded?: unknown; caseMeta?: unknown };
     return {
       id: String(o.id ?? "").trim(),
       editToken: String(o.editToken ?? "").trim(),
       reporterAdded: (o.reporterAdded ?? null) as Record<string, unknown> | null,
+      caseMeta: (o.caseMeta ?? null) as Record<string, unknown> | null,
     };
   })
   .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {
     if (!data.id || !data.editToken) return { ok: false, error: "missing" };
     const sb = serverClient();
-    const { data: res, error } = await sb.rpc("update_shared_report", {
-      p: { id: data.id, edit_token: data.editToken, reporter_added: data.reporterAdded },
-    });
+    // Only send keys that were actually provided, so a reporter-corrections
+    // update doesn't null out case_meta and vice versa.
+    const p: Record<string, unknown> = { id: data.id, edit_token: data.editToken };
+    if (data.reporterAdded !== null) p.reporter_added = data.reporterAdded;
+    if (data.caseMeta !== null) p.case_meta = data.caseMeta;
+    const { data: res, error } = await sb.rpc("update_shared_report", { p });
     if (error) return { ok: false, error: error.message };
     return (res ?? { ok: true }) as { ok: boolean; error?: string };
   });
