@@ -12,11 +12,69 @@ type Geo = {
   lon: number;
   label: string; // place/neighbourhood/city or "Your area"
   accuracy: "High" | "Approx" | "Photo";
+  accuracyM?: number; // numeric GPS accuracy in metres, when known
+  precision?: string; // Google location_type (ROOFTOP | ...) or "approximate"
+  note?: string; // why a fallback was used, if any
 };
 
-// Turn coordinates into a human place label — as specific as the data allows
-// (place/park/road → neighbourhood → city), so rescuers see more than just a city.
-async function reverseGeocode(lat: number, lon: number): Promise<string> {
+// Supabase project — the publishable (anon) key is not secret; it already ships
+// in the public landing page. Used to call the reverse-geocode edge function.
+const SB_URL =
+  (import.meta.env.VITE_SUPABASE_URL as string | undefined) ||
+  "https://okmukfrhvqkxphzueqww.supabase.co";
+const SB_KEY =
+  (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ||
+  "sb_publishable_e_OWsyXVeFqgV6EVGAKKTw_sgEV2cTN";
+
+type Resolved = {
+  label: string;
+  // ROOFTOP | RANGE_INTERPOLATED | GEOMETRIC_CENTER | APPROXIMATE | approximate
+  precision: string;
+  source: string; // "google" | "nominatim"
+  note?: string;
+};
+
+// Turn coordinates into a human place label + a precision signal. Prefers the
+// `reverse-geocode` edge function (Google rooftop when the Geocoding API is
+// enabled, Nominatim fallback baked in). If the function is unreachable, falls
+// back to calling Nominatim directly so the flow still resolves a label.
+async function resolveAddress(lat: number, lon: number): Promise<Resolved> {
+  try {
+    const r = await fetch(`${SB_URL}/functions/v1/reverse-geocode`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SB_KEY,
+        Authorization: `Bearer ${SB_KEY}`,
+      },
+      body: JSON.stringify({ lat, lon }),
+    });
+    if (r.ok) {
+      const j = (await r.json()) as Partial<Resolved> | null;
+      if (j && typeof j.label === "string" && j.label) {
+        return {
+          label: j.label,
+          precision: j.precision || "approximate",
+          source: j.source || "google",
+          note: j.note,
+        };
+      }
+    }
+  } catch {
+    /* fall through to direct Nominatim */
+  }
+  return {
+    label: await reverseGeocodeNominatim(lat, lon),
+    precision: "approximate",
+    source: "nominatim",
+  };
+}
+
+// Direct Nominatim fallback (used only if the edge function can't be reached).
+// Deliberately OMITS the house number — at zoom=18 Nominatim snaps to the
+// nearest known number and prints it as exact, which is the "few houses off"
+// bug. Street + neighbourhood + city is honest for an approximate fix.
+async function reverseGeocodeNominatim(lat: number, lon: number): Promise<string> {
   try {
     const r = await fetch(
       `https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&zoom=18&lat=${lat}&lon=${lon}`,
@@ -29,11 +87,8 @@ async function reverseGeocode(lat: number, lon: number): Promise<string> {
       address?: Record<string, string>;
     };
     const a = j.address ?? {};
-    // Prefer a full street line (house number + road) when the point is precise
-    // enough to have one; otherwise fall back to a named place / road.
-    const street = [a.house_number, a.road || a.pedestrian].filter(Boolean).join(" ").trim();
     const place =
-      street || j.name || a.leisure || a.amenity || a.building;
+      a.road || a.pedestrian || j.name || a.leisure || a.amenity || a.building;
     const area = a.neighbourhood || a.suburb || a.quarter || a.city_district;
     const city = a.city || a.town || a.village || a.municipality || a.county;
     const parts = [place, area, city].filter((p): p is string => Boolean(p));
@@ -55,7 +110,7 @@ type Props = {
   assessment: Assessment | null;
   onComplete: () => void;
   onRetry?: () => void;
-  onLocate?: (loc: { lat: number; lon: number; label: string }) => void;
+  onLocate?: (loc: { lat: number; lon: number; label: string; accuracy?: number; precision?: string }) => void;
 };
 
 const GOLD = "#FFDF3B";
@@ -92,8 +147,15 @@ export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment
     if (meta && meta.lat != null && meta.lon != null) {
       const la = meta.lat;
       const lo = meta.lon;
-      void reverseGeocode(la, lo).then((label) =>
-        setGeo({ lat: la, lon: lo, label, accuracy: "Photo" }),
+      void resolveAddress(la, lo).then((res) =>
+        setGeo({
+          lat: la,
+          lon: lo,
+          label: res.label,
+          accuracy: "Photo",
+          precision: res.precision,
+          note: res.note,
+        }),
       );
       return;
     }
@@ -101,30 +163,80 @@ export function ProcessingPipeline({ image, meta, aiPending, aiError, assessment
       setGeo({ lat: 0, lon: 0, label: "Your area", accuracy: "Approx" });
       return;
     }
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude, accuracy } = pos.coords;
-        const label = await reverseGeocode(latitude, longitude);
-        setGeo({
-          lat: latitude,
-          lon: longitude,
-          label,
-          accuracy: accuracy && accuracy < 100 ? "High" : "Approx",
-        });
+    // Sample high-accuracy fixes for ~5s and keep the SMALLEST-accuracy (most
+    // precise) reading, instead of trusting a single first fix — a first fix is
+    // often coarse and reverse-geocodes to the wrong house. Always fresh
+    // (maximumAge:0), never a cached/coarse position.
+    let best: GeolocationPosition | null = null;
+    let done = false;
+    let watchId = 0;
+    let timer = 0;
+    const opts: PositionOptions = {
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: 8000,
+    };
+    const finalize = async () => {
+      if (done) return;
+      done = true;
+      window.clearTimeout(timer);
+      try {
+        navigator.geolocation.clearWatch(watchId);
+      } catch {
+        /* ignore */
+      }
+      if (!best) {
+        setGeo({ lat: 0, lon: 0, label: "Your area", accuracy: "Approx" });
+        return;
+      }
+      const { latitude, longitude, accuracy } = best.coords;
+      const res = await resolveAddress(latitude, longitude);
+      setGeo({
+        lat: latitude,
+        lon: longitude,
+        label: res.label,
+        accuracy: accuracy != null && accuracy < 100 ? "High" : "Approx",
+        accuracyM: accuracy ?? undefined,
+        precision: res.precision,
+        note: res.note,
+      });
+    };
+    watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        if (!best || pos.coords.accuracy < best.coords.accuracy) best = pos;
+        // A rooftop-tight fix (<=20m) is as good as it gets — lock in early.
+        if (pos.coords.accuracy != null && pos.coords.accuracy <= 20)
+          void finalize();
       },
-      () => setGeo({ lat: 0, lon: 0, label: "Your area", accuracy: "Approx" }),
-      // Force a FRESH, high-accuracy fix — never a cached/coarse position.
-      // A stale or low-accuracy reading reverse-geocodes to the wrong house
-      // number (a few houses off), so we wait longer for a precise GPS lock.
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+      () => {
+        if (!best) void finalize();
+      },
+      opts,
     );
+    // Collect for ~5s, then lock in the smallest-accuracy fix.
+    timer = window.setTimeout(() => void finalize(), 5000);
+    return () => {
+      done = true;
+      window.clearTimeout(timer);
+      try {
+        navigator.geolocation.clearWatch(watchId);
+      } catch {
+        /* ignore */
+      }
+    };
   }, [meta]);
 
   // Report the resolved location up so the rescue card can offer a "View Map"
   // link to the animal's GPS. Skip the (0,0) "unknown" fallback.
   useEffect(() => {
     if (geo && (geo.lat !== 0 || geo.lon !== 0)) {
-      onLocate?.({ lat: geo.lat, lon: geo.lon, label: geo.label });
+      onLocate?.({
+        lat: geo.lat,
+        lon: geo.lon,
+        label: geo.label,
+        accuracy: geo.accuracyM,
+        precision: geo.precision,
+      });
     }
   }, [geo, onLocate]);
 
@@ -559,6 +671,13 @@ function LocationReveal({ geo }: { geo: Geo | null }) {
       >
         Approx: <span className="font-medium">{label}</span>
       </div>
+      {geo?.precision && geo.precision !== "ROOFTOP" && (
+        <div
+          className={`transition-opacity duration-300 ${show.approx ? "opacity-100" : "opacity-0"} text-[12px] italic text-[#8A5A0E]`}
+        >
+          Approximate — confirm the exact spot on the map.
+        </div>
+      )}
       {hasReal && mapEmbed && (
         <div
           className={`mt-2 overflow-hidden rounded-xl border border-border transition-opacity duration-500 ${

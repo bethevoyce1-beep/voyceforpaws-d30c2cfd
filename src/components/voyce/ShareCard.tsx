@@ -10,7 +10,7 @@ export function ShareCard(props: {
   image: string;
   data: Assessment;
   mission: MissionId;
-  location?: { lat: number; lon: number; label: string } | null;
+  location?: { lat: number; lon: number; label: string; accuracy?: number; precision?: string } | null;
   onContinue: () => void;
 }) {
   return (
