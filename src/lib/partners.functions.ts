@@ -38,15 +38,24 @@ export type ModerationQueue = {
   followups: PendingFollowup[];
 };
 
-function assertSecret(secret: string) {
+// Constant-time string comparison — avoids leaking the secret's length/prefix
+// via response-timing differences during a brute-force attempt.
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+// Gate admin endpoints on the shared passphrase. Hardened: constant-time
+// compare, a single GENERIC error (never reveals whether the passphrase was
+// wrong vs. unset), and a randomized delay on failure to throttle brute force.
+async function assertSecret(secret: string) {
   const expected = process.env.ADMIN_FOLLOWUP_SECRET;
-  if (!expected) {
-    throw new Error(
-      "Moderation isn't enabled yet — set ADMIN_FOLLOWUP_SECRET in the app's environment to turn it on.",
-    );
-  }
-  if (secret !== expected) {
-    throw new Error("Wrong passphrase.");
+  if (!expected || !secret || !safeEqual(secret, expected)) {
+    // Slow down guessing; jitter so the delay itself isn't a reliable signal.
+    await new Promise((r) => setTimeout(r, 700 + Math.floor(Math.random() * 500)));
+    throw new Error("Not authorized.");
   }
 }
 
@@ -56,7 +65,7 @@ export const adminModerationQueue = createServerFn({ method: "POST" })
     return { secret: typeof o.secret === "string" ? o.secret : "" };
   })
   .handler(async ({ data }): Promise<ModerationQueue> => {
-    assertSecret(data.secret);
+    await assertSecret(data.secret);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: pRows, error: pErr } = await supabaseAdmin
@@ -136,7 +145,7 @@ export const adminSetPartnerStatus = createServerFn({ method: "POST" })
     };
   })
   .handler(async ({ data }): Promise<{ ok: true }> => {
-    assertSecret(data.secret);
+    await assertSecret(data.secret);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const patch: Record<string, unknown> = { status: data.status };
     patch.approved_at = data.status === "approved" ? new Date().toISOString() : null;
@@ -163,7 +172,7 @@ export const adminSetFollowupModeration = createServerFn({ method: "POST" })
     };
   })
   .handler(async ({ data }): Promise<{ ok: true }> => {
-    assertSecret(data.secret);
+    await assertSecret(data.secret);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("acs_followups")
