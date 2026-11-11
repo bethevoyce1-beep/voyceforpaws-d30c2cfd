@@ -68,7 +68,8 @@ export type Assessment = {
   suggested_situation?: string;  // best-fit reporter-situation label read from the photo
   situation_confidence?: "high" | "medium" | "low"; // how sure Voyce is about it
   ai_confidence?: "high" | "medium" | "low"; // overall confidence in the visual read
-  animals?: Assessment[];        // one complete assessment per animal when 2+ are present
+  animal_count?: number;         // REQUIRED first step: total distinct animals counted in the frame (integer >= 1)
+  animals?: Assessment[];        // one complete assessment per animal — EXACTLY animal_count objects whenever animal_count >= 2
   // Anti-scam Tier 2 (July 5, 2026): does this look like a fresh phone capture
   // or a stock/internet image? "likely_stock" caps situation_confidence at low.
   capture_authenticity?: "fresh_capture" | "uncertain" | "likely_stock";
@@ -82,7 +83,7 @@ LANGUAGE & SAFETY RULES — NON-NEGOTIABLE, THESE OVERRIDE EVERYTHING BELOW. Voy
 
 NO-ANIMAL CHECK — DO THIS FIRST. Voyce is only for animals. If the image contains NO animal at all — only people, food, plates, drinks, objects, buildings, or scenery — set "animal_present": false and "species": "none", and set "non_animal_subject" to the single best label for what the photo actually shows: "person" (any human, even partially visible), "food", "vehicle", "plant", "object", "scenery", or "other". Do NOT invent an animal, a status, or a health reading. A human in the frame is NOT an animal; only report an actual animal (dog, cat, bird, wildlife, etc.). If a real animal is present, set "animal_present": true and continue normally. IMPORTANT — LOW LIGHT IS OK: darkness, night, dim light, shadows, blur, grain, or partial/close framing are NEVER reasons to report no animal. If an animal is plausibly present even in a dark or unclear photo, set "animal_present": true, give your best-effort read, and note the limited visibility in environment_text. Only set "animal_present": false when you can clearly see the photo contains people, food, objects, or scenery and NO animal at all.
 
-COUNT EVERY ANIMAL — DO THIS SECOND, RIGHT AFTER CONFIRMING AN ANIMAL IS PRESENT. Before you describe anything, count how many distinct animals are in the frame. If there are TWO OR MORE — even if one is smaller, farther away, partially cropped, in the background, lying down, or a different species — you MUST assess and describe EACH one. Do NOT describe only the largest or most prominent animal and ignore the rest. When 2+ animals are present: fill the top-level fields with the single most urgent (or, if all are equal, most prominent) animal, AND return the "animals" array with one COMPLETE object per animal (see MULTIPLE ANIMALS below). Two dogs being walked on leashes is TWO animals. A mother with puppies is one adult plus each puppy. A cat and a dog together are two animals of different species. Never collapse multiple animals into a single report. If — and only if — exactly one animal is present, omit the "animals" array. SCAN THE WHOLE FRAME FOR A HIDDEN OR BLENDED-IN SECOND ANIMAL. Animals are very often photographed together, and a companion pet frequently blends into the scene — a dark dog on a dark couch, a grey or white dog against grey cushions or bedding, a cat curled among blankets, or an animal resting in shadow or a dimly lit room. Before concluding there is only one animal, deliberately sweep the background, furniture, beds, blankets, laps, and low-light areas for a second animal's shape: an ear, a muzzle, a paw, a tail, a curled body, or eye-shine. If you can make out a second animal even partially, INCLUDE it (add it to the animals array) with a lower ai_confidence. Do NOT invent animals, though: never label an obvious pillow, cushion, blanket, towel, rug, or toy as an animal — add a second animal only when a genuine animal shape is discernible.
+COUNT EVERY ANIMAL — DO THIS SECOND, RIGHT AFTER CONFIRMING AN ANIMAL IS PRESENT, AND BEFORE YOU DESCRIBE ANYTHING. Your FIRST job is to COUNT, and to write that count into the JSON. Put the total number of distinct real animals in the REQUIRED integer field "animal_count" (minimum 1). Counting comes first; describing comes second. Sweep the ENTIRE frame — foreground, background, edges, laps, furniture, beds, blankets, crates, doorways, shadows, and any low-light or blurred areas — for EVERY animal, including ones that are smaller, farther away, partially cropped, lying down, turned away, overlapping or touching another animal, a different species, or blended into the scene (a dark dog on a dark couch, a grey or white dog against grey bedding, a cat curled among blankets, an animal resting in shadow, or eye-shine in the dark). Look deliberately for a partial shape — an ear, a muzzle, a paw, a tail, or a curled body. If you can make out a second (or third, or fourth) animal even partially, it COUNTS — include it, with a lower ai_confidence if you must. Never merge two animals into one. Never drop an animal because it is small, dark, blurry, distant, or only partly visible. Two dogs on leashes are TWO animals; a mother with puppies is the adult PLUS each puppy; a cat and a dog together are two animals. The ONE thing you must NOT do is invent an animal: never count a pillow, cushion, blanket, towel, rug, toy, bag, or person as an animal — count a shape only when a genuine animal is discernible. Whatever number you write in animal_count, you MUST then return exactly that many complete animal entries (see MULTIPLE ANIMALS below): if animal_count is 1 you fill only the top-level fields; if animal_count is N (2 or more) you MUST return exactly N objects in the "animals" array — never fewer.
 
 BREED — HONEST, STABLE BEST GUESS (do NOT force a random specific breed). Name a SPECIFIC breed only when clear, distinctive traits make you confident (e.g. an obvious German Shepherd, Labrador, Husky, Dachshund, Pug, Beagle, domestic shorthair tabby). When the animal is a small curly/wavy/fluffy companion type where several breeds look nearly identical in a photo — Poodle, Bichon, Havanese, Maltese, Shih Tzu, Cavalier, and their doodle/-poo crosses — do NOT pick one specific breed (it is close to a coin-flip and changes on every read). Instead give the STABLE broad label "Poodle/doodle-type mix" (or "small fluffy mixed breed" if even the family is unclear). Always prefer the honest broader family over a specific-but-uncertain breed, and give the SAME breed read for the same animal every time. Use visible cues — coat texture, ears, muzzle, size, build. Reserve bare "unknown" only for an animal barely visible. When you are not confident in the breed, set ai_confidence to "low" or "medium" accordingly. This applies at every detail level, including quick reads.
 
@@ -149,13 +150,14 @@ SITUATION READ. Pick the single best-fit "suggested_situation" for what the phot
 
 AUTHENTICITY CHECK — ANTI-SCAM. Judge whether this image is plausibly a FRESH PHONE CAPTURE versus a stock photo, a screenshot, an image saved from the internet, or an AI-GENERATED / synthetic image. Set "capture_authenticity" to: "fresh_capture" (looks like a real, casual phone photo — natural framing, ordinary lighting, real-world clutter), "likely_stock" (NOT a real fresh capture — e.g. professional studio lighting, watermarks, posed composition, visible UI elements from a screenshot, borders, an obvious re-photograph of a screen, OR signs the image is AI-generated: waxy / over-smooth fur and skin, garbled or extra / missing limbs, paws, eyes or teeth, warped or nonsensical backgrounds and text, impossible reflections or lighting, unnatural symmetry, or telltale AI / upscaler artifacts), or "uncertain". Give a one-clause "authenticity_reason" naming the strongest signal. Be conservative: most real reports ARE fresh captures — only flag "likely_stock" when clear signals are present. Never mention this check in user-facing text fields.
 
-MULTIPLE ANIMALS — CRITICAL & REQUIRED, NOT OPTIONAL. If TWO OR MORE distinct animals are clearly present in the frame, you MUST ALSO return an "animals" array with ONE complete object per animal (each using this full schema: its own title, species, breed, age, weight, size, color, status, first_look, behavior, body_language, health_signs, observations, symptoms, vet_notes, next_steps, and so on). Assess each animal INDEPENDENTLY — they may differ in species, age, condition, body language, and urgency. Order them most-urgent first. The top-level fields describe the single most urgent (or, if equal, most prominent) animal. Do NOT skip the smaller or background animal. If only ONE animal is present, OMIT the "animals" field entirely.`;
+MULTIPLE ANIMALS — MANDATORY, NOT OPTIONAL, AND COUNT-ANCHORED. Whenever "animal_count" is 2 or more, you MUST return an "animals" array containing EXACTLY animal_count complete objects — one per animal — each using this full schema (its own title, species, breed, age, weight, size, color, status, first_look, behavior, body_language, health_signs, observations, symptoms, vet_notes, next_steps, and so on). The length of the animals array MUST equal animal_count. Assess each animal INDEPENDENTLY — they may differ in species, age, condition, body language, and urgency. Order them most-urgent first; the top-level fields duplicate the single most urgent (or, if equal, most prominent) animal, and that same animal ALSO appears as an entry in the array. NEVER return fewer entries than animal_count, and NEVER skip the smaller, darker, farther, or background animal. Only when animal_count is exactly 1 do you omit the "animals" field. Do not pad the array with invented animals to reach the number either — animal_count and the array must both reflect the real animals you actually see.`;
 
 
 const SCHEMA_HINT = `{
   "animal_present": true,
   "non_animal_subject": "person | food | vehicle | plant | object | scenery | other (ONLY when animal_present is false; omit otherwise)",
-  "animals": "REQUIRED array of complete per-animal objects (same shape) whenever 2+ animals are present — one object per animal, most-urgent first; OMIT entirely for a single animal",
+  "animal_count": "REQUIRED integer >= 1 — count EVERY distinct real animal in the frame FIRST (including hidden, blended, partial, distant, or background animals); the animals array length MUST equal this whenever it is 2 or more",
+  "animals": "REQUIRED array of complete per-animal objects (same shape) whenever animal_count >= 2 — EXACTLY animal_count objects, one per animal, most-urgent first; OMIT entirely ONLY when animal_count is 1",
   "title": "short cinematic title, e.g. 'Tabby resting on a sunlit couch'",
   "status": "Urgent | Monitoring | Stable | Healthy | Safe",
   "status_reason": "one short clause, e.g. 'Likely a pet at home'",
@@ -587,7 +589,10 @@ export const analyzeImage = createServerFn({ method: "POST" })
         ],
         generationConfig: {
           responseMimeType: "application/json",
-          temperature: 0.2,
+          // Deterministic decoding so the animal COUNT is consistent from read to
+          // read — a warmer temperature was intermittently collapsing a real
+          // second/third animal into a single top-level object.
+          temperature: 0,
         },
       });
 
@@ -784,9 +789,14 @@ export const analyzeImage = createServerFn({ method: "POST" })
     }
     const reportedAt = new Date().toISOString();
     // Multi-animal: validate each detected animal and give it the shared scene
-    // context so every per-animal card has location + environment. Only 2+.
+    // context so every per-animal card has location + environment.
+    // Multi-animal enumeration. The model is now required to emit an explicit
+    // "animal_count" and to return EXACTLY that many entries. We keep every
+    // entry the model returns (no cap): a 3-, 4-, or N-animal photo yields N
+    // per-animal cards. We only build the array for 2+ (a single-entry array is
+    // equivalent to the top-level read).
     let animals: Assessment[] | undefined;
-    if (Array.isArray(parsed.animals) && parsed.animals.length > 1) {
+    if (Array.isArray(parsed.animals) && parsed.animals.length >= 2) {
       const scene = {
         location_scene: result.location_scene,
         environment_text: result.environment_text,
@@ -822,9 +832,17 @@ export const analyzeImage = createServerFn({ method: "POST" })
       }
     }
 
+    // Report the count the model committed to first; fall back to the array
+    // length, then to 1. Never silently below the number of enumerated animals.
+    const parsedCount =
+      typeof parsed.animal_count === "number" && Number.isFinite(parsed.animal_count)
+        ? Math.round(parsed.animal_count)
+        : 0;
+    const animalCount = Math.max(parsedCount, animals ? animals.length : 1, 1);
     return {
       ...result,
       reportedAt,
+      animal_count: animalCount,
       ...(animals ? { animals } : {}),
     };
   });
