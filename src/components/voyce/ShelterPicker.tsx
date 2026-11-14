@@ -4,7 +4,6 @@ import {
   listShelters,
   ACS_STATUS_MODEL,
   normalizeStatusKey,
-  statusLabel,
   pillFor,
   urgentFor,
   type AcsAnimal,
@@ -24,6 +23,7 @@ import {
 import { BrandHeader } from "@/components/voyce/BrandHeader";
 import { FollowModal } from "@/components/voyce/FollowModal";
 import { ShelterFollowModal } from "@/components/voyce/ShelterFollowModal";
+import { ShareSheet, openAnimalShare } from "@/components/voyce/ShareSheet";
 
 const GOLD = "#FFDF3B";
 const GOLD_DEEP = "#C9871A";
@@ -423,22 +423,6 @@ function specLine(a: AcsAnimal): string {
   return [a.breed, a.age, a.sex, a.color].filter(Boolean).join(" · ");
 }
 
-// Share a single dog from a board row — uses the device's native share sheet
-// (all their apps), with a clipboard fallback on desktop browsers without it.
-function shareAnimal(a: AcsAnimal, shelterName: string) {
-  const label = statusLabel(a);
-  const url = a.pet_search_url || "https://app.voyceforpaws.org";
-  const text = `\u{1F6A8} ${label} — ${a.name} needs a rescue, foster, or adopter at ${shelterName}. ${url}`;
-  const nav = typeof navigator !== "undefined" ? (navigator as unknown as { share?: (d: unknown) => Promise<void>; clipboard?: { writeText: (t: string) => Promise<void> } }) : undefined;
-  if (nav?.share) {
-    nav.share({ title: `${a.name} needs help`, text, url }).catch(() => {});
-  } else if (nav?.clipboard) {
-    nav.clipboard.writeText(text).then(() => {
-      if (typeof window !== "undefined") window.alert("Share text copied — paste it anywhere to share.");
-    }).catch(() => {});
-  }
-}
-
 function fmtDateTime(iso: string | null): string {
   if (!iso) return "—";
   try {
@@ -564,7 +548,7 @@ function RowTimerBadge({ a }: { a: AcsAnimal }) {
   );
 }
 
-function AnimalRow({ a, onPick, onFollow, shelterName, guide }: { a: AcsAnimal; onPick: (a: AcsAnimal, guide?: Record<string, ShelterPill> | null) => void; onFollow: (a: AcsAnimal) => void; shelterName: string; guide?: Record<string, ShelterPill> | null }) {
+function AnimalRow({ a, onPick, onFollow, onShare, guide }: { a: AcsAnimal; onPick: (a: AcsAnimal, guide?: Record<string, ShelterPill> | null) => void; onFollow: (a: AcsAnimal) => void; onShare: (a: AcsAnimal) => void; guide?: Record<string, ShelterPill> | null }) {
   const [showNote, setShowNote] = useState(false);
   const meta = metaOf(a);
   const section = SECTION_BY_ID[meta.section];
@@ -703,7 +687,7 @@ function AnimalRow({ a, onPick, onFollow, shelterName, guide }: { a: AcsAnimal; 
           </a>
         )}
         <button
-          onClick={(e) => { e.stopPropagation(); shareAnimal(a, shelterName); }}
+          onClick={(e) => { e.stopPropagation(); onShare(a); }}
           className="rounded-full border border-[#D9D2C2] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#1A1611] transition active:scale-95"
         >
           📤 Share
@@ -750,6 +734,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [query, setQuery] = useState("");
   const [followTarget, setFollowTarget] = useState<AcsAnimal | null>(null);
+  const [shareTarget, setShareTarget] = useState<AcsAnimal | null>(null);
   const [shelterFollowOpen, setShelterFollowOpen] = useState(false);
   // Which shelter's list is showing, and the list of shelters to switch between.
   const [shelterId, setShelterId] = useState<string>("acs_san_antonio");
@@ -815,7 +800,6 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
   };
 
   const d = state.data;
-  const shelterName = d?.shelter_name ?? "the shelter";
 
   // Search filter — name / animal id / breed / kennel.
   const matched = useMemo(() => {
@@ -1331,7 +1315,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
                   </div>
                   <div className="space-y-2">
                     {rows.map((a) => (
-                      <AnimalRow key={a.id} a={a} onPick={onPick} onFollow={setFollowTarget} shelterName={shelterName} guide={d?.status_guide} />
+                      <AnimalRow key={a.id} a={a} onPick={onPick} onFollow={setFollowTarget} onShare={(x) => openAnimalShare(x, () => setShareTarget(x))} guide={d?.status_guide} />
                     ))}
                   </div>
                 </section>
@@ -1377,6 +1361,7 @@ export function ShelterPicker({ onPick, onBack, onTakePhoto }: Props) {
       {followTarget && (
         <FollowModal animal={followTarget} onClose={() => setFollowTarget(null)} />
       )}
+      {shareTarget && <ShareSheet animal={shareTarget} onClose={() => setShareTarget(null)} />}
       {shelterFollowOpen && <ShelterFollowModal shelterLabel={d?.shelter_name ?? "this shelter"} onClose={() => setShelterFollowOpen(false)} />}
     </div>
   );
