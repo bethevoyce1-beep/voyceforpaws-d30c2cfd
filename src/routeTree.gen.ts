@@ -10,12 +10,26 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as SavedRouteImport } from './routes/saved'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as PartnerRouteImport } from './routes/partner'
+import { Route as OutcomesRouteImport } from './routes/outcomes'
+import { Route as ModerateRouteImport } from './routes/moderate'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RIdRouteImport } from './routes/r.$id'
+import { Route as AuthVerifyEmailRouteImport } from './routes/auth.verify-email'
+import { Route as AuthRegisterRouteImport } from './routes/auth.register'
+import { Route as AuthLoginRouteImport } from './routes/auth.login'
+import { Route as AIdRouteImport } from './routes/a.$id'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SavedRoute = SavedRouteImport.update({
+  id: '/saved',
+  path: '/saved',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -23,40 +37,153 @@ const PrivacyRoute = PrivacyRouteImport.update({
   path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PartnerRoute = PartnerRouteImport.update({
+  id: '/partner',
+  path: '/partner',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OutcomesRoute = OutcomesRouteImport.update({
+  id: '/outcomes',
+  path: '/outcomes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ModerateRoute = ModerateRouteImport.update({
+  id: '/moderate',
+  path: '/moderate',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RIdRoute = RIdRouteImport.update({
+  id: '/r/$id',
+  path: '/r/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthVerifyEmailRoute = AuthVerifyEmailRouteImport.update({
+  id: '/auth/verify-email',
+  path: '/auth/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRegisterRoute = AuthRegisterRouteImport.update({
+  id: '/auth/register',
+  path: '/auth/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/auth/login',
+  path: '/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AIdRoute = AIdRouteImport.update({
+  id: '/a/$id',
+  path: '/a/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/moderate': typeof ModerateRoute
+  '/outcomes': typeof OutcomesRoute
+  '/partner': typeof PartnerRoute
   '/privacy': typeof PrivacyRoute
+  '/saved': typeof SavedRoute
   '/terms': typeof TermsRoute
+  '/a/$id': typeof AIdRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/register': typeof AuthRegisterRoute
+  '/auth/verify-email': typeof AuthVerifyEmailRoute
+  '/r/$id': typeof RIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/moderate': typeof ModerateRoute
+  '/outcomes': typeof OutcomesRoute
+  '/partner': typeof PartnerRoute
   '/privacy': typeof PrivacyRoute
+  '/saved': typeof SavedRoute
   '/terms': typeof TermsRoute
+  '/a/$id': typeof AIdRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/register': typeof AuthRegisterRoute
+  '/auth/verify-email': typeof AuthVerifyEmailRoute
+  '/r/$id': typeof RIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/moderate': typeof ModerateRoute
+  '/outcomes': typeof OutcomesRoute
+  '/partner': typeof PartnerRoute
   '/privacy': typeof PrivacyRoute
+  '/saved': typeof SavedRoute
   '/terms': typeof TermsRoute
+  '/a/$id': typeof AIdRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/register': typeof AuthRegisterRoute
+  '/auth/verify-email': typeof AuthVerifyEmailRoute
+  '/r/$id': typeof RIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/privacy' | '/terms'
+  fullPaths:
+    | '/'
+    | '/moderate'
+    | '/outcomes'
+    | '/partner'
+    | '/privacy'
+    | '/saved'
+    | '/terms'
+    | '/a/$id'
+    | '/auth/login'
+    | '/auth/register'
+    | '/auth/verify-email'
+    | '/r/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/privacy' | '/terms'
-  id: '__root__' | '/' | '/privacy' | '/terms'
+  to:
+    | '/'
+    | '/moderate'
+    | '/outcomes'
+    | '/partner'
+    | '/privacy'
+    | '/saved'
+    | '/terms'
+    | '/a/$id'
+    | '/auth/login'
+    | '/auth/register'
+    | '/auth/verify-email'
+    | '/r/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/moderate'
+    | '/outcomes'
+    | '/partner'
+    | '/privacy'
+    | '/saved'
+    | '/terms'
+    | '/a/$id'
+    | '/auth/login'
+    | '/auth/register'
+    | '/auth/verify-email'
+    | '/r/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ModerateRoute: typeof ModerateRoute
+  OutcomesRoute: typeof OutcomesRoute
+  PartnerRoute: typeof PartnerRoute
   PrivacyRoute: typeof PrivacyRoute
+  SavedRoute: typeof SavedRoute
   TermsRoute: typeof TermsRoute
+  AIdRoute: typeof AIdRoute
+  AuthLoginRoute: typeof AuthLoginRoute
+  AuthRegisterRoute: typeof AuthRegisterRoute
+  AuthVerifyEmailRoute: typeof AuthVerifyEmailRoute
+  RIdRoute: typeof RIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -68,11 +195,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/saved': {
+      id: '/saved'
+      path: '/saved'
+      fullPath: '/saved'
+      preLoaderRoute: typeof SavedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/privacy': {
       id: '/privacy'
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/partner': {
+      id: '/partner'
+      path: '/partner'
+      fullPath: '/partner'
+      preLoaderRoute: typeof PartnerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/outcomes': {
+      id: '/outcomes'
+      path: '/outcomes'
+      fullPath: '/outcomes'
+      preLoaderRoute: typeof OutcomesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/moderate': {
+      id: '/moderate'
+      path: '/moderate'
+      fullPath: '/moderate'
+      preLoaderRoute: typeof ModerateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -82,14 +237,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/r/$id': {
+      id: '/r/$id'
+      path: '/r/$id'
+      fullPath: '/r/$id'
+      preLoaderRoute: typeof RIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/verify-email': {
+      id: '/auth/verify-email'
+      path: '/auth/verify-email'
+      fullPath: '/auth/verify-email'
+      preLoaderRoute: typeof AuthVerifyEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/register': {
+      id: '/auth/register'
+      path: '/auth/register'
+      fullPath: '/auth/register'
+      preLoaderRoute: typeof AuthRegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/auth/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/a/$id': {
+      id: '/a/$id'
+      path: '/a/$id'
+      fullPath: '/a/$id'
+      preLoaderRoute: typeof AIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ModerateRoute: ModerateRoute,
+  OutcomesRoute: OutcomesRoute,
+  PartnerRoute: PartnerRoute,
   PrivacyRoute: PrivacyRoute,
+  SavedRoute: SavedRoute,
   TermsRoute: TermsRoute,
+  AIdRoute: AIdRoute,
+  AuthLoginRoute: AuthLoginRoute,
+  AuthRegisterRoute: AuthRegisterRoute,
+  AuthVerifyEmailRoute: AuthVerifyEmailRoute,
+  RIdRoute: RIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

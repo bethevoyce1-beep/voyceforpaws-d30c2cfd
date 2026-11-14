@@ -640,6 +640,45 @@ function normalizePhotos(raw: unknown): string[] {
   return [];
 }
 
+// One acs_animals row -> AcsAnimal. Shared by the board list and the
+// per-animal share page so both read a row the same way.
+function rowToAnimal(r: unknown): AcsAnimal {
+  const row = r as Record<string, unknown>;
+  return {
+    id: String(row.id),
+    name: (row.name as string | null) ?? "Unnamed",
+    breed: (row.breed as string | null) ?? null,
+    color: (row.color as string | null) ?? null,
+    age: (row.age as string | null) ?? null,
+    age_raw: (row.age_raw as string | null) ?? null,
+    sex: (row.sex as string | null) ?? null,
+    weight: (row.weight as number | null) ?? null,
+    kennel: (row.kennel as string | null) ?? null,
+    days: (row.days as number | null) ?? null,
+    risk_since: (row.risk_since as string | null) ?? null,
+    euth_date: (row.euth_date as string | null) ?? null,
+    due_out: (row.due_out as string | null) ?? null,
+    status: (row.status as string | null) ?? null,
+    status_key: (row.status_key as string | null) ?? null,
+    public_status: (row.public_status as string | null) ?? null,
+    status_text: (row.status_text as string | null) ?? null,
+    story: (row.story as string | null) ?? null,
+    pet_search_url: (row.pet_search_url as string | null) ?? null,
+    thumb: (row.thumb as string | null) ?? null,
+    photos: normalizePhotos(row.photos),
+    list_url: (row.list_url as string | null) ?? null,
+    list_date: (row.list_date as string | null) ?? null,
+    last_listed_at: (row.last_listed_at as string | null) ?? null,
+    updated_at: (row.updated_at as string | null) ?? null,
+    intake_date: (row.intake_date as string | null) ?? null,
+    hold_until: (row.hold_until as string | null) ?? null,
+    custody_location: (row.custody_location as string | null) ?? null,
+    urgent_flag: row.urgent_flag === true,
+    urgent_source: (row.urgent_source as string | null) ?? null,
+    urgent_note: (row.urgent_note as string | null) ?? null,
+  };
+}
+
 // Shelters the board can switch between (live + preview). Powers the switcher.
 export const listShelters = createServerFn({ method: "GET" })
   .handler(async (): Promise<AcsShelter[]> => {
@@ -739,42 +778,7 @@ export const listAcsAnimals = createServerFn({ method: "GET" })
       // Heartbeat is best-effort — never fail the list over it.
     }
 
-    const all: AcsAnimal[] = (rows ?? []).map((r) => {
-      const row = r as Record<string, unknown>;
-      return {
-        id: String(row.id),
-        name: (row.name as string | null) ?? "Unnamed",
-        breed: (row.breed as string | null) ?? null,
-        color: (row.color as string | null) ?? null,
-        age: (row.age as string | null) ?? null,
-        age_raw: (row.age_raw as string | null) ?? null,
-        sex: (row.sex as string | null) ?? null,
-        weight: (row.weight as number | null) ?? null,
-        kennel: (row.kennel as string | null) ?? null,
-        days: (row.days as number | null) ?? null,
-        risk_since: (row.risk_since as string | null) ?? null,
-        euth_date: (row.euth_date as string | null) ?? null,
-        due_out: (row.due_out as string | null) ?? null,
-        status: (row.status as string | null) ?? null,
-        status_key: (row.status_key as string | null) ?? null,
-        public_status: (row.public_status as string | null) ?? null,
-        status_text: (row.status_text as string | null) ?? null,
-        story: (row.story as string | null) ?? null,
-        pet_search_url: (row.pet_search_url as string | null) ?? null,
-        thumb: (row.thumb as string | null) ?? null,
-        photos: normalizePhotos(row.photos),
-        list_url: (row.list_url as string | null) ?? null,
-        list_date: (row.list_date as string | null) ?? null,
-        last_listed_at: (row.last_listed_at as string | null) ?? null,
-        updated_at: (row.updated_at as string | null) ?? null,
-        intake_date: (row.intake_date as string | null) ?? null,
-        hold_until: (row.hold_until as string | null) ?? null,
-        custody_location: (row.custody_location as string | null) ?? null,
-        urgent_flag: row.urgent_flag === true,
-        urgent_source: (row.urgent_source as string | null) ?? null,
-        urgent_note: (row.urgent_note as string | null) ?? null,
-      };
-    });
+    const all: AcsAnimal[] = (rows ?? []).map(rowToAnimal);
 
     // Exclude `left` rows (manually confirmed no-longer-listed / positive exit).
     const visibleAll = all.filter((a) => normalizeStatusKey(a.status_key) !== "left");
@@ -853,6 +857,54 @@ export const listAcsAnimals = createServerFn({ method: "GET" })
       stat_tiles,
     };
   });
+
+// One animal by ID, for the public share page (/a/{id}). Returns the shelter's
+// own status wording too, so the page reads exactly like the in-app card.
+// Unlike the board this does NOT hide older list dates: a shared link must keep
+// working after the animal leaves today's list, and the card then shows where
+// ACS says the animal is now.
+export const getAcsAnimal = createServerFn({ method: "GET" })
+  .inputValidator((input: unknown) => {
+    const id = String((input as { id?: unknown } | null)?.id ?? "").trim().toUpperCase();
+    return { id: /^A\d{6,8}$/.test(id) ? id : "" };
+  })
+  .handler(async ({ data }): Promise<AcsAnimalPage> => {
+    if (!data.id) return { animal: null, shelter_name: null, status_guide: null };
+    const sb = serverClient();
+    const { data: rows, error } = await sb
+      .from("acs_animals")
+      .select(`${SELECT_COLUMNS}, shelter_id`)
+      .eq("id", data.id)
+      .limit(1);
+    if (error || !Array.isArray(rows) || !rows[0]) {
+      return { animal: null, shelter_name: null, status_guide: null };
+    }
+    const animal = rowToAnimal(rows[0]);
+    const slug = String((rows[0] as unknown as Record<string, unknown>).shelter_id ?? "acs_san_antonio");
+    let shelter_name: string | null = null;
+    let status_guide: Record<string, ShelterPill> | null = null;
+    try {
+      const { data: sh } = await sb
+        .from("shelters")
+        .select("name, short_name, status_guide")
+        .eq("shelter_id", slug)
+        .limit(1);
+      if (Array.isArray(sh) && sh[0]) {
+        const s = sh[0] as { name?: string; short_name?: string | null; status_guide?: Record<string, ShelterPill> | null };
+        shelter_name = (s.short_name && s.short_name.trim()) || s.name || null;
+        status_guide = s.status_guide ?? null;
+      }
+    } catch {
+      // Wording is best-effort; the card falls back to the shared table.
+    }
+    return { animal, shelter_name, status_guide };
+  });
+
+export type AcsAnimalPage = {
+  animal: AcsAnimal | null;
+  shelter_name: string | null;
+  status_guide: Record<string, ShelterPill> | null;
+};
 
 // Follow a single animal — records the follower (email + cadence) via the
 // follow_animal RPC (granted to anon). The notify-follows worker emails them

@@ -5,7 +5,6 @@ import { addAnimalMedia } from "@/lib/media.functions";
 import {
   ACS_STATUS_MODEL,
   normalizeStatusKey,
-  statusLabel,
   pillFor,
   urgentFor,
   followAnimal,
@@ -24,6 +23,7 @@ import {
 import type { NetworkRole } from "@/lib/signups.functions";
 import { submitRescuePull } from "@/lib/rescue.functions";
 import { NetworkResponses } from "@/components/voyce/NetworkResponses";
+import { ShareSheet, openAnimalShare } from "@/components/voyce/ShareSheet";
 
 // Browser push helpers. Public VAPID key is safe to ship in the client.
 const VAPID_PUBLIC_KEY =
@@ -141,10 +141,6 @@ function acsPhoto(a: AcsAnimal): string | null {
   if (a.thumb && a.thumb.trim()) return a.thumb.trim();
   if (a.photos && a.photos.length > 0) return a.photos[0];
   return null;
-}
-
-function daysText(a: AcsAnimal): string {
-  return typeof a.days === "number" ? `${a.days} days at shelter` : "on the at-risk list";
 }
 
 /** Normalize a date-ish string to US M/D/YYYY; pass through anything odd. */
@@ -408,76 +404,6 @@ function EuthTimer({
     </div>
   );
 }
-
-// ============================================================
-// Master share text (PawBoost-style)
-// ============================================================
-function buildShareText(a: AcsAnimal, deepLink: string): string {
-  const story = (a.story || "").split(/[.!]/)[0].trim().slice(0, 100);
-  const label = statusLabel(a);
-  const id = a.id;
-  return [
-    `🚨 ${label} — ${a.name} needs help at ${ACS.name}`,
-    ``,
-    `🐾 ${story || `${daysText(a)} — needs out today.`}`,
-    ``,
-    `📍 ${ACS.name} · ID ${id}`,
-    `⏰ ${daysText(a)} · capacity deadline today`,
-    ``,
-    `How you can help:`,
-    `🏠 Foster · 🚑 Rescue · 💛 Adopt · 🤝 Pledge · 🚐 Transport`,
-    ``,
-    `📞 Contact ACS: ${ACS.phone}`,
-    `🔗 Real ACS listing: ${deepLink}`,
-    ``,
-    `Voyce is pre-launch — every share grows the pack. Real alerts go to nearest helpers when we launch.`,
-    `→ voyceforpaws.lovable.app`,
-  ].join("\n");
-}
-
-// ============================================================
-// Share sheet — a labeled grid (platform + one-line purpose), opened from the
-// "Share" chip under "Can you help?". Mirrors the landing-page share modal.
-// ============================================================
-function Ico({ d }: { d: string }) {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden>
-      <path d={d} />
-    </svg>
-  );
-}
-
-const FB_PATH = "M22 12a10 10 0 1 0-11.6 9.9v-7H8v-2.9h2.4V9.4c0-2.4 1.5-3.8 3.6-3.8 1 0 2 .2 2 .2v2.3h-1.2c-1.2 0-1.6.7-1.6 1.5V12h2.7l-.4 2.9h-2.3V22A10 10 0 0 0 22 12Z";
-const WA_PATH = "M20 3.5A10 10 0 0 0 4.1 16.6L3 21l4.5-1.1A10 10 0 1 0 20 3.5Zm-5 16a8.4 8.4 0 0 1-4.3-1.2l-.3-.2-2.7.7.7-2.6-.2-.3A8.4 8.4 0 1 1 15 19.5Z";
-const X_PATH = "M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z";
-const COPY_PATH = "M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z";
-
-type ShareItem = {
-  id: string;
-  label: string;
-  sub: string;
-  bg: string;
-  fg?: string;
-  iconPath?: string;
-  mark?: string;
-};
-
-const SHARE_SHEET: ShareItem[] = [
-  { id: "nextdoor", label: "Nextdoor", sub: "Best for local rescues", bg: "#8ED500", fg: "#1F3A00", mark: "ND" },
-  { id: "facebook", label: "Facebook", sub: "Post to feed or groups", bg: "#1877F2", fg: "#fff", iconPath: FB_PATH },
-  { id: "whatsapp", label: "WhatsApp", sub: "DM or rescue groups", bg: "#25D366", fg: "#fff", iconPath: WA_PATH },
-  { id: "x", label: "X / Twitter", sub: "Tag rescues & shelters", bg: "#000", fg: "#fff", iconPath: X_PATH },
-  { id: "instagram", label: "Instagram", sub: "Copy + paste to story", bg: "#E4405F", fg: "#fff", mark: "IG" },
-  { id: "email", label: "Email", sub: "Forward to a rescuer", bg: "#EA4335", fg: "#fff", mark: "@" },
-  { id: "sms", label: "SMS", sub: "Text to the pack", bg: "#10B981", fg: "#fff", mark: "SMS" },
-  { id: "linkedin", label: "LinkedIn", sub: "Reach professionals", bg: "#0A66C2", fg: "#fff", mark: "in" },
-  { id: "snapchat", label: "Snapchat", sub: "Post to your story", bg: "#FFFC00", fg: "#000", mark: "SC" },
-  { id: "telegram", label: "Telegram", sub: "Channels & groups", bg: "#26A5E4", fg: "#fff", mark: "TG" },
-  { id: "reddit", label: "Reddit", sub: "r/Adopt · r/SanAntonio", bg: "#FF4500", fg: "#fff", mark: "R" },
-  { id: "messenger", label: "Messenger", sub: "Copy + DM friends", bg: "#00B2FF", fg: "#fff", mark: "M" },
-  { id: "pinterest", label: "Pinterest", sub: "Pin to a rescue board", bg: "#E60023", fg: "#fff", mark: "P" },
-  { id: "copy", label: "Copy link", sub: "Paste anywhere", bg: "#4B5563", fg: "#fff", iconPath: COPY_PATH },
-];
 
 // "More ways to help" — opened from the Other chip under "Can you help?".
 const OTHER_WAYS = [
@@ -872,7 +798,6 @@ export function AcsShareCard({
   const [otherOpen, setOtherOpen] = useState(false);
   const [otherText, setOtherText] = useState("");
   const [addMediaOpen, setAddMediaOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [photoFailed, setPhotoFailed] = useState(false);
   const [storyOpen, setStoryOpen] = useState(false);
   const [followOpen, setFollowOpen] = useState(false);
@@ -941,9 +866,7 @@ export function AcsShareCard({
 
   const acsDeepLink = animal.pet_search_url || `${ACS.searchPage}?id=${encodeURIComponent(id)}`;
   const pdfDeepLink = animal.list_url || `${ACS.pdfList}#${encodeURIComponent(id)}`;
-  const shareUrl =
-    typeof window !== "undefined" ? window.location.origin : "https://voyceforpaws.lovable.app";
-  const shareText = useMemo(() => buildShareText(animal, acsDeepLink), [animal, acsDeepLink]);
+  const openShare = () => openAnimalShare(animal, () => setShareOpen(true));
 
   const findFb = `https://www.facebook.com/sanantonioacs/search?q=${encodeURIComponent(id)}`;
   const findYt = `https://www.youtube.com/results?search_query=${encodeURIComponent(`"San Antonio ACS" ${id}`)}`;
@@ -963,37 +886,6 @@ export function AcsShareCard({
       ? `Hi ACS Foster team,\n\nACS's listing shows ${animal.name} (ID ${id}) is in foster care. I'd like to meet ${animal.name} — how do I set that up?\n\nThanks,`
       : `Hi ACS Foster team,\n\nI'd like to foster ${animal.name} (ID ${id}). Please send the application.\n\nThanks,`,
   )}`;
-
-  const doShare = (platform: string) => {
-    const enc = encodeURIComponent;
-    const intents: Record<string, string> = {
-      nextdoor: `https://nextdoor.com/sharekit/?body=${enc(shareText)}&url=${enc(shareUrl)}`,
-      facebook: `https://www.facebook.com/sharer/sharer.php?u=${enc(shareUrl)}&quote=${enc(shareText)}`,
-      whatsapp: `https://wa.me/?text=${enc(shareText + "\n" + shareUrl)}`,
-      x: `https://twitter.com/intent/tweet?text=${enc(shareText)}&url=${enc(shareUrl)}`,
-      telegram: `https://t.me/share/url?url=${enc(shareUrl)}&text=${enc(shareText)}`,
-      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${enc(shareUrl)}`,
-      reddit: `https://www.reddit.com/submit?url=${enc(shareUrl)}&title=${enc(`${badgeLabel} — ${animal.name} at ${ACS.name}`)}`,
-      pinterest: `https://pinterest.com/pin/create/button/?url=${enc(shareUrl)}&description=${enc(shareText)}`,
-      email: `mailto:?subject=${enc(`${badgeLabel} — ${animal.name} needs help at ${ACS.name}`)}&body=${enc(shareText + "\n" + shareUrl)}`,
-      sms: `sms:?&body=${enc(shareText + "\n" + shareUrl)}`,
-      messenger: `https://www.facebook.com/dialog/send?link=${enc(shareUrl)}&app_id=0`,
-      instagram: `https://www.instagram.com/`,
-      snapchat: `https://www.snapchat.com/`,
-    };
-    if (platform === "copy") {
-      if (typeof navigator !== "undefined" && navigator.clipboard) {
-        void navigator.clipboard.writeText(`${shareText}\n${shareUrl}`).then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        });
-      }
-      return;
-    }
-    if (intents[platform] && typeof window !== "undefined") {
-      window.open(intents[platform], "_blank", "noopener,noreferrer");
-    }
-  };
 
   const story = (animal.story || "").trim();
   const storyPreview = story.length > 160 ? `${story.slice(0, 160)}…` : story;
@@ -1212,7 +1104,7 @@ export function AcsShareCard({
               ⋯ Other
             </button>
             <button
-              onClick={() => setShareOpen(true)}
+              onClick={openShare}
               className="flex items-center justify-center gap-1 rounded-lg border border-[#D9D2C2] bg-white py-1.5 text-[11px] font-bold text-[#1A1611] active:scale-95"
             >
               📤 Share
@@ -1428,60 +1320,8 @@ export function AcsShareCard({
 
       </div>
 
-      {/* SHARE SHEET */}
-      {shareOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 p-0 sm:items-center sm:p-4"
-          onClick={() => setShareOpen(false)}
-        >
-          <div
-            className="relative flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start justify-between px-5 pt-5">
-              <div>
-                <h3 className="font-serif text-[19px] font-bold leading-tight">
-                  Share {animal.name} (ID {id})
-                </h3>
-                <p className="mt-1 text-[12px] leading-snug text-[#6B7280]">
-                  Every share helps. <b>Nextdoor</b> is best for finding a local rescuer or foster
-                  fast — neighbors see neighborhood posts.
-                </p>
-              </div>
-              <button
-                onClick={() => setShareOpen(false)}
-                aria-label="Close"
-                className="ml-2 shrink-0 rounded-full bg-black/5 px-2.5 py-1 text-sm text-foreground/70 hover:bg-black/10"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="grid grid-cols-3 gap-2.5 overflow-y-auto px-5 pb-6 pt-4">
-              {SHARE_SHEET.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => {
-                    doShare(s.id);
-                    if (s.id !== "copy") setShareOpen(false);
-                  }}
-                  className="flex flex-col items-center gap-1.5 rounded-2xl border border-[#EFE8D6] bg-white px-1.5 py-3 text-center shadow-sm transition active:scale-95"
-                >
-                  <span
-                    className="grid h-10 w-10 place-items-center rounded-full"
-                    style={{ background: s.bg, color: s.fg ?? "#fff" }}
-                  >
-                    {s.iconPath ? <Ico d={s.iconPath} /> : <span className="text-[12px] font-extrabold">{s.mark}</span>}
-                  </span>
-                  <span className="text-[11.5px] font-bold text-[#1A1611]">{s.label}</span>
-                  <span className="text-[9.5px] leading-tight text-[#9CA3AF]">
-                    {s.id === "copy" && copied ? "Copied!" : s.sub}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* SHARE SHEET — the same app grid the board uses */}
+      {shareOpen && <ShareSheet animal={animal} onClose={() => setShareOpen(false)} />}
 
       {/* MORE WAYS TO HELP (Other) */}
       {otherOpen && (
