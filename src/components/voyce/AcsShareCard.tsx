@@ -63,7 +63,16 @@ const ACS = {
   phone: "(210) 207-6669",
   phoneTel: "+12102076669",
   adoptionsEmail: "acsadoptions@sanantonio.gov",
-  fosterEmail: "acsfosters@sanantonio.gov",
+  fosterEmail: "acsfoster@sanantonio.gov",
+  // ACS's PDF: "Confirmed holds can only be placed by emailing
+  // ACSfoster@sanantonio.gov; ACSrescue@sanantonio.gov".
+  rescueEmail: "acsrescue@sanantonio.gov",
+  // New groups: ACS's Rescue Groups page says the rescue application is sent to
+  // any group that contacts ACS Rescue through this form, and links the
+  // qualifications PDF. ACS has no online application of its own.
+  rescueContactForm: "https://us.openforms.com/Form/de25b301-5801-44ec-bd7a-6116cbfdd8eb",
+  rescueQualsPdf: "https://www.sa.gov/files/assets/main/v/1/acs/documents/acs-rfa-f23.pdf",
+  rescueGroupsPage: "https://www.sa.gov/Directory/Departments/ACS/About/Partners/Rescue-Groups",
   address: "4710 State Hwy 151, San Antonio, TX 78227",
   mapsUrl:
     "https://www.google.com/maps/dir/?api=1&destination=4710+State+Hwy+151+San+Antonio+TX+78227",
@@ -110,7 +119,11 @@ function statusColor(key: AcsStatusKey): string {
     case "adoption":
     case "foster":
     case "watch":
+    case "foster_care":
+    case "foster_family_pending":
       return "#0F766E";
+    case "at_acs":
+      return "#B45309";
     case "secured":
       return "#15803D";
     case "euthanized":
@@ -154,17 +167,92 @@ function spayText(sex: string | null): { value: string; warn: boolean } {
   return { value: "Confirm with ACS", warn: false };
 }
 
+/** ACS's one-letter sex codes, spelled out for the vitals pills. */
+function sexPill(sex: string | null): string | null {
+  const s = (sex || "").trim().toUpperCase();
+  if (!s) return null;
+  if (s === "F") return "♀ Female";
+  if (s === "S") return "♀ Spayed female";
+  if (s === "M") return "♂ Male";
+  if (s === "N") return "♂ Neutered male";
+  return titleCase(s);
+}
+
+/** "Thu Oct 29" in Central time — the day the deadline falls on. */
+function centralDay(d: Date): string {
+  return d.toLocaleDateString("en-US", {
+    timeZone: "America/Chicago",
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/** "2026-07-21" or "07/21/2026" → "Jul 21", the way the list's date pills read. */
+function shortDay(s: string | null | undefined): string | null {
+  const us = usDate(s);
+  if (!us) return null;
+  const m = /^(\d{1,2})\/(\d{1,2})\/\d{4}$/.exec(us);
+  if (!m) return us;
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${months[+m[1] - 1] ?? m[1]} ${+m[2]}`;
+}
+
+/** "Oct 29, 12:30 AM CT" — when an animal was last on ACS's capacity list. */
+function centralStamp(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return `${d.toLocaleString("en-US", {
+    timeZone: "America/Chicago",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  })} CT`;
+}
+
 /** Title-case a shouty/lowercase value for warm prose ("GINNY" → "Ginny"). */
 function titleCase(s: string): string {
   return s.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase());
 }
 
-/** "4y" → "4-year-old", "10m" → "10-month-old"; leaves anything else alone. */
+/**
+ * "4y" → "4-year-old", "10m" → "10-month-old", "3y 3m" → "3-year, 3-month-old".
+ * Leaves anything it doesn't recognise alone.
+ */
 function humanAge(age: string): string {
+  const both = /^(\d+)\s*y(?:rs?)?\s*,?\s*(\d+)\s*m(?:os?|onths?)?$/i.exec(age.trim());
+  if (both) return `${both[1]}-year, ${both[2]}-month-old`;
   return age
     .replace(/(\d+)\s*y(?:rs?)?\b/i, "$1-year-old")
     .replace(/(\d+)\s*m(?:os?|onths?)?\b/i, "$1-month-old")
     .trim();
+}
+
+/**
+ * The parser strips the species word off the end of ACS's breed ("… BLEND DOG"),
+ * so read species back from the breed itself. Cat breeds on ACS's list are the
+ * domestic coat types plus named cat breeds; anything we can't place is
+ * "unknown" so the card never states a species it isn't sure of.
+ */
+type Species = "dog" | "cat" | "unknown";
+const CAT_BREED_RE =
+  /\b(DOMESTIC\s+(SH|MH|LH|SHORTHAIR|MEDIUM\s*HAIR|LONGHAIR)|SIAMESE|MAINE\s+COON|PERSIAN|BENGAL|RAGDOLL|RUSSIAN\s+BLUE|HIMALAYAN|BOMBAY|BALINESE|BURMESE|TONKINESE|ABYSSINIAN|SPHYNX|MANX|SNOWSHOE|TURKISH\s+(VAN|ANGORA)|EXOTIC\s+SH|AMERICAN\s+SH|BRITISH\s+SH|SCOTTISH\s+FOLD|NORWEGIAN\s+FOREST|CAT|KITTEN)\b/i;
+function speciesOf(a: AcsAnimal): Species {
+  const b = (a.breed || "").trim();
+  if (!b) return "unknown";
+  if (CAT_BREED_RE.test(b)) return "cat";
+  // Every other ACS breed on the capacity list has been a dog breed.
+  return "dog";
+}
+
+/** ACS's coat abbreviations, spelled out for prose ("DOMESTIC SH" → "Domestic Shorthair"). */
+function proseBreed(breed: string): string {
+  return titleCase(breed)
+    .replace(/\bSh\b/g, "Shorthair")
+    .replace(/\bMh\b/g, "Medium Hair")
+    .replace(/\bLh\b/g, "Longhair");
 }
 
 /**
@@ -191,7 +279,8 @@ function behavioralFromNotes(story: string): string {
 function buildRescueStory(a: AcsAnimal): string {
   const name = titleCase(a.name);
   const age = humanAge((a.age || a.age_raw || "").trim());
-  const breed = a.breed ? titleCase(a.breed) : "dog";
+  const sp = speciesOf(a);
+  const breed = a.breed ? proseBreed(a.breed) : sp === "unknown" ? "pet" : sp;
   const who = `${name} is ${age ? `a ${age} ` : "a "}${breed} at San Antonio ACS.`;
   const waited =
     typeof a.days === "number"
@@ -239,7 +328,13 @@ function parseAcsNotes(raw: string): { date: string | null; text: string }[] {
 // Live euthanasia timer — countdown for dated statuses; a pulsing
 // "in progress" state for b6spt / euthanasia (they're in the room now).
 // ============================================================
-function EuthTimer({ animal, variant }: { animal: AcsAnimal; variant: "chip" | "block" }) {
+function EuthTimer({
+  animal,
+  variant,
+}: {
+  animal: AcsAnimal;
+  variant: "chip" | "block" | "overlay";
+}) {
   const key = normalizeStatusKey(animal.status_key);
   const inProgress = key === "b6spt" || key === "euthanasia";
   const target = useMemo(() => (inProgress ? null : deadlineForAnimal(animal)), [animal, inProgress]);
@@ -250,6 +345,26 @@ function EuthTimer({ animal, variant }: { animal: AcsAnimal; variant: "chip" | "
     : urgencyFor(msLeft);
   const countdown = hasTarget ? formatCountdown(msLeft) : null;
   const pulse = chip.pulse ? "motion-safe:animate-pulse" : "";
+
+  // One small chip on the photo — just the countdown. The deadline date/time
+  // lives in the line under the name, so the photo stays clean.
+  if (variant === "overlay") {
+    if (!hasTarget && !inProgress) return null;
+    return (
+      <span
+        className={`absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full border-l-[3px] bg-black/75 px-2.5 py-1 text-[11.5px] font-extrabold text-white shadow-lg ${pulse}`}
+        style={{ borderColor: chip.bg }}
+        role="status"
+        aria-live="polite"
+      >
+        {hasTarget ? (
+          <span className="font-mono tabular-nums">⏳ {countdown}</span>
+        ) : (
+          <span>{key === "euthanasia" ? "In the euthanasia room now" : "In a euthanasia-prep kennel"}</span>
+        )}
+      </span>
+    );
+  }
 
   if (variant === "chip") {
     return (
@@ -466,20 +581,34 @@ function RescuePullForm({ animal }: { animal: AcsAnimal }) {
   const labelCls =
     "text-[11px] font-semibold uppercase tracking-wider text-foreground/60";
 
+  const holdMailto = `mailto:${ACS.rescueEmail}?subject=${encodeURIComponent(
+    `Rescue hold request: ${animal.name} (ID ${animal.id})`,
+  )}&body=${encodeURIComponent(
+    `Hi ACS Rescue team,\n\nWe're an approved ACS rescue partner and would like to place a hold on ${animal.name} (ID ${animal.id}${animal.kennel ? `, kennel ${animal.kennel}` : ""}) for transfer.\n\nRescue:\nContact:\nPhone:\n\nThank you,`,
+  )}`;
+
   return (
     <>
       <SectionLabel>Rescue pull</SectionLabel>
       <div
-        className="mx-5 mb-5 rounded-xl px-4 py-4"
+        className="mx-5 rounded-xl px-4 py-4"
         style={{ background: CREAM, border: `1px solid ${GOLD_DEEP}` }}
       >
         <h3 className="font-serif text-[16px] font-bold" style={{ color: INK }}>
-          🐾 Rescue pull — step up for {animal.name}
+          🤝 Approved ACS partner? Pull {animal.name}
         </h3>
         <p className="mt-1 text-[12px] leading-[1.5]" style={{ color: "#6B5832" }}>
-          For a rescue/organization that can pull this dog — Voyce coordinates; we
-          never contact ACS for you automatically.
+          ACS only confirms holds by email, so email ACS Rescue first — then tell
+          Voyce below so we can coordinate. We never contact ACS for you.
         </p>
+        <a
+          href={holdMailto}
+          className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-xl py-2.5 text-[12.5px] font-bold text-white shadow-sm active:scale-95"
+          style={{ background: `linear-gradient(135deg, ${RED1} 0%, ${RED2} 100%)` }}
+        >
+          ✉️ Email ACS Rescue to place a hold
+        </a>
+        <p className="mt-1 text-center text-[10.5px] text-[#9CA3AF]">{ACS.rescueEmail}</p>
 
         {done ? (
           <div className="mt-3 rounded-xl bg-white px-4 py-6 text-center" style={{ border: `1px solid ${GOLD_DEEP}` }}>
@@ -584,12 +713,147 @@ function RescuePullForm({ animal }: { animal: AcsAnimal }) {
               className="mt-1 w-full rounded-xl px-3 py-2.5 text-center text-[13px] font-bold shadow-sm transition active:scale-95 disabled:opacity-60"
               style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_DEEP} 100%)`, color: GOLD_INK }}
             >
-              {busy ? "Sending…" : "Submit rescue-pull request"}
+              {busy ? "Sending…" : "Tell Voyce you're pulling"}
             </button>
           </div>
         )}
       </div>
     </>
+  );
+}
+
+// ============================================================
+// NewRescuePartner — for a rescue that is NOT yet approved by ACS. ACS has no
+// online application: its Rescue Groups page sends groups to a "Contact ACS
+// Rescue" form (Name, Organization, Email, Phone, Comments) and ACS emails the
+// application back. This mirrors those same five fields and opens an email to
+// ACS Rescue from the rescue's own mail app, so it comes from them, not Voyce.
+// ACS's own form is linked too (it has a reCAPTCHA, so it can't be sent from here).
+// ============================================================
+function NewRescuePartner({ animal }: { animal: AcsAnimal }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [org, setOrg] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [comments, setComments] = useState(
+    `We'd like to apply to become an ACS rescue partner. Please send us the rescue application. We're interested in ${titleCase(animal.name)} (ID ${animal.id}).`,
+  );
+  const [err, setErr] = useState<string | null>(null);
+
+  const inputCls =
+    "mt-1 w-full rounded-xl border border-[#D9D2C2] bg-white px-3 py-2 text-[14px] outline-none focus:border-[#C9871A]";
+  const labelCls = "text-[11px] font-semibold uppercase tracking-wider text-foreground/60";
+
+  const send = () => {
+    setErr(null);
+    if (!name.trim() || !org.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) {
+      setErr("Please add your name, organization, and a valid email.");
+      return;
+    }
+    const body = [
+      `Name: ${name.trim()}`,
+      `Organization: ${org.trim()}`,
+      `Email Address: ${email.trim()}`,
+      `Phone Number: ${phone.trim() || "—"}`,
+      ``,
+      `Comments or Questions:`,
+      comments.trim(),
+    ].join("\n");
+    const href = `mailto:${ACS.rescueEmail}?subject=${encodeURIComponent(
+      `New rescue partner application request: ${org.trim()}`,
+    )}&body=${encodeURIComponent(body)}`;
+    if (typeof window !== "undefined") window.location.href = href;
+  };
+
+  return (
+    <div className="mx-5 mb-5 mt-2.5 rounded-xl bg-white px-4 py-3 ring-1 ring-[#E5DCC5]">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-2 text-left"
+        aria-expanded={open}
+      >
+        <span>
+          <span className="block font-serif text-[15px] font-bold" style={{ color: INK }}>
+            🆕 New rescue? Partner with ACS
+          </span>
+          <span className="block text-[11.5px] leading-snug text-[#6B5832]">
+            Not approved by ACS yet — request ACS&rsquo;s rescue application
+          </span>
+        </span>
+        <span className="text-[16px] text-[#9CA3AF]">{open ? "−" : "+"}</span>
+      </button>
+
+      {open && (
+        <div className="mt-3 space-y-2">
+          <p className="text-[12px] leading-[1.5] text-[#6B5832]">
+            ACS sends its rescue application to groups that contact ACS Rescue. Check the
+            qualifications first, then send your details below.
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            <a
+              href={ACS.rescueQualsPdf}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded-full bg-[#FFF6DA] px-2.5 py-1 text-[10.5px] font-bold text-[#7A5A0A] active:scale-95"
+            >
+              📄 ACS qualifications (PDF)
+            </a>
+            <a
+              href={ACS.rescueGroupsPage}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded-full bg-[#EEF3FB] px-2.5 py-1 text-[10.5px] font-bold text-[#1E40AF] active:scale-95"
+            >
+              🏛 ACS rescue partners page
+            </a>
+          </div>
+
+          <label className="block">
+            <span className={labelCls}>Name *</span>
+            <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="Your name" />
+          </label>
+          <label className="block">
+            <span className={labelCls}>Organization *</span>
+            <input value={org} onChange={(e) => setOrg(e.target.value)} className={inputCls} placeholder="Rescue or organization name" />
+          </label>
+          <label className="block">
+            <span className={labelCls}>Email address *</span>
+            <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" className={inputCls} placeholder="you@rescue.org" />
+          </label>
+          <label className="block">
+            <span className={labelCls}>Phone number</span>
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" className={inputCls} placeholder="(555) 555-5555" />
+          </label>
+          <label className="block">
+            <span className={labelCls}>Comments or questions</span>
+            <textarea value={comments} onChange={(e) => setComments(e.target.value)} rows={4} className={inputCls + " resize-none"} />
+          </label>
+
+          {err && (
+            <p className="text-[12px] font-semibold" style={{ color: RED2 }}>
+              {err}
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={send}
+            className="w-full rounded-xl px-3 py-2.5 text-center text-[13px] font-bold shadow-sm transition active:scale-95"
+            style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_DEEP} 100%)`, color: GOLD_INK }}
+          >
+            ✉️ Send to ACS Rescue
+          </button>
+          <p className="text-center text-[10.5px] leading-snug text-[#9CA3AF]">
+            Opens an email to {ACS.rescueEmail} from your own email app.{" "}
+            <a href={ACS.rescueContactForm} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#7A5A0A] underline">
+              Or use ACS&rsquo;s own form ↗
+            </a>
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -631,16 +895,49 @@ export function AcsShareCard({
     statusKey === "euthanasia" ||
     statusKey === "office_crit" ||
     statusKey === "immediate" ||
+    statusKey === "outside_crit" ||
     statusKey === "scheduled";
 
   const id = animal.id;
   const NAME = animal.name.toUpperCase();
   const kennel = animal.kennel ?? "—";
   const photo = acsPhoto(animal);
-  const vitals = [animal.breed, animal.age || animal.age_raw, animal.color]
-    .filter(Boolean)
-    .join(" · ");
-  const daysWaiting = typeof animal.days === "number" ? `${animal.days} days waiting` : "on the list";
+  // Off the capacity list, filed from ACS's own listing page — no kennel, no
+  // deadline, no "days waiting" (those were capacity-list facts).
+  const fromListing =
+    statusKey === "foster_care" || statusKey === "foster_family_pending" || statusKey === "at_acs";
+  const inFosterCare = statusKey === "foster_care" || statusKey === "foster_family_pending";
+  const inRoom = statusKey === "b6spt" || statusKey === "euthanasia";
+  const deadline = useMemo(() => deadlineForAnimal(animal), [animal]);
+  const lastSeen = centralStamp(animal.last_listed_at);
+  const ageStr = (animal.age || animal.age_raw || "").trim();
+  const vitalPills: { label: string; warm?: boolean }[] = [
+    animal.breed ? { label: proseBreed(animal.breed) } : null,
+    ageStr ? { label: ageStr } : null,
+    sexPill(animal.sex) ? { label: sexPill(animal.sex) as string } : null,
+    animal.weight ? { label: `${animal.weight} lb` } : null,
+    !fromListing && typeof animal.days === "number"
+      ? { label: `⏳ ${animal.days} day${animal.days === 1 ? "" : "s"} at ACS`, warm: true }
+      : null,
+  ].filter(Boolean) as { label: string; warm?: boolean }[];
+
+  // ACS's own dates, as the same pills the list shows. Kennel / due out / euth
+  // are capacity-list facts, so animals ACS has since filed elsewhere skip them.
+  const datePills: { label: string; tone: "cream" | "rose" | "red" }[] = fromListing
+    ? []
+    : ([
+        animal.kennel ? { label: `Kennel ${animal.kennel}`, tone: "cream" } : null,
+        shortDay(animal.due_out) ? { label: `Due out ${shortDay(animal.due_out)}`, tone: "cream" } : null,
+        shortDay(animal.risk_since) ? { label: `At risk since ${shortDay(animal.risk_since)}`, tone: "rose" } : null,
+        shortDay(animal.euth_date)
+          ? { label: `Euth ${statusKey === "atrisk" ? "after" : "date"} ${shortDay(animal.euth_date)}`, tone: "red" }
+          : null,
+      ].filter(Boolean) as { label: string; tone: "cream" | "rose" | "red" }[]);
+  const PILL_TONE = {
+    cream: { background: "#F3EFE4", color: "#6B5832" },
+    rose: { background: "#FDECEC", color: "#9A3412" },
+    red: { background: "#FBE3E3", color: "#7F1D1D" },
+  } as const;
 
   const acsDeepLink = animal.pet_search_url || `${ACS.searchPage}?id=${encodeURIComponent(id)}`;
   const pdfDeepLink = animal.list_url || `${ACS.pdfList}#${encodeURIComponent(id)}`;
@@ -658,9 +955,13 @@ export function AcsShareCard({
     `Hi ACS team,\n\nI'm interested in ${animal.name} (ID ${id}, kennel ${kennel}). Please let me know next steps.\n\nThanks,`,
   )}`;
   const fosterMailto = `mailto:${ACS.fosterEmail}?subject=${encodeURIComponent(
-    `Foster application for ${animal.name} (ID ${id})`,
+    inFosterCare
+      ? `Meeting ${animal.name} (ID ${id}) — in ACS foster care`
+      : `Foster application for ${animal.name} (ID ${id})`,
   )}&body=${encodeURIComponent(
-    `Hi ACS Foster team,\n\nI'd like to foster ${animal.name} (ID ${id}). Please send the application.\n\nThanks,`,
+    inFosterCare
+      ? `Hi ACS Foster team,\n\nACS's listing shows ${animal.name} (ID ${id}) is in foster care. I'd like to meet ${animal.name} — how do I set that up?\n\nThanks,`
+      : `Hi ACS Foster team,\n\nI'd like to foster ${animal.name} (ID ${id}). Please send the application.\n\nThanks,`,
   )}`;
 
   const doShare = (platform: string) => {
@@ -700,6 +1001,7 @@ export function AcsShareCard({
   const listDateStr = usDate(animal.list_date);
   const rescueStory = buildRescueStory(animal);
   const spay = spayText(animal.sex);
+  const species = speciesOf(animal);
 
   const facts: { label: string; value: string; warn?: boolean }[] = [
     { label: "Breed", value: animal.breed || "—" },
@@ -711,8 +1013,18 @@ export function AcsShareCard({
     { label: "Days at shelter", value: typeof animal.days === "number" ? `${animal.days} days` : "—" },
     { label: "At risk since", value: usDate(animal.risk_since) || "—" },
     { label: "Due out", value: usDate(animal.due_out) || "—" },
-    { label: statusKey === "atrisk" ? "Euth after" : "Euth date", value: animal.euth_date || "—", warn: !!animal.euth_date },
+    {
+      label: fromListing ? "Last posted euth date" : statusKey === "atrisk" ? "Euth after" : "Euth date",
+      value: animal.euth_date || "—",
+      warn: !fromListing && !!animal.euth_date,
+    },
   ];
+
+  // Kennel / days / due-out were capacity-list facts; once ACS files the
+  // animal elsewhere they'd be stale, so they drop out of Rescue facts.
+  const shownFacts = fromListing
+    ? facts.filter((f) => !["Kennel", "Days at shelter", "Due out"].includes(f.label))
+    : facts;
 
   const medical: { label: string; value: string; warn?: boolean }[] = [
     { label: "Spay / neuter", value: spay.value, warn: spay.warn },
@@ -720,21 +1032,27 @@ export function AcsShareCard({
     { label: "Heartworm", value: "Confirm with ACS" },
     { label: "Microchip", value: "Confirm with ACS" },
     { label: "Vaccines", value: "Confirm with ACS" },
-    { label: "FeLV / FIV", value: "N/A (canine)" },
+    // FeLV/FIV is a cat test; only call it N/A when we're sure this is a dog.
+    { label: "FeLV / FIV", value: species === "dog" ? "N/A (canine)" : "Confirm with ACS" },
   ];
 
   // Quick-link pills shown up top by the address — small, clear, like View map.
   const quickLinks: { href: string; label: string; bg: string; fg: string }[] = [
     { href: ACS.mapsUrl, label: "📍 View map", bg: "#EEF3FB", fg: "#1E40AF" },
     { href: acsDeepLink, label: "🏛 ACS listing", bg: "#FFF6DA", fg: "#7A5A0A" },
-    { href: pdfDeepLink, label: "📋 ACS PDF · this dog", bg: "#FFF6DA", fg: "#7A5A0A" },
+    {
+      href: pdfDeepLink,
+      label: `📋 ACS PDF · this ${species === "unknown" ? "pet" : species}`,
+      bg: "#FFF6DA",
+      fg: "#7A5A0A",
+    },
   ];
 
   return (
     <div style={{ minHeight: "100dvh", background: PAPER }}>
       <BrandHeader />
 
-      <div className="mx-auto w-full max-w-[440px] px-4 pb-10 pt-3" style={{ color: INK }}>
+      <div className="mx-auto w-full max-w-[400px] px-4 pb-10 pt-3" style={{ color: INK }}>
         {/* AI advisory — folded in from the report view */}
         <div className="mb-3 flex items-start gap-2 rounded-xl bg-[#FEF6E0] px-3.5 py-2.5 ring-1 ring-[#F3E5B6]">
           <span className="text-[14px] leading-none">⚠️</span>
@@ -748,7 +1066,7 @@ export function AcsShareCard({
           className="overflow-hidden rounded-2xl bg-white ring-1 ring-black/5"
           style={{ boxShadow: "0 22px 60px -28px rgba(20,15,5,0.45)" }}
         >
-          {/* ===== HERO PHOTO ===== */}
+          {/* ===== HERO PHOTO — only the status pill + countdown ride on it ===== */}
           <div
             className="relative w-full overflow-hidden"
             style={{ aspectRatio: "4/3", background: photo && !photoFailed ? "#000" : undefined }}
@@ -772,73 +1090,71 @@ export function AcsShareCard({
                 </span>
               </div>
             )}
-            <span className="absolute bottom-3 left-3 rounded-full bg-black/80 px-2.5 py-0.5 text-[10px] font-bold text-white shadow-lg">
-              🕒 {daysText(animal)}
-            </span>
             <span
-              className="absolute right-3 top-3 rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.08em] text-white shadow-lg"
+              className="absolute left-3 top-3 rounded-full px-2.5 py-0.5 text-[9.5px] font-extrabold uppercase tracking-[0.08em] text-white shadow-lg"
               style={{ background: chipColor }}
             >
               {badgeLabel}
             </span>
+            {showTimer && <EuthTimer animal={animal} variant="overlay" />}
           </div>
 
-          {/* ===== NAME BLOCK ===== */}
-          <div className="px-5 pb-1 pt-5">
-            <h2 className="font-serif text-[28px] font-bold leading-[1.05] tracking-tight" style={{ color: INK }}>
+          {/* ===== NAME BLOCK — name, ID, vitals pills, one deadline line ===== */}
+          <div className="px-5 pb-1 pt-4">
+            <h2 className="font-serif text-[24px] font-bold leading-[1.05] tracking-tight" style={{ color: INK }}>
               {NAME}
             </h2>
             <p className="mt-1 text-[12px] font-semibold" style={{ color: GOLD_DEEP }}>
-              ID {id} · kennel {kennel}
+              ID {id}
             </p>
-            <p className="mt-1 text-[13px] font-medium text-[#4B5563]">
-              {vitals}
-              {vitals ? " · " : ""}
-              {daysWaiting}
-            </p>
-            {showTimer && (
-              <p className="mt-1.5 text-[13px] font-bold" style={{ color: chipColor }}>
-                Needs a foster or rescue pull{statusKey === "scheduled" ? " before the date" : " today"}
-              </p>
+            {vitalPills.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {vitalPills.map((v) => (
+                  <span
+                    key={v.label}
+                    className="rounded-full px-2 py-0.5 text-[10.5px] font-semibold"
+                    style={v.warm ? { background: "#FFF1E0", color: "#B4610F" } : { background: "#F3F2EE", color: "#4B5563" }}
+                  >
+                    {v.label}
+                  </span>
+                ))}
+              </div>
             )}
-          </div>
-
-          {/* ===== ADDRESS + QUICK-LINK PILLS (View map · ACS listing · ACS PDF) ===== */}
-          <div className="mx-5 mt-3">
-            <div className="flex items-start gap-2 text-[12.5px] leading-snug text-[#4B5563]">
-              <span className="text-[14px] leading-none">📍</span>
-              <span>
-                <b>{ACS.fullName}</b> · {ACS.address}
-              </span>
-            </div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {quickLinks.map((q) => (
-                <a
-                  key={q.label}
-                  href={q.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-bold active:scale-95"
-                  style={{ background: q.bg, color: q.fg }}
-                >
-                  {q.label}
-                </a>
-              ))}
-            </div>
-          </div>
-
-          {/* ===== STATUS / ALARM LINE ===== */}
-          <div
-            className="mx-5 mt-3 rounded-xl border-l-[4px] px-3.5 py-2.5"
-            style={{ background: "#FFFBEB", borderColor: chipColor }}
-          >
-            <p className="text-[12.5px] leading-snug text-[#4B3A12]">
-              <span className="font-bold" style={{ color: chipColor }}>
-                {badgeLabel}:
-              </span>{" "}
-              {pill.means}{" "}
-              <span className="text-[#6B7280]">{pill.action ?? statusMeta.action}</span>
-            </p>
+            {datePills.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {datePills.map((d) => (
+                  <span
+                    key={d.label}
+                    className="rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
+                    style={PILL_TONE[d.tone]}
+                  >
+                    {d.label}
+                  </span>
+                ))}
+              </div>
+            )}
+            {deadline ? (
+              <div className="mt-2.5 border-t border-black/5 pt-2.5">
+                <p className="text-[13px] font-bold" style={{ color: chipColor }}>
+                  Needs out by {centralDay(deadline)}, {formatDeadlineClock(deadline)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-[#6B7280]">
+                  ACS&rsquo;s deadline · placement email must reach ACS before then · confirm with ACS
+                </p>
+              </div>
+            ) : inRoom ? (
+              <div className="mt-2.5 border-t border-black/5 pt-2.5">
+                <p className="text-[13px] font-bold" style={{ color: chipColor }}>
+                  {statusKey === "euthanasia" ? "In the euthanasia room now" : "Moved to a euthanasia-prep kennel"} — call ACS now
+                </p>
+              </div>
+            ) : fromListing && animal.custody_location ? (
+              <div className="mt-2.5 border-t border-black/5 pt-2.5">
+                <p className="text-[12.5px] font-semibold text-[#4B5563]">
+                  📍 ACS listing: {animal.custody_location}
+                </p>
+              </div>
+            ) : null}
           </div>
 
           {urgent ? (
@@ -858,53 +1174,46 @@ export function AcsShareCard({
             </div>
           ) : null}
 
-          {/* ===== TIME LEFT ===== */}
-          {showTimer && (
-            <div className="mx-5 mt-4">
-              <EuthTimer animal={animal} variant="block" />
-            </div>
-          )}
-
           {/* ===== CAN YOU HELP? action chips ===== */}
-          <p className="mx-5 mb-2 mt-5 text-[13px] font-bold" style={{ color: INK }}>
+          <p className="mx-5 mb-2 mt-4 text-[13px] font-bold" style={{ color: INK }}>
             Can you help {animal.name}?
           </p>
-          <div className="mx-5 grid grid-cols-3 gap-2">
+          <div className="mx-5 grid grid-cols-3 gap-1.5">
             <button
               onClick={() => openModal("foster")}
-              className="flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[12px] font-bold active:scale-95"
+              className="flex items-center justify-center gap-1 rounded-lg py-1.5 text-[11px] font-bold active:scale-95"
               style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_DEEP} 100%)`, color: GOLD_INK }}
             >
               🏠 Foster
             </button>
             <a
               href={adoptMailto}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-[#D9D2C2] bg-white py-2.5 text-[12px] font-bold text-[#1A1611] active:scale-95"
+              className="flex items-center justify-center gap-1 rounded-lg border border-[#D9D2C2] bg-white py-1.5 text-[11px] font-bold text-[#1A1611] active:scale-95"
             >
               💛 Adopt
             </a>
             <button
               onClick={() => openModal("rescuer")}
-              className="flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[12px] font-bold text-white active:scale-95"
+              className="flex items-center justify-center gap-1 rounded-lg py-1.5 text-[11px] font-bold text-white active:scale-95"
               style={{ background: `linear-gradient(135deg, ${RED1} 0%, ${RED2} 100%)` }}
             >
               🤝 Rescue pull
             </button>
             <button
               onClick={() => openModal("animal_lover")}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-[#D9D2C2] bg-white py-2.5 text-[12px] font-bold text-[#1A1611] active:scale-95"
+              className="flex items-center justify-center gap-1 rounded-lg border border-[#D9D2C2] bg-white py-1.5 text-[11px] font-bold text-[#1A1611] active:scale-95"
             >
               💵 Pledge
             </button>
             <button
               onClick={() => setOtherOpen(true)}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-[#D9D2C2] bg-white py-2.5 text-[12px] font-bold text-[#1A1611] active:scale-95"
+              className="flex items-center justify-center gap-1 rounded-lg border border-[#D9D2C2] bg-white py-1.5 text-[11px] font-bold text-[#1A1611] active:scale-95"
             >
               ⋯ Other
             </button>
             <button
               onClick={() => setShareOpen(true)}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-[#D9D2C2] bg-white py-2.5 text-[12px] font-bold text-[#1A1611] active:scale-95"
+              className="flex items-center justify-center gap-1 rounded-lg border border-[#D9D2C2] bg-white py-1.5 text-[11px] font-bold text-[#1A1611] active:scale-95"
             >
               📤 Share
             </button>
@@ -913,23 +1222,21 @@ export function AcsShareCard({
           <div className="mx-5 mt-2">
             <button
               onClick={() => setFollowOpen(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border py-2.5 text-[12.5px] font-bold active:scale-95"
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg border py-1.5 text-[11px] font-bold active:scale-95"
               style={{ borderColor: "#C9871A", background: "#FFF7D6", color: "#7A5A0A" }}
             >
               🔔 Follow {animal.name} — get notified if their status changes
             </button>
           </div>
 
-          {/* ===== RESCUE FACTS ===== */}
-          <SectionLabel>Rescue facts</SectionLabel>
-          <FactGrid items={facts} tone="rescue" />
-
-          {/* ===== MEDICAL ===== */}
-          <SectionLabel>Medical · from ACS</SectionLabel>
-          <FactGrid items={medical} tone="med" />
-          <p className="mx-5 mt-2 text-[11px] italic leading-snug text-[#6B7280]">
-            Vaccines and microchip aren't on ACS's capacity list, so they stay "confirm with ACS."
-          </p>
+          {/* ===== FULL DETAILS — everything below the fold ===== */}
+          <div className="mx-5 mt-5 flex items-center gap-2">
+            <span className="h-px flex-1 bg-[#E5DCC5]" />
+            <span className="text-[10px] font-extrabold uppercase tracking-[0.16em]" style={{ color: GOLD_DEEP }}>
+              Full details
+            </span>
+            <span className="h-px flex-1 bg-[#E5DCC5]" />
+          </div>
 
           {/* ===== THEIR STORY (warm, built only from ACS's real data) ===== */}
           <SectionLabel>Their story</SectionLabel>
@@ -939,6 +1246,19 @@ export function AcsShareCard({
           <p className="mx-5 mt-1.5 text-[10.5px] italic text-[#9CA3AF]">
             Voyce composed this from San Antonio ACS's listing and its own words — nothing invented.
           </p>
+
+          <p className="mx-5 mt-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-[#6B5832]">
+            To meet {titleCase(animal.name)}
+          </p>
+          <div className="mx-5 mt-1.5 flex flex-wrap gap-1.5">
+            <a
+              href={fosterMailto}
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-bold text-white active:scale-95"
+              style={{ background: "#0F766E" }}
+            >
+              ✉️ ACS Foster · {ACS.fosterEmail}
+            </a>
+          </div>
 
           {/* ===== EVALUATION / BEHAVIOR NOTES (verbatim, split by date) ===== */}
           <SectionLabel>Evaluation / behavior · from ACS</SectionLabel>
@@ -972,6 +1292,63 @@ export function AcsShareCard({
             </div>
           )}
 
+          {/* ===== WHAT THIS STATUS MEANS ===== */}
+          <SectionLabel>What &ldquo;{badgeLabel}&rdquo; means</SectionLabel>
+          <div
+            className="mx-5 rounded-xl border-l-[4px] px-3.5 py-2.5"
+            style={{ background: "#FFFBEB", borderColor: chipColor }}
+          >
+            <p className="text-[12.5px] leading-snug text-[#4B3A12]">
+              <span className="font-bold" style={{ color: chipColor }}>
+                {badgeLabel}:
+              </span>{" "}
+              {pill.means}{" "}
+              <span className="text-[#6B7280]">{pill.action ?? statusMeta.action}</span>
+            </p>
+          </div>
+
+          {/* ===== ADDRESS + QUICK-LINK PILLS (View map · ACS listing · ACS PDF) ===== */}
+          <SectionLabel>Where</SectionLabel>
+          <div className="mx-5">
+            <div className="flex items-start gap-2 text-[12.5px] leading-snug text-[#4B5563]">
+              <span className="text-[14px] leading-none">📍</span>
+              <span>
+                <b>{ACS.fullName}</b> · {ACS.address}
+              </span>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {quickLinks.map((q) => (
+                <a
+                  key={q.label}
+                  href={q.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-bold active:scale-95"
+                  style={{ background: q.bg, color: q.fg }}
+                >
+                  {q.label}
+                </a>
+              ))}
+            </div>
+          </div>
+
+          {/* ===== RESCUE FACTS ===== */}
+          <SectionLabel>Rescue facts</SectionLabel>
+          <FactGrid items={shownFacts} tone="rescue" />
+
+          {lastSeen && (
+            <p className="mx-5 mt-2 text-[11px] text-[#6B7280]">
+              <b className="text-[#4B5563]">Last seen on ACS&rsquo;s list:</b> {lastSeen}
+            </p>
+          )}
+
+          {/* ===== MEDICAL ===== */}
+          <SectionLabel>Medical · from ACS</SectionLabel>
+          <FactGrid items={medical} tone="med" />
+          <p className="mx-5 mt-2 text-[11px] italic leading-snug text-[#6B7280]">
+            Vaccines and microchip aren't on ACS's capacity list, so they stay "confirm with ACS."
+          </p>
+
           {/* ===== FIND POSTS & VIDEOS ===== */}
           <SectionLabel>Find posts &amp; videos</SectionLabel>
           <div className="mx-5 rounded-xl bg-[#FFFBEB] p-3.5 ring-1 ring-[#F3E5B6]">
@@ -997,26 +1374,26 @@ export function AcsShareCard({
             </button>
           </div>
 
-          {/* ===== CONTACT ACS ===== */}
+          {/* ===== CONTACT ACS — pills ===== */}
           <SectionLabel>Contact ACS</SectionLabel>
-          <div className="mx-5 grid grid-cols-2 gap-2">
-            <a
-              href={adoptMailto}
-              className="rounded-xl px-3 py-2.5 text-center text-[12px] font-bold shadow-sm transition active:scale-95"
-              style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_DEEP} 100%)`, color: GOLD_INK }}
-            >
-              ✉️ Email adoptions
-            </a>
+          <div className="mx-5 flex flex-wrap gap-1.5">
             <a
               href={fosterMailto}
-              className="rounded-xl px-3 py-2.5 text-center text-[12px] font-bold shadow-sm transition active:scale-95"
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-bold text-white active:scale-95"
+              style={{ background: "#0F766E" }}
+            >
+              ✉️ ACS Foster
+            </a>
+            <a
+              href={adoptMailto}
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-bold active:scale-95"
               style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_DEEP} 100%)`, color: GOLD_INK }}
             >
-              📝 Foster application
+              💛 Email adoptions
             </a>
             <a
               href={`tel:${ACS.phoneTel}`}
-              className="rounded-xl border border-[#D9D2C2] bg-white px-3 py-2.5 text-center text-[12px] font-bold text-[#1A1611] transition active:scale-95"
+              className="inline-flex items-center gap-1 rounded-full border border-[#D9D2C2] bg-white px-2.5 py-1 text-[10.5px] font-bold text-[#1A1611] active:scale-95"
             >
               📞 {ACS.phone}
             </a>
@@ -1024,7 +1401,7 @@ export function AcsShareCard({
               href={ACS.mapsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-xl border border-[#D9D2C2] bg-white px-3 py-2.5 text-center text-[12px] font-bold text-[#1A1611] transition active:scale-95"
+              className="inline-flex items-center gap-1 rounded-full border border-[#D9D2C2] bg-white px-2.5 py-1 text-[10.5px] font-bold text-[#1A1611] active:scale-95"
             >
               🧭 Directions
             </a>
@@ -1042,6 +1419,7 @@ export function AcsShareCard({
 
           {/* ===== RESCUE PULL REQUEST ===== */}
           <RescuePullForm animal={animal} />
+          <NewRescuePartner animal={animal} />
 
           {/* ===== HOW THE NETWORK IS RESPONDING ===== */}
           <SectionLabel>The pack</SectionLabel>

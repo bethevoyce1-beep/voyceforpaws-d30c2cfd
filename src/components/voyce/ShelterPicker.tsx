@@ -627,6 +627,9 @@ function AnimalRow({ a, onPick, onFollow, shelterName, guide }: { a: AcsAnimal; 
             <span className="font-serif text-[15px] font-semibold leading-tight" style={{ color: INK }}>
               {a.name}
             </span>
+            <span className="text-[10.5px] font-semibold" style={{ color: GOLD_DEEP }}>
+              · {a.id}
+            </span>
             {kennel && (
               <span className="text-[10.5px] text-muted-foreground">· kennel {kennel}</span>
             )}
